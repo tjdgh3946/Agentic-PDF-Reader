@@ -1,0 +1,15 @@
+node_modules/
+.local/
+server.pid
+*.log
+dist/
+release/
+coverage/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.exe
+*.asar

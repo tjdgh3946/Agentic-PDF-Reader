@@ -1,0 +1,123 @@
+/* 기능별 스타일. 사용자의 Paper-Reader.css 테마 변수를 이어받습니다. */
+[hidden] { display: none !important; }
+.control-with-help { display: inline-flex; gap: 6px; align-items: center; vertical-align: middle; margin: 0; padding: 0; background: none; color: inherit; font: inherit; letter-spacing: normal; border-radius: 0; }
+.wide-help { display: flex; width: 100%; }
+.wide-help > button:first-child { flex: 1; min-width: 0; }
+button.info-button {
+  display: inline-flex; align-items: center; justify-content: center;
+  flex: 0 0 24px; width: 24px; height: 24px; padding: 0;
+  border: 1px solid transparent; background: transparent;
+  color: var(--muted, #627968); font-size: 17px; line-height: 1;
+  border-radius: var(--radius, 3px); cursor: help;
+}
+button.info-button:hover,button.info-button:focus-visible {
+  color: var(--orange, #17664e); border-color: currentColor;
+  outline: none; background: var(--hover, #f1f5f1);
+}
+.info-tooltip {
+  position: fixed; inset: auto; margin: 0; z-index: 100;
+  width: min(360px, calc(100vw - 16px)); max-height: calc(100dvh - 16px);
+  overflow: auto; padding: 15px 17px;
+  background: #fff; color: var(--text-color, #20332e);
+  border: 1px solid var(--rule, #d4ded8); border-radius: var(--radius, 3px);
+  box-shadow: 0 6px 24px #17120f26;
+  font-family: var(--font-sans, "Segoe UI", sans-serif); font-size: 12.5px;
+  line-height: 1.8; letter-spacing: normal; text-align: left; white-space: normal;
+}
+.info-tooltip strong { display: block; font-size: 13px; margin-bottom: 7px; color: var(--ink, #20332e); }
+.info-tooltip > span { display: block; white-space: pre-line; font-size: inherit; letter-spacing: normal; color: inherit; background: none; margin: 0; padding: 0; }
+.usage-card { border-top: 1px solid var(--rule, #d4ded8); border-bottom: 1px solid var(--rule, #d4ded8); padding: 14px 0; margin: 18px 0; }
+.usage-card strong { font-size: 13px; }
+.usage-card p,.settings-note,#settings-status { font-size: 12px; line-height: 1.8; color: var(--muted, #627968); }
+.usage-card #refresh-usage { font-size: 12px; padding: 7px 10px; }
+.usage-card #usage-account { overflow-wrap: anywhere; color: var(--text-color, #20332e); }
+.usage-card .usage-warning { color: var(--orange, #9b390d); font-weight: 600; }
+.usage-bucket { border-top: 1px solid var(--rule, #d4ded8); padding-top: 10px; margin-top: 10px; }
+.usage-bucket p { margin: 5px 0; }
+.usage-bucket progress { width: 100%; height: 8px; accent-color: var(--accent); }
+.usage-card a,#settings-dialog a,#chatgpt-fallback { color: var(--link, #17664e); font-size: 12px; }
+#settings-dialog {
+  width: min(580px, calc(100vw - 32px)); max-height: calc(100dvh - 40px);
+  overflow: auto; border: 1px solid var(--rule, #d4ded8); border-radius: var(--radius, 3px);
+  padding: 26px; background: #fff; color: var(--text-color, #20332e);
+  box-shadow: 0 18px 70px #17120f33;
+}
+#settings-dialog::backdrop { background: #17120f55; }
+#settings-dialog h2 { margin-top: 0; }
+#settings-dialog fieldset { padding: 0; border: 0; margin: 22px 0 12px; }
+#settings-dialog legend { font-size: 13px; margin-bottom: 12px; }
+.mode-option { display: flex; align-items: flex-start; gap: 12px; border: 1px solid var(--rule, #d4ded8); border-radius: var(--radius, 3px); padding: 16px; margin-bottom: 10px; cursor: pointer; }
+.mode-option:has(input:checked) { border-color: var(--accent); background: var(--hover, #f1f7f2); }
+.mode-option input { margin: 3px 0 0; accent-color: var(--accent); }
+.mode-option strong { font-size: 14px; }
+.mode-option small { display: block; font-weight: normal; font-size: 12px; line-height: 1.8; margin-top: 7px; color: var(--muted, #627968); }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
+#manual-controls p { margin-top: 12px; }
+@media(max-width:620px) {
+  header .control-with-help { display: inline-flex; }
+  header .info-tooltip { display: none; }
+  header .info-tooltip:popover-open,header .info-tooltip > span { display: block; }
+}
+
+/* Context controls and locally saved conversation history. */
+.context-options,.conversation-controls{display:grid;gap:8px;margin:18px 0}
+.context-options select,#chat-choice{width:100%;min-width:0;padding:10px;border:1px solid #cbd5ce;border-radius:8px;background:#fff;color:#253d31;font:inherit}
+.chat-note,#history-status,#chat-status,.chat-meta{font-size:12px;line-height:1.6;color:#607065}
+#answer{white-space:normal;max-height:560px;overflow:auto}
+.chat-turn{padding:16px 0;border-bottom:1px solid #dce5dd}
+.chat-turn>strong,.chat-answer,.chat-turn details p{white-space:pre-wrap;overflow-wrap:anywhere}
+.chat-turn>strong{display:block;color:#294e39}
+.chat-answer{margin-top:12px;line-height:1.75}
+.chat-turn details{font-size:12px;color:#607065}
+#delete-chat{color:#a13b36}
+
+/* Reading and conversation occupy the main space; account tools live in Settings. */
+main>.chat-panel{display:flex;flex-direction:column;min-height:0;overflow:hidden;padding:20px 24px 16px;gap:0}
+.chat-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex:none}
+.chat-heading h2{font-size:22px;margin:5px 0 8px}.chat-heading .eyebrow{font-size:10px}
+.chat-heading button{white-space:nowrap;padding:6px 9px;font-size:12px}
+.chat-panel .document{margin:0 0 6px;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mode-line{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:11px;margin:0 0 9px}
+.mode-line strong{font-weight:500}.mode-line .info-button{height:18px;width:18px;flex-basis:18px;font-size:14px}
+.chat-library{flex:none;border-bottom:1px solid var(--rule);padding:0 0 9px;margin:0}
+.chat-library>summary{font-size:12px;cursor:pointer}.conversation-controls{max-height:200px;overflow:auto;margin:8px 0 0}
+.chat-panel #answer{display:block;flex:1;min-height:75px;max-height:none;margin:0;padding:10px 0;border:0;border-radius:0;background:transparent;font-size:14px;overflow:auto}
+.chat-panel #answer:empty::before{content:'선택한 문장부터, 논문의 큰 흐름까지.\A아래에 질문을 입력해 대화를 시작하세요.';display:block;white-space:pre-line;color:var(--muted);font-size:13px;line-height:1.9;padding:28px 4px}
+.chat-turn>strong{color:var(--ink);padding:10px 12px;background:var(--hover);border-radius:var(--radius);font-weight:500}
+.chat-turn{padding:12px 0}.chat-answer{color:var(--text-color)}.chat-meta,.chat-turn details{color:var(--muted)}
+.chat-panel #answer-status{flex:none;margin:0;font-size:11px;line-height:1.5;color:var(--muted)}
+.composer{flex:none;border-top:1px solid var(--rule);padding-top:12px;max-height:65%;overflow:auto}
+.composer .selection-head{margin:0;line-height:1.4;font-size:11px}.composer .selection-head label{font-size:11px}
+.composer #selection{margin:5px 0 9px;padding:6px 10px;max-height:46px;min-height:0;overflow:auto;font-size:12px;line-height:1.5}
+.composer .presets{margin:0 0 8px;gap:4px}.composer .presets button:not(.info-button){font-size:11px;padding:4px 7px}
+.composer .presets .control-with-help{gap:0}.composer .presets .info-button{width:20px;flex-basis:20px;font-size:14px}
+.composer label{font-size:12px}.composer #question{display:block;width:100%;min-height:80px;max-height:160px;margin:5px 0 8px;padding:12px;font-size:14px;line-height:1.6;resize:vertical;border-color:var(--rule)}
+.composer .context-options{grid-template-columns:1fr 1fr;gap:10px;margin:0 0 5px}
+.context-options>div{min-width:0}.context-options label{font-size:11px}.context-options select{padding:6px;font-size:12px;border-color:var(--rule);color:var(--ink);border-radius:var(--radius)}
+.context-options .info-button{width:18px;flex-basis:18px;height:18px;font-size:14px}
+.composer #history-status{margin:3px 0 8px;font-size:11px;color:var(--muted)}
+.composer #plan-controls,.composer #manual-controls{margin:0;padding:0;border:0;background:none}
+.composer #status{font-size:11px;line-height:1.5;min-height:0;margin:7px 0;max-height:34px;overflow:auto}
+.composer #preview{margin:6px 0 0;font-size:11px}.composer #preview>summary{cursor:pointer}.composer #preview[open]{padding-bottom:8px}
+.composer #prompt{font-size:11px}.composer .wide-help{margin:0}
+#settings-dialog #mode-description{font-size:12px;line-height:1.7;color:var(--muted)}
+#settings-dialog .dialog-actions{position:sticky;bottom:-26px;background:white;padding:14px 0;margin-top:12px;border-top:1px solid var(--rule)}
+#settings-dialog #model-settings{border-top:1px solid var(--rule);padding-top:12px}
+#settings-dialog #plan-note{font-size:12px;line-height:1.8;color:var(--muted)}
+@media(max-height:760px){main>.chat-panel{padding:12px 18px}.chat-heading h2{font-size:19px}.composer{padding-top:8px;max-height:70%}.composer #question{min-height:68px}.composer .presets{margin-bottom:4px}.composer .selection-head{display:none}.composer #selection{max-height:30px}.chat-panel #answer:empty::before{padding:12px 0}}
+@media(max-width:800px){main>.chat-panel{min-height:600px;overflow:visible}.composer{max-height:none}.chat-panel #answer{min-height:140px;max-height:350px}}
+
+.reader>iframe{display:block}
+@media(max-height:760px){.composer #selection{max-height:40px}}
+
+.composer #token-estimate{margin:3px 0 8px;font-size:12px;font-family:var(--font-mono);color:var(--ink)}
+.chat-token-usage{font-size:11px;color:var(--muted)}
+
+#auto-controls{border:1px solid var(--rule);padding:8px;margin:7px 0;font-size:11px}
+#auto-budget{font:inherit;padding:4px;margin:0 6px;border:1px solid var(--rule);background:white;color:var(--ink)}
+#auto-refine{font-size:11px;padding:5px 8px;margin-top:5px}
+#auto-report,.auto-note{font-size:11px;line-height:1.6;margin:5px 0;color:var(--muted)}
+
+#auto-report{max-height:48px;overflow:auto}#auto-controls .auto-note{font-size:10px;margin:3px 0}
+
+#auto-controls summary{cursor:pointer;font-size:11px}#auto-controls details[open]>label{display:inline-block;margin-top:8px}

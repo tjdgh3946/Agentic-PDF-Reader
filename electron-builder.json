@@ -1,0 +1,12 @@
+{
+  "appId": "local.paperreader.desktop",
+  "productName": "Paper Reader",
+  "asar": true,
+  "directories": {"output": "../../work/electron-build"},
+  "files": ["desktop.mjs", "server.mjs", "auth.mjs", "settings.mjs", "tokens.mjs", "context.mjs", "auto-context.mjs", "auto-budget.mjs", "chats.mjs", "usage.mjs", "stream.mjs", "index.html", "app.mjs", "help.mjs", "app.css", "ui.css", "auth-page.css", "pdfjs/**/*", "package.json", "!pdfjs/**/*.map"],
+  "win": {
+    "target": [{"target": "portable", "arch": ["x64"]}],
+    "signAndEditExecutable": false
+  },
+  "portable": {"artifactName": "Paper-Reader-${version}-Windows-x64.exe"}
+}
