@@ -114,7 +114,8 @@ test('external CSS loads on request, is editable, and falls back when removed',a
   const server=createAppServer(f.auth,{getOrigin:()=>origin,externalCssPath});
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));origin=`http://127.0.0.1:${server.address().port}`;
   t.after(()=>new Promise(resolve=>server.close(resolve)));
-  const response=await fetch(origin+'/app.css');assert.equal(response.headers.get('cache-control'),'no-store');assert.equal(await response.text(),'body { color: purple; }');
+    const overlay=await fetch(origin+'/annotation-overlay.css');assert.equal(overlay.status,200);assert.match(overlay.headers.get('content-type'),/text\/css/);assert.match(await overlay.text(),/\.reader-highlight/);
+    const response=await fetch(origin+'/app.css');assert.equal(response.headers.get('cache-control'),'no-store');assert.equal(await response.text(),'body { color: purple; }');
   await writeFile(externalCssPath,'body { color: navy; }');assert.equal(await (await fetch(origin+'/app.css')).text(),'body { color: navy; }');
   assert.equal((await fetch(origin+'/Paper-Reader.css')).status,404);
   assert.equal((await fetch(origin+'/registration.json')).status,404);

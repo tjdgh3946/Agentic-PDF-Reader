@@ -37,15 +37,31 @@ function rotateRect(rect,delta){
 }
 
 export function createAnnotationUI({frame,api,getViewer}){
-  let documentId='',items=[],selection=null,editing=null,revision=0,saving=false;
+  let documentId='',items=[],selection=null,editing=null,revision=0,saving=false,activeId='';
   const status=message=>{$('annotation-status').textContent=message;};
   const fail=error=>status(error.message || String(error));
   function setPanel(open){$('annotation-panel').hidden=!open;document.querySelector('main').classList.toggle('has-annotations',open);$('annotations-toggle').setAttribute('aria-expanded',String(open));}
   $('annotations-toggle').onclick=()=>setPanel($('annotation-panel').hidden);
   $('annotations-close').onclick=()=>setPanel(false);
+  function focusAnnotation(item){
+    activeId=item.id;setPanel(true);redraw();drawList();
+    const row=[...$('annotation-list').children].find(row=>row.dataset.annotationId===item.id);
+    row?.scrollIntoView({block:'nearest'});row?.focus({preventScroll:true});
+    status('PDF 본문에 연결된 주석입니다.');
+  }
   function frameLoaded(){
     const doc=frame.contentDocument;if(!doc || doc.getElementById('reader-highlight-style'))return;
-    const style=doc.createElement('style');style.id='reader-highlight-style';style.textContent='.reader-highlights{position:absolute;inset:0;pointer-events:none;z-index:2;mix-blend-mode:multiply}.reader-highlight{position:absolute;border-radius:2px;opacity:.5;pointer-events:none}';doc.head.append(style);
+    const style=doc.createElement('link');style.id='reader-highlight-style';style.rel='stylesheet';style.href=new URL('annotation-overlay.css',location.href).href;doc.head.append(style);
+    doc.addEventListener('click',event=>{
+      if(doc.defaultView.getSelection()?.toString().trim() || event.target.closest?.('button,a,input,select,textarea'))return;
+      const page=event.target.closest?.('.pdfViewer .page[data-page-number]'),viewer=getViewer();if(!page || !viewer)return;
+      const box=page.getBoundingClientRect(),x=(event.clientX-box.left)/box.width,y=(event.clientY-box.top)/box.height;
+      const item=[...items].reverse().find(item=>item.note && item.anchors.some(anchor=>anchor.page===Number(page.dataset.pageNumber) && anchor.rects.some(rect=>{
+        const [left,top,width,height]=rotateRect(rect,(((viewer.pdfViewer?.pagesRotation||0)-(item.rotation||0))%360+360)%360);
+        return x>=left && x<=left+width && y>=top && y<=top+height;
+      })));
+      if(item)focusAnnotation(item);
+    });
   }
   function redraw(){
     const doc=frame.contentDocument,viewer=getViewer();if(!doc || !viewer?.pdfDocument)return;
@@ -53,14 +69,24 @@ export function createAnnotationUI({frame,api,getViewer}){
       let layer=page.querySelector(':scope > .reader-highlights');
       if(!layer){layer=doc.createElement('div');layer.className='reader-highlights';page.append(layer);}
       layer.replaceChildren();
+      let markers=page.querySelector(':scope > .reader-note-markers');
+      if(!markers){markers=doc.createElement('div');markers.className='reader-note-markers';page.append(markers);}
+      markers.replaceChildren();
       const number=Number(page.dataset.pageNumber);
       for(const item of items)for(const anchor of item.anchors)if(anchor.page===number){
-        const delta=((viewer.pagesRotation-(item.rotation||0))%360+360)%360;
+        const delta=(((viewer.pdfViewer?.pagesRotation||0)-(item.rotation||0))%360+360)%360;
         for(const original of anchor.rects){
           const [x,y,w,h]=rotateRect(original,delta),mark=doc.createElement('span');
-          mark.className='reader-highlight';mark.style.backgroundColor=shades[item.color]||shades.yellow;
+          mark.className='reader-highlight'+(item.id===activeId?' is-active':'');mark.style.backgroundColor=shades[item.color]||shades.yellow;
           mark.style.left=x*100+'%';mark.style.top=y*100+'%';mark.style.width=w*100+'%';mark.style.height=h*100+'%';
           layer.append(mark);
+        }
+        if(item.note && anchor.rects.length){
+          const [x,y,w,h]=rotateRect(anchor.rects[anchor.rects.length-1],delta),marker=doc.createElement('button');
+          marker.type='button';marker.className='reader-note-marker'+(item.id===activeId?' is-active':'');marker.textContent='✎';
+          marker.title=item.note;marker.setAttribute('aria-label','주석 보기: '+item.quote.slice(0,100));
+          marker.style.left=`calc(${Math.min(x+w,1)*100}% - ${x+w>.95?24:-4}px)`;marker.style.top=(y+h/2)*100+'%';
+          marker.onclick=event=>{event.stopPropagation();focusAnnotation(item);};markers.append(marker);
         }
       }
     }
@@ -68,10 +94,10 @@ export function createAnnotationUI({frame,api,getViewer}){
   function drawList(){
     $('annotation-count').textContent=String(items.length);const list=$('annotation-list');list.replaceChildren();
     for(const item of items){
-      const row=document.createElement('article');row.className='annotation-item';
+      const row=document.createElement('article');row.className='annotation-item'+(item.id===activeId?' is-active':'');row.dataset.annotationId=item.id;row.tabIndex=-1;
       const jump=document.createElement('button');jump.type='button';jump.className='annotation-jump';jump.textContent='p. '+item.anchors.map(a=>a.page).join(', ')+' · '+item.quote.slice(0,140);
       jump.style.borderLeftColor=shades[item.color]||shades.yellow;
-      jump.onclick=()=>{getViewer().page=item.anchors[0].page;frame.focus();};row.append(jump);
+      jump.onclick=()=>{activeId=item.id;getViewer().page=item.anchors[0].page;redraw();drawList();frame.focus();};row.append(jump);
       if(item.note){const preview=document.createElement('div');preview.className='annotation-item-note';renderMarkdown(preview,item.note);row.append(preview);}
       const actions=document.createElement('div');actions.className='annotation-actions';
       const edit=document.createElement('button');edit.type='button';edit.textContent='수정';edit.onclick=()=>openEditor(item);
@@ -101,7 +127,7 @@ export function createAnnotationUI({frame,api,getViewer}){
       if(rects.length)anchors.push({page:Number(page.dataset.pageNumber),rects});
       if(anchors.length>=40)break;
     }
-    selection=anchors.length?{quote,anchors,rotation:viewer.pagesRotation||0}:null;
+    selection=anchors.length?{quote,anchors,rotation:viewer.pdfViewer?.pagesRotation||0}:null;
     return !!selection;
   }
   function openEditor(item){
@@ -123,7 +149,7 @@ export function createAnnotationUI({frame,api,getViewer}){
       const saved=await api('/api/annotations/upsert',{documentId:id,item:{id:editing?.id,quote:item.quote,note:$('annotation-note').value,color:$('annotation-color').value,anchors:item.anchors,rotation:item.rotation||0}});
       if(current!==revision)return;
       const index=items.findIndex(value=>value.id===saved.id);if(index>=0)items[index]=saved;else items.push(saved);
-      redraw();drawList();$('annotation-dialog').close();setPanel(true);status('주석을 저장했습니다.');
+      frame.contentWindow.getSelection()?.removeAllRanges();$('annotation-dialog').close();focusAnnotation(saved);status('주석을 저장했습니다. PDF의 표시나 주석 아이콘을 누르면 다시 볼 수 있습니다.');
     }catch(error){$('annotation-editor-status').textContent=error.message;}
     finally{saving=false;$('annotation-save').disabled=false;}
   };
@@ -138,7 +164,7 @@ export function createAnnotationUI({frame,api,getViewer}){
     capture,
     frameLoaded,
     redraw,
-    reset(){revision++;documentId='';items=[];selection=null;editing=null;drawList();status('PDF 문장을 선택하고 우클릭하여 추가하세요.');if($('annotation-dialog').open)$('annotation-dialog').close();},
+    reset(){revision++;documentId='';items=[];selection=null;editing=null;activeId='';drawList();status('PDF 문장을 선택하고 우클릭하여 추가하세요.');if($('annotation-dialog').open)$('annotation-dialog').close();},
     async ready(id){const current=++revision;documentId=id;items=[];drawList();try{const result=await api('/api/annotations?documentId='+encodeURIComponent(id));if(current!==revision)return;items=result;drawList();redraw();status(items.length+'개 저장됨 · PDF 문장을 우클릭하여 추가하세요.');}catch(error){if(current===revision)fail(error);}}
   };
 }

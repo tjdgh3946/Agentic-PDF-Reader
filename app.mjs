@@ -13,6 +13,7 @@ let selectedEndPage='',promptRevision=0,prepared=null,pdfWindow='near1',historyT
 let chat=null,chatList=[],chatRevision=0,chatBusy=false,documentId='',tokenTimer,autoController=null,autoBudget=8000,answerRenderTimer=null;
 const status = message => { $('status').textContent = message; };
 function invalidatePrompt(schedule=true) {
+  $('selection-hint').textContent=selected ? selected.slice(0,90) : 'PDF에서 문장을 선택하세요';
   autoController?.abort();promptRevision++;prepared=null;clearTimeout(tokenTimer);$('prompt').value='';$('copy').disabled=true;
   $('token-estimate').textContent=selected || pdfWindow==='auto'?'입력 토큰 · 질문을 입력하면 자동 계산합니다.':'입력 토큰 · 문장을 선택하면 계산합니다.';
   updateSend();
@@ -41,17 +42,21 @@ function documentReady() {
   $('empty').hidden = true;
   status('문장을 선택하고 우클릭하거나, 오른쪽 질문 유형을 누르세요.');
 }
-frame.addEventListener('load', async () => {
+let initializedViewerDocument;
+async function initializeViewer() {
+  const doc=frame.contentDocument,application=frame.contentWindow?.PDFViewerApplication;
+  if(!application || initializedViewerDocument===doc)return;
+  initializedViewerDocument=doc;
   try {
-    viewer = frame.contentWindow.PDFViewerApplication;
+    viewer = application;
     await viewer.initializedPromise;
+    if(frame.contentDocument!==doc)return;
     annotationUI.frameLoaded();
     viewer.eventBus.on('documentloaded', documentReady);
     viewer.eventBus.on('pagerendered',()=>annotationUI.redraw());
     viewer.eventBus.on('textlayerrendered',()=>annotationUI.redraw());
     viewer.eventBus.on('rotationchanging',()=>setTimeout(()=>annotationUI.redraw(),100));
     if (viewer.pdfDocument) documentReady();
-    const doc = frame.contentDocument;
     doc.addEventListener('contextmenu', event => {
       if (!captureSelection()) return;
       event.preventDefault();
@@ -66,7 +71,9 @@ frame.addEventListener('load', async () => {
     doc.addEventListener('keydown', event => { if (event.key === 'Escape') $('context').hidden = true; });
     doc.addEventListener('scroll', () => { $('context').hidden = true; }, true);
   } catch (error) { status(`뷰어 초기화 실패: ${error.message}`); }
-});
+}
+frame.addEventListener('load',initializeViewer);
+if(frame.contentDocument?.readyState==='complete')initializeViewer();
 function captureSelection() {
   const selection = frame.contentWindow.getSelection();
   const text = selection?.toString().trim();
@@ -109,7 +116,7 @@ document.addEventListener('pointerdown', event => { if (!$('context').contains(e
 document.addEventListener('keydown', event => { if (event.key === 'Escape') $('context').hidden = true; });
 $('ask').onclick = () => { $('context').hidden = true; $('question').focus(); $('question').scrollIntoView({block:'nearest', behavior:'smooth'}); };
 function updateQuestionPreview(){renderMarkdown($('question-markdown-preview'),$('question').value);}
-document.querySelectorAll('[data-question]').forEach(button => { button.onclick = () => { $('question').value = button.dataset.question;updateQuestionPreview();invalidatePrompt(); }; });
+document.querySelectorAll('[data-question]').forEach(button => { button.onclick = () => { $('question').value = button.dataset.question;$('presets-popover').hidePopover();$('question').focus();updateQuestionPreview();invalidatePrompt(); }; });
 $('question').oninput = ()=>{updateQuestionPreview();invalidatePrompt();};
 updateQuestionPreview();
 $('prepare').onclick = async automatic => {
@@ -189,12 +196,17 @@ function renderChat() {
   const nodes=(chat?.entries || []).map(entry=>{
     const article=document.createElement('article');article.className='chat-turn';article.dataset.entry=entry.id;
     const title=document.createElement('div');title.className='chat-question markdown-body';renderMarkdown(title,entry.test?'연결 테스트':entry.question);
-    const meta=document.createElement('p');meta.className='chat-meta';meta.textContent=entry.pageLabel+' · '+({complete:'완료',pending:'응답 중',interrupted:'중단된 응답',exported:'복사됨 · 웹 답변은 별도'}[entry.status] || entry.status);
+    const meta=document.createElement('p');meta.className='chat-meta';meta.textContent=entry.pageLabel+' · '+({complete:'완료',pending:'응답 중',interrupted:'중단된 응답',exported:'복사됨 · 답변 붙여넣기 대기'}[entry.status] || entry.status);
     const quote=document.createElement('details'),summary=document.createElement('summary'),text=document.createElement('p');summary.textContent='당시 선택 문장 · 문맥';text.textContent=entry.selection+'\nPDF 페이지: '+(entry.pages?.join(', ') || '선택 문장만')+' · 이전 대화 '+(entry.historyCount || 0)+'회';quote.append(summary,text);
     const answer=document.createElement('div');answer.className='chat-answer markdown-body';renderMarkdown(answer,entry.answer || (entry.status==='exported'?'ChatGPT에서 답변을 확인하세요.':''));
     if(entry.autoContext){text.textContent+='\nAuto: '+entry.autoContext.reason+' · '+entry.autoContext.source;if(entry.autoContext.agentUsage?.inputTokens!=null)text.textContent+=' · 선택용 실제 입력 '+entry.autoContext.agentUsage.inputTokens+' tokens';}
     article.append(title,meta,quote,answer);
-    if(entry.status==='complete'){const usage=document.createElement('p');usage.className='chat-token-usage';usage.textContent=entry.usage?.inputTokens!=null?'실제 입력 '+entry.usage.inputTokens.toLocaleString()+' tokens'+(entry.usage.cachedTokens!=null?' · 캐시 '+entry.usage.cachedTokens.toLocaleString():''):'실제 입력 토큰 · 서버 미제공';article.append(usage);}
+    if(entry.status==='exported' || entry.source==='chatgpt-web') {
+      const importButton=document.createElement('button');importButton.className='import-answer-button';importButton.textContent=entry.source==='chatgpt-web'?'가져온 답변 수정':'답변 붙여넣기';
+      importButton.onclick=()=>openAnswerImport(entry);article.append(importButton);
+    }
+    if(entry.source==='chatgpt-web'){const source=document.createElement('p');source.className='chat-token-usage';source.textContent='ChatGPT 웹에서 가져온 답변';article.append(source);}
+    if(entry.status==='complete' && entry.source!=='chatgpt-web'){const usage=document.createElement('p');usage.className='chat-token-usage';usage.textContent=entry.usage?.inputTokens!=null?'실제 입력 '+entry.usage.inputTokens.toLocaleString()+' tokens'+(entry.usage.cachedTokens!=null?' · 캐시 '+entry.usage.cachedTokens.toLocaleString():''):'실제 입력 토큰 · 서버 미제공';article.append(usage);}
     return article;
   });
   clearTimeout(answerRenderTimer);answerRenderTimer=null;
@@ -279,15 +291,28 @@ async function api(url, body, signal) {
   if(!response.ok) throw new Error(data.error || '요청에 실패했습니다.');
   return data;
 }
+function renderHeaderAccount() {
+  const connected=!!authState?.connected;
+  const account=connected?authState.account:usageState?.account;
+  const identity=account?.email || account?.name || (connected?'ChatGPT 계정':'로그인 필요');
+  $('header-account').textContent=identity;
+  $('header-account').title=identity;
+  $('header-account-source').textContent=connected?'앱 연결':usageState?'Codex':'미연결';
+  $('header-avatar').textContent=account?(identity[0] || 'P').toUpperCase():'P';
+  $('reader-account-detail').textContent=connected?identity:'로그인되지 않음';
+}
+$('account-settings').onclick=()=>{$('usage-popover').hidePopover();$('settings-open').click();};
 function renderUsage() {
+  renderHeaderAccount();
   if(!usageState)return;
   $('usage-result').hidden=false;
   $('usage-account').textContent=`조회 계정 (Codex): ${usageState.account.email || '이메일 미제공'}${usageState.account.planType ? ' · '+usageState.account.planType : ''}`;
   const readerEmail=authState?.account?.email?.trim().toLowerCase(),sourceEmail=usageState.account.email?.trim().toLowerCase();
   const different=readerEmail && sourceEmail && readerEmail!==sourceEmail;
+  $('usage-account-warning').hidden=!different;
   $('usage-account-note').textContent=different?'주의: PDF 앱 로그인과 다른 계정의 수치입니다. Codex와 PDF 앱에 같은 계정으로 로그인한 뒤 새로고침하세요.':readerEmail && sourceEmail?'PDF 앱과 이메일이 같은 계정입니다. 아래 수치는 다른 앱 사용량도 포함하는 계정 한도이며, 이 PDF 앱만의 사용량이 아닙니다.':'PDF 앱 로그인과의 계정 일치는 확인하지 않았습니다. 위 조회 계정의 전체 사용량입니다.';
   $('usage-account-note').classList.toggle('usage-warning',!!different);
-  const nodes=[];
+  const nodes=[],summary=[];
   for(const bucket of usageState.buckets) {
     const section=document.createElement('section');section.className='usage-bucket';
     const title=document.createElement('strong');title.textContent=bucket.name;section.append(title);
@@ -295,6 +320,7 @@ function renderUsage() {
       const row=document.createElement('p'),mins=window.windowDurationMins;
       const label=mins===10080?'주간':mins===null?'기간 미제공':mins>=1440 && mins%1440===0?`${mins/1440}일`:mins>=60 && mins%60===0?`${mins/60}시간`:`${mins}분`;
       row.textContent=`${label} 한도: ${window.remainingPercent===null?'조회 불가':new Intl.NumberFormat('ko-KR',{maximumFractionDigits:1}).format(window.remainingPercent)+'% 남음'}`;
+      summary.push(`${label} ${window.remainingPercent===null?'조회 불가':new Intl.NumberFormat('ko-KR',{maximumFractionDigits:1}).format(window.remainingPercent)+'% 남음'}`);
       section.append(row);
       if(window.remainingPercent!==null) {const meter=document.createElement('progress');meter.max=100;meter.value=window.remainingPercent;meter.setAttribute('aria-label',`${bucket.name} ${label} 남은 사용량`);section.append(meter);}
       if(window.resetsAt!==null) {const reset=document.createElement('p');reset.className='usage-time';reset.textContent=`리셋: ${new Date(window.resetsAt*1000).toLocaleString('ko-KR')}`;section.append(reset);}
@@ -304,15 +330,18 @@ function renderUsage() {
   }
   if(!nodes.length){const note=document.createElement('p');note.textContent='서버에서 조회 가능한 한도나 잔액을 제공하지 않았습니다.';nodes.push(note);}
   $('usage-buckets').replaceChildren(...nodes);
+  $('usage-summary').textContent=summary.join(' · ') || '남은 구독 한도: 서버에서 미제공';
+  $('usage-summary').title=$('usage-summary').textContent;
+  $('usage-summary').hidden=false;
   $('usage-updated').textContent=`조회 시각: ${new Date(usageState.checkedAt).toLocaleString('ko-KR')} · 10초 이내 재조회는 직전 결과를 사용합니다.`;
 }
 $('refresh-usage').onclick=async()=>{
   if(loadingUsage)return;
-  loadingUsage=true;$('refresh-usage').disabled=true;$('usage-result').hidden=true;
-  usageState=null;$('usage-status').textContent='Codex 계정의 사용량을 조회하고 있습니다…';
-  try {usageState=await api('/api/usage',{});$('usage-status').textContent='조회 완료';renderUsage();}
-  catch(error){$('usage-status').textContent=error.message;}
-  finally{loadingUsage=false;$('refresh-usage').disabled=false;}
+  loadingUsage=true;$('refresh-usage').disabled=true;$('usage-result').hidden=true;$('usage-summary').hidden=true;$('usage-account-warning').hidden=true;
+  usageState=null;$('usage-status').hidden=false;$('usage-status').textContent='확인 중…';$('usage-status').removeAttribute('title');
+  try {usageState=await api('/api/usage',{});$('usage-status').hidden=true;renderUsage();}
+  catch(error){$('usage-status').textContent='조회 불가';$('usage-status').title=error.message;}
+  finally{loadingUsage=false;$('refresh-usage').disabled=false;renderHeaderAccount();}
 };
 function updateSend() {
   const working=busy || !!autoController;
@@ -329,6 +358,7 @@ function updateSend() {
   $('connection-test').disabled = !ready;
   $('cancel-answer').hidden = !answerController && !autoController;
   $('open-chatgpt').disabled = requestMode!=='manual' || savingSettings || openingChatGPT || !canAsk;
+  $('copy-manual').disabled=$('open-chatgpt').disabled;
   $('settings-save').disabled = working || savingSettings || !!answerController || openingChatGPT;
 }
 function applyMode(mode) {
@@ -361,7 +391,7 @@ $('settings-form').onsubmit=async event=>{
   } catch(error) {$('settings-status').textContent=error.message;}
   finally {savingSettings=false;$('settings-cancel').disabled=false;updateSend();}
 };
-$('open-chatgpt').onclick=async()=>{
+async function exportToChatGPT(openBrowser) {
   if(requestMode!=='manual' || savingSettings || openingChatGPT || busy || chatBusy) return;
   if(!prepared)await $('prepare').onclick();
   if(!prepared)return;
@@ -369,15 +399,38 @@ $('open-chatgpt').onclick=async()=>{
   try {
     try {await navigator.clipboard.writeText($('prompt').value);}
     catch {
-      $('preview').open=true;$('prompt').select();$('chatgpt-fallback').hidden=false;
-      status('자동 복사가 제한되어 있습니다. Ctrl+C로 복사한 뒤 아래의 ChatGPT 직접 열기를 누르세요.');return;
+      $('context-popover').showPopover();$('preview').open=true;$('prompt').focus();$('prompt').select();$('chatgpt-fallback').hidden=false;
+      status('자동 복사를 사용할 수 없습니다. 선택된 내용을 Ctrl+C로 복사하세요.');return;
     }
     await saveExport();
+    if(!openBrowser){status('질문을 복사했습니다. 열려 있는 ChatGPT 대화에 Ctrl+V로 붙여넣으세요. 답변은 오른쪽 질문 아래에서 가져올 수 있습니다.');return;}
     const result=await api('/api/open-chatgpt',{});
     $('chatgpt-fallback').hidden=result.opened;
-    status(result.opened?'질문을 복사하고 ChatGPT를 열었습니다. Ctrl+V로 붙여넣고 직접 전송하세요.':'질문을 복사했습니다. 아래의 ChatGPT 직접 열기를 누르고 붙여넣으세요.');
-  } catch(error) {$('chatgpt-fallback').hidden=false;status('질문은 복사했습니다. '+error.message+' 아래 링크로 ChatGPT를 열 수 있습니다.');}
+    status(result.opened?'복사 완료 · ChatGPT에서 Ctrl+V → 전송. 받은 답변은 오른쪽의 ‘답변 붙여넣기’로 보관하세요.':'복사 완료 · ChatGPT 직접 열기를 누른 뒤 Ctrl+V로 붙여넣으세요.');
+  } catch(error) {$('chatgpt-fallback').hidden=false;status('복사 이후 처리에 실패했습니다: '+error.message);}
   finally {openingChatGPT=false;updateSend();}
+}
+$('open-chatgpt').onclick=()=>exportToChatGPT(true);
+$('copy-manual').onclick=()=>exportToChatGPT(false);
+let importTarget=null,importSaving=false;
+function openAnswerImport(entry) {
+  if(chatBusy || answerController || !chat)return;
+  importTarget={chatId:chat.id,entryId:entry.id};
+  $('import-answer-question').textContent=entry.question;
+  $('import-answer-text').value=entry.answer || '';$('import-answer-status').textContent='';
+  $('import-answer-dialog').showModal();$('import-answer-text').focus();
+}
+$('import-answer-cancel').onclick=()=>{if(!importSaving)$('import-answer-dialog').close();};
+$('import-answer-dialog').addEventListener('cancel',event=>{if(importSaving)event.preventDefault();});
+$('import-answer-form').onsubmit=async event=>{
+  event.preventDefault();if(importSaving || !importTarget)return;
+  const target=importTarget;importSaving=true;$('import-answer-save').disabled=true;$('import-answer-cancel').disabled=true;
+  try {
+    const entry=await api('/api/chat/import-answer',{id:target.chatId,entryId:target.entryId,answer:$('import-answer-text').value});
+    if(chat?.id===target.chatId){const index=chat.entries.findIndex(item=>item.id===entry.id);if(index>=0)chat.entries[index]=entry;invalidatePrompt();renderChat();}
+    await refreshChats();$('import-answer-dialog').close();status('답변을 저장했습니다. 다음 질문의 이전 대화 문맥에 포함됩니다.');
+  }catch(error){$('import-answer-status').textContent=error.message;}
+  finally{importSaving=false;$('import-answer-save').disabled=false;$('import-answer-cancel').disabled=false;}
 };
 async function loadModels() {
   if(requestMode!=='plan') return;
@@ -473,11 +526,30 @@ async function sendQuestion(prompt,isTest=false) {
   }finally{controller.abort();if(answerController===controller)answerController=null;updateSend();}
 }
 $('send').onclick=async()=>{if($('send').disabled)return;if(!prepared)await $('prepare').onclick();if(prepared?.needsAgent && prepared.autoContext?.source!=='agent'){if(!await refineAuto())return;}if(prepared)await sendQuestion(prepared.prompt);};
-$('question').onkeydown=event=>{if(event.key==='Enter' && (event.ctrlKey || event.metaKey)){event.preventDefault();$(requestMode==='plan'?'send':'open-chatgpt').click();}};
+$('question').onkeydown=event=>{if(event.key==='Enter' && (event.ctrlKey || event.metaKey)){event.preventDefault();$(requestMode==='plan'?'send':event.shiftKey?'copy-manual':'open-chatgpt').click();}};
 $('connection-test').onclick=()=>sendQuestion("한국어로 '연결 확인 완료'라고만 답하세요.",true);
 window.addEventListener('focus',refreshAuth);
-try {const saved=await api('/api/settings');applyMode(saved.mode);pdfWindow=saved.pdfWindow || 'near1';historyTurns=saved.historyTurns ?? 3;autoBudget=saved.autoBudget || 8000;$('auto-budget').value=String(autoBudget);$('pdf-window').value=pdfWindow;$('history-window').value=String(historyTurns);}
+const workspace=document.querySelector('main'),divider=$('panel-resizer');
+let desiredPanelWidth=Math.round(Math.min(640,innerWidth*.44)),resizeSaveTimer;
+function resizePanel(width=desiredPanelWidth){
+  const maximum=Math.max(360,Math.min(1200,workspace.clientWidth-368));
+  const actual=Math.round(Math.max(360,Math.min(width,maximum)));
+  document.documentElement.style.setProperty('--panel-width',actual+'px');
+  divider.setAttribute('aria-valuemin','360');divider.setAttribute('aria-valuemax',String(maximum));divider.setAttribute('aria-valuenow',String(actual));divider.setAttribute('aria-valuetext','대화 너비 '+actual+'픽셀');
+  return actual;
+}
+function savePanelWidth(){clearTimeout(resizeSaveTimer);resizeSaveTimer=setTimeout(()=>api('/api/settings',{panelWidth:desiredPanelWidth}).catch(()=>status('패널 너비를 저장하지 못했습니다. 다시 조절하면 재시도합니다.')),300);}
+divider.addEventListener('pointerdown',event=>{if(event.button!==0)return;event.preventDefault();divider.setPointerCapture(event.pointerId);document.body.classList.add('resizing-panels');});
+divider.addEventListener('pointermove',event=>{if(divider.hasPointerCapture(event.pointerId))desiredPanelWidth=resizePanel(workspace.getBoundingClientRect().right-event.clientX);});
+const finishResize=()=>{document.body.classList.remove('resizing-panels');savePanelWidth();};
+divider.addEventListener('pointerup',event=>{if(divider.hasPointerCapture(event.pointerId))divider.releasePointerCapture(event.pointerId);});
+divider.addEventListener('lostpointercapture',finishResize);
+divider.addEventListener('keydown',event=>{let width=Number(divider.getAttribute('aria-valuenow'));if(event.key==='ArrowLeft')width+=24;else if(event.key==='ArrowRight')width-=24;else if(event.key==='Home')width=360;else if(event.key==='End')width=1200;else return;event.preventDefault();desiredPanelWidth=resizePanel(width);savePanelWidth();});
+divider.addEventListener('dblclick',()=>{desiredPanelWidth=resizePanel(Math.min(640,workspace.clientWidth*.44));savePanelWidth();});
+new ResizeObserver(()=>resizePanel()).observe(workspace);resizePanel();
+try {const saved=await api('/api/settings');if(saved.panelWidth){desiredPanelWidth=saved.panelWidth;resizePanel();}applyMode(saved.mode);pdfWindow=saved.pdfWindow || 'near1';historyTurns=saved.historyTurns ?? 3;autoBudget=saved.autoBudget || 8000;$('auto-budget').value=String(autoBudget);$('pdf-window').value=pdfWindow;$('history-window').value=String(historyTurns);}
 catch(error) {$('mode-title').textContent='설정을 불러오지 못했습니다';$('mode-description').textContent='환경 설정에서 모드를 선택해 저장하세요. '+error.message;}
 await refreshAuth();
+$('refresh-usage').click();
 
 try{await refreshChats();if(!documentId && chatList.length)await loadChat(chatList[0].id);}catch(error){$("chat-status").textContent="저장된 대화를 불러오지 못했습니다: "+error.message;}

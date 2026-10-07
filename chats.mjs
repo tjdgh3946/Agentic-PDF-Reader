@@ -51,6 +51,13 @@ export async function createChats(directory) {
       if(!entry)return false;
       entry.answer=answer;entry.status=status;if(usage)entry.usage=usage;await save(chat);return true;
     }),
+    importAnswer:(id,entryId,answer)=>serial(async()=>{
+      if(typeof answer!=='string' || !answer.trim() || answer.length>200000)throw new UserError('답변은 1~200,000자로 입력하세요.');
+      const chat=copy(get(id)),entry=chat.entries.find(item=>item.id===entryId);
+      if(!entry || (entry.status!=='exported' && entry.source!=='chatgpt-web'))throw new UserError('ChatGPT로 복사한 질문에만 답변을 저장할 수 있습니다.',409);
+      entry.answer=answer.trim();entry.status='complete';entry.source='chatgpt-web';
+      await save(chat);return copy(entry);
+    }),
     delete:id=>serial(async()=>{
       get(id);
       if(directory)await unlink(path.join(directory,id+'.json'));

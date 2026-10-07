@@ -93,6 +93,7 @@ export function createAppServer(auth,{openBrowser=launchBrowser,getOrigin=()=>OR
           if(url.pathname==='/api/chat/new') {json(res,await store.create(input));return;}
           if(url.pathname==='/api/chat/get') {json(res,await store.get(input.id));return;}
           if(url.pathname==='/api/chat/delete') {json(res,await store.delete(input.id));return;}
+          if(url.pathname==='/api/chat/import-answer') {json(res,await store.importAnswer(input.id,input.entryId,input.answer));return;}
           if(url.pathname==='/api/chat/export') {json(res,await store.begin(input.id,{...input.turn,exported:true}));return;}
         }
         if(url.pathname==='/api/usage' && req.method==='POST') {
@@ -103,6 +104,7 @@ export function createAppServer(auth,{openBrowser=launchBrowser,getOrigin=()=>OR
         if(url.pathname==='/api/settings' && req.method==='GET') {json(res,preferences.get());return;}
         if(url.pathname==='/api/settings' && req.method==='POST') {
           const input=await bodyJSON(req);
+          if(input && Object.keys(input).length===1 && input.panelWidth!==undefined){json(res,await preferences.set(input));return;}
           if(responding || changingSettings) throw new UserError('진행 중인 요청이 끝난 뒤 모드를 변경하세요.',409);
           changingSettings=true;
           try {json(res,await preferences.set(input));} finally {changingSettings=false;}
@@ -180,7 +182,7 @@ export function createAppServer(auth,{openBrowser=launchBrowser,getOrigin=()=>OR
       if(!['GET','HEAD'].includes(req.method)) {res.writeHead(405).end();return;}
       const urlPath=decodeURIComponent(url.pathname);
       const relativePath=urlPath==='/'?'index.html':urlPath.slice(1);
-      if(!['index.html','app.css','app.mjs','annotation-ui.mjs','auto-context.mjs','context.mjs','help.mjs','ui.css','auth-page.css','markdown.bundle.mjs'].includes(relativePath) && !relativePath.startsWith('pdfjs/') && !relativePath.startsWith('vendor/katex/')) throw new UserError('Not found',404);
+      if(!['index.html','app.css','app.mjs','annotation-ui.mjs','annotation-overlay.css','auto-context.mjs','context.mjs','help.mjs','ui.css','auth-page.css','markdown.bundle.mjs'].includes(relativePath) && !relativePath.startsWith('pdfjs/') && !relativePath.startsWith('vendor/katex/')) throw new UserError('Not found',404);
       let file=path.resolve(root,relativePath);
       const relative=path.relative(root,file);
       if(relative.startsWith('..') || path.isAbsolute(relative) || (relativePath.startsWith('pdfjs/') && !relative.replaceAll('\\','/').startsWith('pdfjs/')) || (relativePath.startsWith('vendor/katex/') && !relative.replaceAll('\\','/').startsWith('vendor/katex/'))) throw new UserError('Not found',404);

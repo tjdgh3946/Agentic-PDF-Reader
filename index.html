@@ -8,44 +8,69 @@
   <link rel="stylesheet" href="vendor/katex/katex.min.css">
 </head>
 <body>
-  <header><div><strong>Paper Reader<span>LOCAL PREVIEW</span></strong><small>읽던 자리에서, 문맥과 함께 질문하기</small></div><nav><button id="settings-open">환경 설정</button><button id="annotations-toggle" type="button" aria-controls="annotation-panel" aria-expanded="false">주석 패널 <span id="annotation-count">0</span></button><button id="sample">샘플 논문</button><button id="open" class="primary">PDF 열기</button><input id="file" type="file" accept="application/pdf,.pdf" hidden></nav></header>
+  <header>
+    <div class="app-brand"><strong>Paper Reader<span>LOCAL PREVIEW</span></strong><small>읽던 자리에서, 문맥과 함께 질문하기</small></div>
+    <section class="header-usage" aria-label="계정 사용량">
+      <button class="usage-trigger" type="button" popovertarget="usage-popover" aria-label="계정 및 사용량 상세 보기">
+        <span id="header-avatar" class="account-avatar" aria-hidden="true">P</span>
+        <span class="account-copy"><span class="account-identity"><span id="header-account">계정 확인 중</span><span id="header-account-source" class="account-source"></span></span><span class="account-quota"><span id="usage-status" role="status">사용량 확인 중…</span><span id="usage-summary" role="status" hidden></span></span></span>
+        <span class="usage-chevron" aria-hidden="true">⌄</span>
+      </button>
+      <p id="usage-account-warning" class="usage-warning" hidden>다른 Codex 계정의 사용량 · 상세 확인</p>
+    </section>
+    <nav><button id="settings-open">환경 설정</button><button id="annotations-toggle" type="button" aria-controls="annotation-panel" aria-expanded="false">주석 패널 <span id="annotation-count">0</span></button><button id="sample">샘플 논문</button><button id="open" class="primary">PDF 열기</button><input id="file" type="file" accept="application/pdf,.pdf" hidden></nav>
+  </header>
+  <section id="usage-popover" class="usage-card" popover aria-label="계정 사용량 상세">
+    <div class="usage-heading-row"><strong id="usage-heading">계정 및 사용량</strong><button type="button" popovertarget="usage-popover" popovertargetaction="hide" aria-label="사용량 상세 닫기">×</button></div>
+    <div class="reader-account-card"><small>Paper Reader 로그인</small><strong id="reader-account-detail">확인 중</strong><button id="account-settings" type="button">계정 관리 ↗</button></div>
+    <p>이 PC에 로그인된 Codex 계정의 전체 사용량입니다. PDF 앱 로그인과 별도로 조회하며 AI 질문은 보내지 않습니다.</p>
+    <div id="usage-result" hidden><p id="usage-account"></p><p id="usage-account-note"></p><div id="usage-buckets"></div><p id="usage-updated"></p></div>
+    <div class="usage-footer"><a href="https://chatgpt.com/settings/usage" target="_blank" rel="noreferrer">ChatGPT에서 확인 ↗</a><button id="refresh-usage" type="button" aria-label="계정 사용량 새로고침">↻ 새로고침</button></div>
+  </section>
   <main>
-    <section class="reader"><iframe id="viewer" title="PDF 뷰어" src="pdfjs/web/viewer.html?file="></iframe><div id="empty"><div class="paper-icon">PDF</div><h1>읽을 논문을 열어주세요</h1><p>PDF를 이 창에 놓거나 위의 ‘PDF 열기’를 누르세요.</p><p>문장 선택 → 우클릭 → 질문·형광펜·주석</p></div></section>
+    <section class="reader"><div class="pdf-stage"><iframe id="viewer" title="PDF 뷰어" src="pdfjs/web/viewer.html?file="></iframe><div id="empty"><div class="paper-icon">PDF</div><h1>읽을 논문을 열어주세요</h1><p>PDF를 이 창에 놓거나 위의 ‘PDF 열기’를 누르세요.</p><p>문장 선택 → 우클릭 → 질문·형광펜·주석</p></div></div>
+      <section class="composer reading-composer" aria-label="질문 작성">
+        <details class="selection-context"><summary>선택한 문장 <span id="selection-hint">없음</span></summary><div class="selection-head"><label for="selection">선택한 문장</label><span id="page"></span></div><blockquote id="selection">PDF에서 문장을 선택하세요.</blockquote></details>
+
+        <label for="question" class="sr-only">논문에 질문하기</label><textarea id="question" rows="2" placeholder="궁금한 점을 물어보세요. 후속 질문도 이어서 할 수 있습니다."></textarea>
+<div class="composer-toolbar"><div class="composer-tools"><button type="button" popovertarget="context-popover">문맥 설정</button><button type="button" popovertarget="presets-popover">빠른 질문</button><span class="shortcut-hint">Ctrl + Enter</span></div><div class="composer-send">
+        <section id="plan-controls" aria-label="앱에서 직접 요청" hidden><button id="send" class="primary wide" disabled>질문 보내기</button></section>
+        <section id="manual-controls" aria-label="ChatGPT에서 직접 질문" hidden><button id="copy-manual" type="button" disabled title="열려 있는 ChatGPT 대화에 이어서 붙여넣기 · Ctrl+Shift+Enter">질문만 복사</button><button id="open-chatgpt" class="primary" disabled>복사하고 ChatGPT 열기 ↗</button><a id="chatgpt-fallback" href="https://chatgpt.com/" target="_blank" rel="noreferrer" hidden>ChatGPT 직접 열기 ↗</a></section>
+        <button id="cancel-answer" class="wide" hidden>응답 중지</button></div></div><p id="token-estimate" role="status">입력 토큰 · 문장을 선택하면 계산합니다.</p><p id="status" role="status" aria-live="polite">문장을 선택한 뒤 질문을 바로 보내세요.</p>
+
+      </section></section>
     <section id="annotation-panel" class="annotation-panel" aria-label="형광펜과 주석" hidden><div class="annotation-heading"><div><span class="eyebrow">ANNOTATIONS</span><h2>형광펜 · 주석</h2></div><button id="annotations-close" type="button" aria-label="주석 패널 닫기">×</button></div><p id="annotation-status" role="status">PDF 문장을 선택하고 우클릭하여 추가하세요.</p><div id="annotation-list"></div></section>
-    <aside class="chat-panel">
-      <div class="chat-heading"><div><div class="eyebrow">READING COMPANION</div><h2>논문과 대화하기</h2></div><button id="new-chat" type="button">새 대화</button></div>
+    <div id="panel-resizer" role="separator" aria-label="대화 패널 너비" aria-orientation="vertical" aria-controls="chat-panel" tabindex="0" title="드래그 또는 방향키로 대화 너비 조절 · 두 번 클릭해 초기화"></div>
+    <aside id="chat-panel" class="chat-panel">
+      <div class="chat-heading"><div><h2>대화</h2></div><div class="chat-actions"><button type="button" popovertarget="chat-library-popover">대화 목록</button><button id="new-chat" type="button">＋ 새 대화</button></div></div>
       <p id="document" class="document">PDF를 열고 궁금한 문장을 선택하세요</p>
-      <div class="mode-line"><strong id="mode-title">설정 확인 중</strong><span>· 자동 저장</span></div>
-      <details class="chat-library"><summary>저장된 대화</summary><section class="conversation-controls" aria-label="저장된 대화">
-        <label for="chat-choice">대화 선택</label><select id="chat-choice"><option value="">새 대화</option></select><button id="delete-chat" disabled>대화 삭제</button>
-        <p id="chat-status" role="status">대화는 이 PC에 자동 저장됩니다.</p><p class="chat-note">새 대화는 기존 기록을 보관합니다. 삭제한 기록은 복구할 수 없습니다. 웹 ChatGPT 답변은 앱에 저장되지 않습니다.</p>
-      </section></details>
+
+
       <div id="answer" aria-label="AI 답변" tabindex="0"></div><p id="answer-status" role="status"></p>
-      <section class="composer" aria-label="질문 작성">
-        <div class="selection-head"><label for="selection">선택한 문장</label><span id="page"></span></div><blockquote id="selection">PDF에서 문장을 선택하세요.</blockquote>
-      <div class="presets"><button data-question="선택한 문장을 제공된 문맥에 맞춰 한국어로 쉽게 설명해 주세요.">쉽게 설명</button><button data-question="선택한 문장을 문맥에 맞게 자연스러운 한국어로 번역해 주세요.">번역</button><button data-question="선택한 문장이 논문의 주장 및 근거와 어떻게 연결되는지 설명해 주세요.">논문 속 의미</button></div>
-        <label for="question">질문</label><textarea id="question" rows="3" placeholder="궁금한 점을 물어보세요. 후속 질문도 이어서 할 수 있습니다.">선택한 문장을 제공된 문맥에 맞춰 한국어로 쉽게 설명해 주세요.</textarea>
-        <details class="question-preview"><summary>질문 마크다운 미리보기</summary><div id="question-markdown-preview" class="markdown-body"></div></details>
+
+    </aside>
+  </main>
+  <section id="context-popover" class="workspace-popover" popover><h2>질문 문맥</h2>      <div class="mode-line"><strong id="mode-title">설정 확인 중</strong><span>· 자동 저장</span></div>        <details class="question-preview"><summary>질문 마크다운 미리보기</summary><div id="question-markdown-preview" class="markdown-body"></div></details>
       <div class="context-options">
         <div><label for="pdf-window">PDF 문맥 범위 (window)</label><select id="pdf-window"><option value="auto">Auto · 질문에 맞게</option><option value="selection">선택 문장만</option><option value="page">선택 문장이 있는 페이지</option><option value="near1" selected>앞뒤 1페이지 포함</option><option value="near2">앞뒤 2페이지 포함</option><option value="all">전체 문서</option></select>
 </div><div><label for="history-window">이전 대화 포함</label><select id="history-window"><option value="0">포함하지 않음</option><option value="3" selected>최근 3회</option><option value="6">최근 6회</option><option value="12">최근 12회</option><option value="all">전체 대화</option></select>
 </div></div>
         <section id="auto-controls" hidden><details><summary>Auto 예산 · 에이전트 선택</summary><label for="auto-budget">Auto 답변 입력 예산</label><select id="auto-budget"><option value="4000">약 4,000 토큰</option><option value="8000" selected>약 8,000 토큰</option><option value="16000">약 16,000 토큰</option></select><button id="auto-refine" type="button" disabled>에이전트 선택 · AI 1회</button><p class="auto-note">선택용 AI 입력은 이 예산과 별도로 사용됩니다. 웹 모드는 로컬 검색만 사용합니다.</p></details><p id="auto-report" role="status"></p></section>
-        <p id="history-status">이전 대화 없이 시작합니다.</p><p id="token-estimate" role="status">입력 토큰 · 문장을 선택하면 계산합니다.</p>
-        <section id="plan-controls" aria-label="앱에서 직접 요청" hidden><button id="send" class="primary wide" disabled>질문 보내기</button></section>
-        <section id="manual-controls" aria-label="ChatGPT에서 직접 질문" hidden><button id="open-chatgpt" class="primary wide" disabled>질문 복사하고 ChatGPT 열기 ↗</button><a id="chatgpt-fallback" href="https://chatgpt.com/" target="_blank" rel="noreferrer" hidden>ChatGPT 직접 열기 ↗</a></section>
-        <button id="cancel-answer" class="wide" hidden>응답 중지</button><p id="status" role="status" aria-live="polite">문장을 선택한 뒤 질문을 바로 보내세요.</p>
-        <details id="preview"><summary>전송 내용 미리보기 · 복사</summary><button id="prepare" class="wide" disabled>문맥과 질문 준비</button><textarea id="prompt" rows="7" readonly aria-label="질문 문맥 미리보기"></textarea><button id="copy" class="wide" disabled>준비된 질문 복사</button></details>
-      </section>
-    </aside>
-  </main>
+        <p id="history-status">이전 대화 없이 시작합니다.</p>
+        <details id="preview"><summary>전송 내용 미리보기 · 복사</summary><button id="prepare" class="wide" disabled>문맥과 질문 준비</button><textarea id="prompt" rows="7" readonly aria-label="질문 문맥 미리보기"></textarea><button id="copy" class="wide" disabled>준비된 질문 복사</button></details></section>
+  <section id="presets-popover" class="workspace-popover" popover><h2>빠른 질문</h2>      <div class="presets"><button data-question="선택한 문장을 제공된 문맥에 맞춰 한국어로 쉽게 설명해 주세요.">쉽게 설명</button><button data-question="선택한 문장을 문맥에 맞게 자연스러운 한국어로 번역해 주세요.">번역</button><button data-question="선택한 문장이 논문의 주장 및 근거와 어떻게 연결되는지 설명해 주세요.">논문 속 의미</button></div></section>
+      <section id="chat-library-popover" class="workspace-popover" popover><h2>저장된 대화</h2><section class="conversation-controls" aria-label="저장된 대화">
+        <label for="chat-choice">대화 선택</label><select id="chat-choice"><option value="">새 대화</option></select><button id="delete-chat" disabled>대화 삭제</button>
+        <p id="chat-status" role="status">대화는 이 PC에 자동 저장됩니다.</p><p class="chat-note">새 대화는 기존 기록을 보관합니다. 삭제한 기록은 복구할 수 없습니다. 웹 ChatGPT 답변은 질문 아래의 ‘답변 붙여넣기’로 저장할 수 있습니다.</p>
+      </section></section>
   <div id="context" role="menu" hidden><button id="ask" role="menuitem">이 문장 질문하기 <span>↗</span></button><button id="highlight" role="menuitem">형광펜 표시</button><button id="add-note" role="menuitem">마크다운 주석 추가</button></div>
   <dialog id="annotation-dialog" aria-labelledby="annotation-title"><form id="annotation-form"><h2 id="annotation-title">마크다운 주석</h2><blockquote id="annotation-quote"></blockquote><label for="annotation-color">형광펜 색상</label><select id="annotation-color"><option value="yellow">노랑</option><option value="green">초록</option><option value="pink">분홍</option><option value="blue">파랑</option></select><label for="annotation-note">주석 · 마크다운</label><textarea id="annotation-note" rows="7" placeholder="예: **핵심 주장**\n- 근거\n- 다시 볼 점"></textarea><div class="annotation-preview-title">미리보기</div><div id="annotation-preview" class="annotation-preview"></div><p id="annotation-editor-status" role="status"></p><div class="dialog-actions"><button id="annotation-cancel" type="button">취소</button><button id="annotation-save" class="primary" type="submit">저장</button></div></form></dialog>
+  <dialog id="import-answer-dialog" aria-labelledby="import-answer-title"><form id="import-answer-form"><h2 id="import-answer-title">ChatGPT 답변 가져오기</h2><p class="settings-note">ChatGPT 답변의 복사 버튼을 누른 뒤 아래에 붙여넣으세요. 저장하면 다음 질문의 이전 대화 문맥에도 포함됩니다.</p><blockquote id="import-answer-question"></blockquote><label for="import-answer-text">답변 · 마크다운 지원</label><textarea id="import-answer-text" rows="10" maxlength="200000" required placeholder="여기에 Ctrl+V로 붙여넣으세요"></textarea><p id="import-answer-status" role="status"></p><div class="dialog-actions"><button id="import-answer-cancel" type="button">취소</button><button id="import-answer-save" type="submit" class="primary">대화에 저장</button></div></form></dialog>
   <dialog id="settings-dialog" aria-labelledby="settings-title">
     <form id="settings-form">
       <h2 id="settings-title">환경 설정</h2>
       <fieldset><legend>질문을 보내는 방식</legend>
-        <label class="mode-option"><input type="radio" name="request-mode" value="manual" required><span><strong>ChatGPT에서 직접 질문</strong><small>질문을 복사하고 기본 브라우저에서 ChatGPT를 엽니다. 붙여넣기와 전송은 직접 합니다. 앱은 AI 요청을 보내지 않습니다.</small></span></label>
+        <label class="mode-option"><input type="radio" name="request-mode" value="manual" required><span><strong>ChatGPT에서 직접 질문</strong><small>질문을 복사하고 기본 브라우저에서 ChatGPT를 엽니다. 이어지는 질문은 ‘질문만 복사’로 같은 웹 대화에 붙여넣으세요. 받은 답변도 앱에 붙여넣어 보관할 수 있습니다.</small></span></label>
         <label class="mode-option"><input type="radio" name="request-mode" value="plan" required><span><strong>앱에서 직접 요청</strong><small>ChatGPT 계정을 연결하고 앱 안에서 답변받습니다. 공식 안내상 Codex / ChatGPT Work 공유 사용량을 쓰며, 한도 이후 허용한 크레딧을 사용할 수 있습니다. 개별 요청의 실제 차감 내역은 앱에서 확인하지 못합니다.</small></span></label>
       </fieldset>
       <p id="mode-description"></p>
@@ -62,14 +87,6 @@
       <select id="model" disabled><option value="">ChatGPT 연결 후 선택</option></select>
       <p id="plan-note">전송과 연결 테스트는 Codex / ChatGPT Work 공유 사용량을 소비합니다. 한도 이후에는 계정에서 허용한 크레딧을 사용할 수 있습니다. 전송 시 논문 본문과 질문이 OpenAI로 전달됩니다.</p>
 <button id="connection-test" type="button" disabled>짧은 연결 테스트</button></section>
-      <section class="usage-card" aria-label="계정 사용량">
-        <strong id="usage-heading">계정 사용량 · 크레딧</strong>
-        <p>이 PC에 로그인된 Codex 계정의 사용량을 조회합니다. PDF 앱 로그인과 별도로 확인합니다.</p>
-        <button id="refresh-usage" type="button">사용량 연결 / 새로고침</button>
-        <p id="usage-status" role="status">버튼을 누르면 남은 한도와 크레딧을 조회합니다. AI 질문은 보내지 않습니다.</p>
-        <div id="usage-result" hidden><p id="usage-account"></p><p id="usage-account-note"></p><div id="usage-buckets"></div><p id="usage-updated"></p></div>
-        <a href="https://chatgpt.com/settings/usage" target="_blank" rel="noreferrer">ChatGPT에서 사용량 확인 ↗</a>
-      </section>
       <p class="settings-note">선택한 모드는 이 PC에 저장됩니다. 진행 중인 응답이 있다면 완료하거나 중지한 뒤 변경하세요.</p>
       <a href="https://chatgpt.com/settings/usage" target="_blank" rel="noreferrer">ChatGPT 사용량 · 크레딧 허용 설정 ↗</a>
       <p id="settings-status" role="status"></p>

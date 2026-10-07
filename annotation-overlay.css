@@ -1,0 +1,8 @@
+/* Loaded as a same-origin stylesheet to respect the PDF viewer's CSP. */
+.reader-highlights,.reader-note-markers{position:absolute;inset:0;pointer-events:none;z-index:2}
+.reader-highlights{mix-blend-mode:multiply}
+.reader-highlight{position:absolute;border-radius:2px;opacity:.5;pointer-events:none}
+.reader-highlight.is-active{outline:2px solid #9b390d;opacity:.65}
+.reader-note-markers{z-index:3}
+.reader-note-marker{position:absolute;pointer-events:auto;transform:translateY(-50%);width:22px;height:22px;padding:0;border:1px solid #865400;border-radius:5px;background:#fff2b1;color:#513500;font:700 14px/20px sans-serif;cursor:pointer;box-shadow:0 1px 3px #0003}
+.reader-note-marker:hover,.reader-note-marker:focus-visible,.reader-note-marker.is-active{outline:2px solid #9b390d;outline-offset:1px}

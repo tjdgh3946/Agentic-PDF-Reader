@@ -3,7 +3,7 @@
   "productName": "Paper Reader",
   "asar": true,
   "directories": {"output": "../../work/electron-build"},
-  "files": ["desktop.mjs", "server.mjs", "auth.mjs", "settings.mjs", "tokens.mjs", "context.mjs", "auto-context.mjs", "auto-budget.mjs", "chats.mjs", "annotations.mjs", "annotation-ui.mjs", "usage.mjs", "stream.mjs", "index.html", "app.mjs", "help.mjs", "app.css", "ui.css", "auth-page.css", "markdown.bundle.mjs", "vendor/**/*", "pdfjs/**/*", "package.json", "!pdfjs/**/*.map"],
+  "files": ["desktop.mjs", "server.mjs", "auth.mjs", "settings.mjs", "tokens.mjs", "context.mjs", "auto-context.mjs", "auto-budget.mjs", "chats.mjs", "annotations.mjs", "annotation-ui.mjs", "annotation-overlay.css", "usage.mjs", "stream.mjs", "index.html", "app.mjs", "help.mjs", "app.css", "ui.css", "auth-page.css", "markdown.bundle.mjs", "vendor/**/*", "pdfjs/**/*", "package.json", "!pdfjs/**/*.map"],
   "win": {
     "target": [{"target": "portable", "arch": ["x64"]}],
     "signAndEditExecutable": false

@@ -42,3 +42,33 @@ test('context preferences migrate old settings and survive restart',async()=>{
   assert.deepEqual((await createSettings(file)).get(),{mode:'manual',pdfWindow:'selection',historyTurns:6});
   assert.throws(()=>settings.set({mode:'plan',historyTurns:999}));
 });
+test('panel width persists independently from request mode and rejects invalid sizes',async()=>{
+  const directory=await mkdtemp(path.join(tmpdir(),'paper-reader-layout-'));
+  const file=path.join(directory,'settings.json'),settings=await createSettings(file);
+  await Promise.all([settings.set({mode:'plan'}),settings.set({panelWidth:620})]);
+  assert.equal(settings.get().mode,'plan');
+  assert.equal((await createSettings(file)).get().panelWidth,620);
+  await settings.set({mode:'manual'});assert.equal(settings.get().panelWidth,620);
+  for(const panelWidth of [0,359,1201,NaN,'620'])assert.throws(()=>settings.set({panelWidth}));
+});
+
+test('web answers persist, enter follow-up context, and cannot overwrite model turns',async()=>{
+  const dir=await mkdtemp(path.join(tmpdir(),'paper-web-answer-'));
+  const store=await createChats(dir);
+  const chat=await store.create({documentId:'web-test',fileName:'paper.pdf'});
+  const turn={question:'Explain this',selection:'quote',pageLabel:'p. 1'};
+  const exported=await store.begin(chat.id,{...turn,exported:true});
+  await assert.rejects(store.importAnswer(chat.id,exported.id,'   '));
+  const imported=await store.importAnswer(chat.id,exported.id,'  **Web answer**  ');
+  assert.equal(imported.source,'chatgpt-web');
+  assert.equal(imported.answer,'**Web answer**');
+  const reopened=await createChats(dir);
+  const history=historyFor((await reopened.get(chat.id)).entries,3);
+  assert.equal(history.length,1);assert.equal(history[0].answer,'**Web answer**');
+  await store.importAnswer(chat.id,exported.id,'Edited answer');
+  const direct=await store.begin(chat.id,turn);
+  await assert.rejects(store.importAnswer(chat.id,direct.id,'Overwrite'));
+  await assert.rejects(store.importAnswer(chat.id,'missing','Missing'));
+  await store.delete(chat.id);
+  await assert.rejects(store.importAnswer(chat.id,exported.id,'Restore'));
+});

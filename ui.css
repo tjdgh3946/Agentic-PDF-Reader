@@ -26,7 +26,22 @@ button.info-button:hover,button.info-button:focus-visible {
 }
 .info-tooltip strong { display: block; font-size: 13px; margin-bottom: 7px; color: var(--ink, #20332e); }
 .info-tooltip > span { display: block; white-space: pre-line; font-size: inherit; letter-spacing: normal; color: inherit; background: none; margin: 0; padding: 0; }
-.usage-card { border-top: 1px solid var(--rule, #d4ded8); border-bottom: 1px solid var(--rule, #d4ded8); padding: 14px 0; margin: 18px 0; }
+.header-usage { flex: 1; min-width: 180px; max-width: 430px; padding-left: 16px; border-left: 1px solid var(--rule, #d4ded8); }
+.header-usage strong { font-family: var(--font-sans, "Segoe UI", sans-serif); font-size: 12px; }
+.header-usage p { margin: 2px 0 0; font-size: 12px; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.header-usage #usage-summary { color: var(--ink, #20332e); font-weight: 600; }
+.header-usage #usage-status { color: var(--muted, #627968); }
+.header-usage .usage-heading-row { justify-content: flex-start; gap: 6px; }
+.header-usage button { padding: 1px 6px; font-size: 11px; }
+.header-usage .info-button { width: 18px; height: 18px; flex-basis: 18px; padding: 0; font-size: 14px; }
+.usage-warning { color: var(--orange, #9b390d); font-weight: 600; }
+.usage-card { border: 1px solid var(--rule, #d4ded8); background: #fff; color: var(--text-color, #20332e); border-radius: var(--radius, 3px); padding: 16px; }
+#usage-popover { position: fixed; inset: var(--header-height, 64px) 24px auto auto; margin: 8px 0 0; width: min(430px, calc(100vw - 32px)); max-height: calc(100dvh - var(--header-height, 64px) - 32px); overflow: auto; box-shadow: 0 6px 24px #17120f26; }
+@media(max-width:1100px) { header .app-brand span,header .app-brand small { display: none; } header { gap: 10px; padding-inline: 16px; } }
+@media(max-width:850px) { :root { --header-height: 112px; } header { height: var(--header-height); flex-wrap: wrap; align-content: center; } .header-usage { order: 3; flex-basis: 100%; max-width: none; border-left: 0; padding-left: 0; } header nav { margin-left: auto; } }
+@media(max-width:620px) { header { height: var(--header-height); } header nav button { padding: 6px; font-size: 11px; } }
+.usage-heading-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.usage-card p { margin: 5px 0; overflow-wrap: anywhere; }
 .usage-card strong { font-size: 13px; }
 .usage-card p,.settings-note,#settings-status { font-size: 12px; line-height: 1.8; color: var(--muted, #627968); }
 .usage-card #refresh-usage { font-size: 12px; padding: 7px 10px; }
@@ -71,7 +86,7 @@ button.info-button:hover,button.info-button:focus-visible {
 .chat-turn details{font-size:12px;color:#607065}
 #delete-chat{color:#a13b36}
 
-/* Reading and conversation occupy the main space; account tools live in Settings. */
+/* Reading and conversation occupy the main space; usage stays visible in the app header. */
 main>.chat-panel{display:flex;flex-direction:column;min-height:0;overflow:hidden;padding:20px 24px 16px;gap:0}
 .chat-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex:none}
 .chat-heading h2{font-size:22px;margin:5px 0 8px}.chat-heading .eyebrow{font-size:10px}
@@ -157,6 +172,8 @@ main.has-annotations{grid-template-columns:minmax(0,1fr) clamp(270px,23vw,340px)
 #annotation-status{font-size:11px;line-height:1.6;color:var(--muted);margin:10px 0}
 #annotation-list{flex:1;min-height:0;overflow:auto}
 .annotation-item{border-top:1px solid var(--rule);padding:8px 0;overflow-wrap:anywhere}
+.annotation-item.is-active{background:var(--hover);box-shadow:inset 3px 0 var(--orange,#9b390d);padding-left:8px}
+.annotation-item:focus-visible{outline:2px solid var(--orange,#9b390d);outline-offset:-2px}
 .annotation-jump{display:block;width:100%;text-align:left;border:0;border-left:5px solid #ffe35c;background:var(--hover);padding:6px 8px;color:var(--ink);font-size:12px;line-height:1.5}
 .annotation-actions{display:flex;gap:6px;margin-top:5px}.annotation-actions button{font-size:11px;padding:3px 7px}
 .annotation-item-note{font-size:12px;line-height:1.5;padding:4px 8px;max-height:120px;overflow:auto}
@@ -176,3 +193,80 @@ main.has-annotations{grid-template-columns:minmax(0,1fr) clamp(270px,23vw,340px)
 }
 @media(max-width:850px) and (min-width:621px){.annotation-panel:not([hidden]){right:320px;width:min(320px,calc(100vw - 320px))}}
 @media(max-width:620px){main.has-annotations{display:flex}.annotation-panel:not([hidden]){height:min(420px,60dvh);border-left:0;border-top:1px solid var(--rule)}#annotation-list{overflow:auto}}
+
+/* Reading workspace: full-height conversation and a compact writing dock. */
+:root{--panel-width:clamp(400px,44vw,640px)}
+main,main.has-annotations{position:relative;grid-template-columns:minmax(0,1fr) 8px var(--panel-width);overflow:hidden}
+main>.reader{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.pdf-stage{position:relative;flex:1;min-height:0;overflow:hidden}
+.pdf-stage>iframe{display:block;width:100%;height:100%}
+#panel-resizer{cursor:col-resize;touch-action:none;background:#eeeae5;position:relative;z-index:5;outline:none}
+#panel-resizer::after{content:'';position:absolute;top:calc(50% - 22px);left:3px;width:2px;height:44px;border-radius:2px;background:#b1a69c;transition:background .15s}
+#panel-resizer:hover,#panel-resizer:focus-visible,.resizing-panels #panel-resizer{background:#e2d6c9}
+#panel-resizer:focus-visible::after{background:var(--orange)}
+.resizing-panels{cursor:col-resize;user-select:none}.resizing-panels iframe{pointer-events:none}
+main>.chat-panel{padding:0 24px 12px;border-left:0;background:#fff;min-width:0}
+.chat-heading{padding:18px 0 8px;gap:8px}.chat-heading h2{margin:0;font:600 18px/1.3 var(--font-sans)}
+.chat-actions{display:flex;align-items:center;gap:6px}.chat-actions button{padding:6px 9px}
+.chat-panel .document{padding-bottom:12px;margin:0;border-bottom:1px solid var(--rule);color:var(--muted)}
+.chat-panel #answer{padding:20px 0;min-height:0;font-size:15px;scrollbar-gutter:stable;overscroll-behavior:contain}
+.chat-panel #answer:empty::before{content:'논문을 읽으며 대화를 이어가세요.\APDF 아래에 질문을 작성하면 이곳에 답변이 쌓입니다.';padding:32px 8px;line-height:1.9}
+.chat-panel .chat-turn{padding:0 0 24px;margin-bottom:24px;border-bottom:1px solid var(--border-soft)}
+.chat-panel .chat-question{margin-left:24px;padding:14px 16px;background:#f4f1ed;border:0;border-radius:12px 12px 3px 12px;font-size:14px}
+.chat-panel .chat-answer{padding:12px 4px 0;line-height:1.85}
+.chat-panel .chat-meta,.chat-panel .chat-turn>details{font-size:11px;color:var(--muted);margin:8px 4px}
+.reader>.reading-composer{flex:none;margin:0;padding:10px 16px 8px;background:#fff;border-top:1px solid var(--rule);max-height:42%;overflow:auto;box-shadow:0 -3px 12px #17120f06}
+.reading-composer .selection-context{margin:0 0 5px;font-size:11px;color:var(--muted)}
+.selection-context>summary{cursor:pointer;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#selection-hint{margin-left:8px;color:var(--ink)}
+.reading-composer .selection-head{display:none}.reading-composer #selection{max-height:60px;margin:5px 0}
+.reading-composer #question{min-height:60px;height:60px;max-height:160px;margin:0 0 8px;padding:10px 12px;font-size:14px;border:1px solid var(--rule);border-radius:9px;resize:vertical;background:#fdfcfb}
+.reading-composer #question:focus{border-color:var(--ink);outline:2px solid #d8cec1;outline-offset:1px}
+.composer-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.composer-tools,.composer-send{display:flex;align-items:center;gap:6px;min-width:0}
+.composer-toolbar button{font-size:12px;padding:7px 10px;border-radius:6px;white-space:nowrap}
+.composer-tools button{border-color:transparent;background:var(--hover)}
+.composer-send .wide-help{width:auto}.composer-send .wide{width:auto;margin:0}
+.reading-composer .info-button{display:none}.shortcut-hint{font-size:10px;color:var(--muted);white-space:nowrap}
+.reading-composer #token-estimate{display:inline-block;font-size:10px;margin:6px 12px 0 0;font-family:var(--font-sans);color:var(--muted)}
+.reading-composer #status{font-size:10px;line-height:1.4;margin:3px 0 0;max-height:28px}
+.reading-composer #manual-controls,.reading-composer #plan-controls{margin:0;padding:0}
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+.workspace-popover{position:fixed;inset:auto auto 24px 24px;margin:0;width:min(460px,calc(100vw - 32px));max-height:calc(100dvh - 120px);overflow:auto;border:1px solid var(--rule);border-radius:12px;background:#fff;color:var(--ink);padding:20px;box-shadow:0 12px 44px #17120f26;font-size:12px}
+.workspace-popover h2{font:600 16px var(--font-sans);margin:0 0 16px}.workspace-popover summary{cursor:pointer}
+.workspace-popover .context-options{grid-template-columns:1fr 1fr}.workspace-popover .conversation-controls{max-height:none}
+#chat-library-popover{inset:calc(var(--header-height) + 60px) 24px auto auto}
+.workspace-popover .presets{display:flex;gap:8px;flex-wrap:wrap}
+main>.annotation-panel:not([hidden]){position:absolute;top:0;bottom:0;right:calc(var(--panel-width) + 8px);width:min(320px,calc(100% - var(--panel-width) - 8px));height:auto;z-index:6;border:1px solid var(--rule);box-shadow:-8px 0 24px #17120f18}
+@media(max-width:1000px){.shortcut-hint{display:none}main>.chat-panel{padding-inline:16px}.reader>.reading-composer{padding-inline:12px}.composer-toolbar{gap:5px}.composer-toolbar button{font-size:11px;padding:6px 8px}}
+@media(max-width:800px){main,main.has-annotations{display:flex;flex-direction:column;height:auto;overflow:visible}main>.reader{height:78dvh;min-height:440px}#panel-resizer{display:none}main>.chat-panel{min-height:65dvh;max-height:90dvh;overflow:hidden}.chat-panel #answer{max-height:none;min-height:0}.reader>.reading-composer{max-height:45%}main>.annotation-panel:not([hidden]){right:0;top:0;bottom:auto;height:60dvh;width:min(320px,90vw)}}
+
+/* Compact identity and quota card in the global toolbar. */
+.header-usage { flex: 1; min-width: 0; max-width: 430px; padding: 0; border: 0; }
+.header-usage .usage-trigger { display: inline-flex; align-items: center; gap: 11px; max-width: 100%; min-height: 48px; padding: 6px 12px 6px 7px; border: 1px solid #e6e8e3; border-radius: 12px; background: #fafbf9; color: #343a36; font: 12px/1.4 var(--font-sans, "Segoe UI", sans-serif); box-shadow: 0 1px 2px #24352405; text-align: left; }
+.header-usage .usage-trigger:hover { background: #f0f3ed; border-color: #cbd4c7; }
+.header-usage .usage-trigger:focus-visible { outline: 2px solid #56765f; outline-offset: 3px; }
+header .usage-trigger span { display: inline; border: 0; padding: 0; margin: 0; background: transparent; border-radius: 0; font: inherit; letter-spacing: normal; }
+header .usage-trigger .account-avatar { display: grid; place-items: center; flex: 0 0 32px; height: 32px; border-radius: 9px; background: #e5ecdf; color: #4a6240; font-size: 14px; font-weight: 650; }
+header .usage-trigger .account-copy { display: grid; gap: 3px; min-width: 0; }
+header .usage-trigger .account-identity { display: flex; align-items: center; gap: 8px; min-width: 0; }
+header .usage-trigger #header-account { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; font-size: 12px; }
+header .usage-trigger .account-source { flex: none; color: #7a8175; font-size: 10px; }
+header .usage-trigger .account-quota { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #63715b; font-size: 11px; }
+header .usage-trigger #usage-summary { color: inherit; font-size: inherit; font-weight: 400; }
+header .usage-trigger .usage-chevron { color: #8a9383; margin-left: 6px; }
+#usage-popover { border-color: #e3e5df; border-radius: 16px; padding: 22px; box-shadow: 0 14px 44px #18251b20; }
+.reader-account-card { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 5px 12px; margin: 18px 0 14px; padding: 14px; border-radius: 10px; background: #f5f7f2; }
+.reader-account-card small { grid-column: 1; color: #798273; font-size: 11px; }
+.reader-account-card strong { grid-column: 1; overflow-wrap: anywhere; font-size: 12px; }
+.reader-account-card button { grid-column: 2; grid-row: 1 / 3; border: 0; background: transparent; color: #526b46; font-size: 11px; padding: 6px; }
+.usage-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; padding-top: 12px; border-top: 1px solid #eceee9; gap: 12px; }
+.usage-footer button { border-radius: 7px; }
+@media(max-width:1000px) { .header-usage .usage-trigger { gap: 7px; padding-right: 8px; } header .usage-trigger .account-source { display: none; } }
+
+#manual-controls { display: flex; align-items: center; justify-content: flex-end; gap: 6px; flex-wrap: wrap; }
+.composer-toolbar { flex-wrap: wrap; gap: 8px; }
+.import-answer-button { margin-top: 12px; padding: 7px 12px; border-radius: 8px; color: #526b46; background: #f5f7f2; border-color: #e2e7dc; font-size: 12px; }
+#import-answer-dialog { width: min(620px, calc(100vw - 32px)); border: 1px solid #e0e4da; border-radius: 16px; padding: 24px; max-height: 85dvh; overflow: auto; }
+#import-answer-question { max-height: 100px; overflow: auto; margin: 14px 0; padding: 12px; background: #f6f7f3; border-radius: 8px; font-size: 13px; }
+#import-answer-text { width: 100%; box-sizing: border-box; margin-top: 8px; min-height: 180px; max-height: 40dvh; resize: vertical; }
