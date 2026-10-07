@@ -8,6 +8,7 @@ PDF.js 기반 Windows PDF 리더입니다. PDF와 대화를 한 화면에서 보
 - PDF 옆 별도 패널의 형광펜 및 마크다운 주석, 문서별 자동 저장
 - 수동 문맥 범위 및 Auto 문맥 선택, 입력 토큰 추정치 표시
 - 대화 자동 저장, 새 대화 시작 및 명시적 삭제
+- 질문과 답변의 마크다운 및 수식 표시, 질문 입력 미리보기
 - ChatGPT 웹에 질문 복사 또는 로그인 후 앱에서 직접 요청
 - 계정 사용량 조회 및 외부 CSS 테마 지원
 
@@ -41,4 +42,4 @@ Windows x64 portable EXE를 빌드합니다. 현재 빌드 출력 경로는 `ele
 
 ## 포함된 구성 요소
 
-PDF.js 6.4.299 배포본을 `pdfjs/`에 포함합니다. 해당 구성 요소의 라이선스는 [pdfjs/LICENSE](pdfjs/LICENSE)에 있습니다.
+PDF.js 6.4.299 배포본을 `pdfjs/`에 포함합니다. 해당 구성 요소의 라이선스는 [pdfjs/LICENSE](pdfjs/LICENSE)에 있습니다. 마크다운 표시는 Markdown-it, 수식 표시는 KaTeX와 @mdit/plugin-katex를 사용합니다. 라이선스는 `vendor/licenses/`에 있습니다. 렌더링 시 원시 HTML과 원격 이미지 로딩을 허용하지 않습니다.

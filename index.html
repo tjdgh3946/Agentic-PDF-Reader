@@ -5,6 +5,7 @@
   <title>Paper Reader · 논문 읽기</title>
   <link rel="stylesheet" href="app.css">
   <link rel="stylesheet" href="ui.css">
+  <link rel="stylesheet" href="vendor/katex/katex.min.css">
 </head>
 <body>
   <header><div><strong>Paper Reader<span>LOCAL PREVIEW</span></strong><small>읽던 자리에서, 문맥과 함께 질문하기</small></div><nav><button id="settings-open">환경 설정</button><button id="annotations-toggle" type="button" aria-controls="annotation-panel" aria-expanded="false">주석 패널 <span id="annotation-count">0</span></button><button id="sample">샘플 논문</button><button id="open" class="primary">PDF 열기</button><input id="file" type="file" accept="application/pdf,.pdf" hidden></nav></header>
@@ -24,6 +25,7 @@
         <div class="selection-head"><label for="selection">선택한 문장</label><span id="page"></span></div><blockquote id="selection">PDF에서 문장을 선택하세요.</blockquote>
       <div class="presets"><button data-question="선택한 문장을 제공된 문맥에 맞춰 한국어로 쉽게 설명해 주세요.">쉽게 설명</button><button data-question="선택한 문장을 문맥에 맞게 자연스러운 한국어로 번역해 주세요.">번역</button><button data-question="선택한 문장이 논문의 주장 및 근거와 어떻게 연결되는지 설명해 주세요.">논문 속 의미</button></div>
         <label for="question">질문</label><textarea id="question" rows="3" placeholder="궁금한 점을 물어보세요. 후속 질문도 이어서 할 수 있습니다.">선택한 문장을 제공된 문맥에 맞춰 한국어로 쉽게 설명해 주세요.</textarea>
+        <details class="question-preview"><summary>질문 마크다운 미리보기</summary><div id="question-markdown-preview" class="markdown-body"></div></details>
       <div class="context-options">
         <div><label for="pdf-window">PDF 문맥 범위 (window)</label><select id="pdf-window"><option value="auto">Auto · 질문에 맞게</option><option value="selection">선택 문장만</option><option value="page">선택 문장이 있는 페이지</option><option value="near1" selected>앞뒤 1페이지 포함</option><option value="near2">앞뒤 2페이지 포함</option><option value="all">전체 문서</option></select>
 </div><div><label for="history-window">이전 대화 포함</label><select id="history-window"><option value="0">포함하지 않음</option><option value="3" selected>최근 3회</option><option value="6">최근 6회</option><option value="12">최근 12회</option><option value="all">전체 대화</option></select>

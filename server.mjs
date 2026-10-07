@@ -15,7 +15,7 @@ import {createSettings} from './settings.mjs';
 import {createUsageReader,compareUsageAccount} from './usage.mjs';
 const root=fileURLToPath(new URL('.',import.meta.url));
 export const ORIGIN='http://127.0.0.1:8767';
-const mime={'.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript','.mjs':'text/javascript','.json':'application/json','.pdf':'application/pdf','.wasm':'application/wasm','.svg':'image/svg+xml','.png':'image/png','.ftl':'text/plain; charset=utf-8','.bcmap':'application/octet-stream'};
+const mime={'.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript','.mjs':'text/javascript','.json':'application/json','.pdf':'application/pdf','.wasm':'application/wasm','.svg':'image/svg+xml','.png':'image/png','.woff':'font/woff','.woff2':'font/woff2','.ttf':'font/ttf','.ftl':'text/plain; charset=utf-8','.bcmap':'application/octet-stream'};
 const escape = value => String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function json(res,value,status=200) {res.writeHead(status,{'Content-Type':'application/json; charset=utf-8'}).end(JSON.stringify(value));}
 function page(res,title,message,status=200) {res.writeHead(status,{'Content-Type':'text/html; charset=utf-8'}).end(`<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Paper Reader · ${escape(title)}</title><link rel="stylesheet" href="/auth-page.css"><main><h1>${escape(title)}</h1><p>${escape(message)}</p><p>기존 Paper Reader 창으로 돌아가면 연결 상태가 갱신됩니다.</p><a href="/">Paper Reader 열기</a></main></html>`);}
@@ -180,10 +180,10 @@ export function createAppServer(auth,{openBrowser=launchBrowser,getOrigin=()=>OR
       if(!['GET','HEAD'].includes(req.method)) {res.writeHead(405).end();return;}
       const urlPath=decodeURIComponent(url.pathname);
       const relativePath=urlPath==='/'?'index.html':urlPath.slice(1);
-      if(!['index.html','app.css','app.mjs','annotation-ui.mjs','auto-context.mjs','context.mjs','help.mjs','ui.css','auth-page.css'].includes(relativePath) && !relativePath.startsWith('pdfjs/')) throw new UserError('Not found',404);
+      if(!['index.html','app.css','app.mjs','annotation-ui.mjs','auto-context.mjs','context.mjs','help.mjs','ui.css','auth-page.css','markdown.bundle.mjs'].includes(relativePath) && !relativePath.startsWith('pdfjs/') && !relativePath.startsWith('vendor/katex/')) throw new UserError('Not found',404);
       let file=path.resolve(root,relativePath);
       const relative=path.relative(root,file);
-      if(relative.startsWith('..') || path.isAbsolute(relative) || (relativePath.startsWith('pdfjs/') && !relative.replaceAll('\\','/').startsWith('pdfjs/'))) throw new UserError('Not found',404);
+      if(relative.startsWith('..') || path.isAbsolute(relative) || (relativePath.startsWith('pdfjs/') && !relative.replaceAll('\\','/').startsWith('pdfjs/')) || (relativePath.startsWith('vendor/katex/') && !relative.replaceAll('\\','/').startsWith('vendor/katex/'))) throw new UserError('Not found',404);
       // Only the main stylesheet can be overridden; no arbitrary sibling files are served.
       if(relativePath==='app.css' && externalCssPath) {
         try {if((await stat(externalCssPath)).isFile())file=externalCssPath;}

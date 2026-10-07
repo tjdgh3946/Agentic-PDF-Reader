@@ -120,6 +120,30 @@ main>.chat-panel{display:flex;flex-direction:column;min-height:0;overflow:hidden
 
 #auto-report{max-height:48px;overflow:auto}#auto-controls .auto-note{font-size:10px;margin:3px 0}
 
+/* Markdown in saved questions, streamed answers, and the question preview. */
+.chat-turn>.chat-question{padding:10px 12px;background:var(--hover);border-radius:var(--radius);color:var(--ink);overflow-wrap:anywhere}
+.chat-answer.markdown-body{white-space:normal;overflow-wrap:anywhere}
+.markdown-body{line-height:1.7;min-width:0}
+.markdown-body>:first-child{margin-top:0}.markdown-body>:last-child{margin-bottom:0}
+.markdown-body p,.markdown-body ul,.markdown-body ol,.markdown-body blockquote,.markdown-body pre,.markdown-body table{margin:0 0 .85em}
+.markdown-body ul,.markdown-body ol{padding-left:1.5em}.markdown-body li+li{margin-top:.25em}
+.markdown-body li>p{margin:.25em 0}.markdown-body li>ul,.markdown-body li>ol{margin:.3em 0}
+.markdown-body h1,.markdown-body h2,.markdown-body h3,.markdown-body h4{line-height:1.3;color:var(--ink);margin:1.1em 0 .45em;font-weight:650}
+.markdown-body h1{font-size:1.35em}.markdown-body h2{font-size:1.2em}.markdown-body h3{font-size:1.08em}.markdown-body h4{font-size:1em}
+.markdown-body blockquote{border-left:3px solid var(--accent);padding:.2em .8em;color:var(--muted);background:var(--hover)}
+.markdown-body pre{padding:10px 12px;border:1px solid var(--rule);border-radius:var(--radius);background:var(--hover);overflow:auto;white-space:pre}
+.markdown-body code{font-family:var(--font-mono);font-size:.88em;overflow-wrap:normal}
+.markdown-body :not(pre)>code{padding:.1em .3em;border-radius:3px;background:var(--hover)}
+.markdown-body a{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+.markdown-body table{display:block;max-width:100%;border-collapse:collapse;overflow:auto}
+.markdown-body th,.markdown-body td{padding:6px 9px;border:1px solid var(--rule);text-align:left;white-space:normal;min-width:90px}
+.markdown-body th{background:var(--hover)}
+.markdown-body hr{border:0;border-top:1px solid var(--rule);margin:1em 0}
+.markdown-body .katex-display{max-width:100%;overflow-x:auto;overflow-y:hidden;padding:.25em 0}
+.question-preview{margin:-2px 0 8px;font-size:12px;color:var(--muted)}
+.question-preview>summary{cursor:pointer}.question-preview[open]{border:1px solid var(--rule);border-radius:var(--radius);padding:7px 9px}
+.question-preview .markdown-body{color:var(--text-color);padding:8px 0 2px;font-size:13px}
+
 #auto-controls summary{cursor:pointer;font-size:11px}#auto-controls details[open]>label{display:inline-block;margin-top:8px}
 
 /* Locally stored PDF highlights and Markdown notes. */

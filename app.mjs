@@ -1,4 +1,5 @@
 import {retrieveCandidates} from './auto-context.mjs';
+import {renderMarkdown} from './markdown.bundle.mjs';
 import {pageWindow,historyFor,buildPrompt} from './context.mjs';
 import {createAnnotationUI} from './annotation-ui.mjs';
 const $ = id => document.getElementById(id);
@@ -9,7 +10,7 @@ let authState = null, answerController = null, pollTimer = null, pollingUntil = 
 let requestMode = null, savingSettings = false, openingChatGPT = false;
 let usageState=null,loadingUsage=false;
 let selectedEndPage='',promptRevision=0,prepared=null,pdfWindow='near1',historyTurns=3;
-let chat=null,chatList=[],chatRevision=0,chatBusy=false,documentId='',tokenTimer,autoController=null,autoBudget=8000;
+let chat=null,chatList=[],chatRevision=0,chatBusy=false,documentId='',tokenTimer,autoController=null,autoBudget=8000,answerRenderTimer=null;
 const status = message => { $('status').textContent = message; };
 function invalidatePrompt(schedule=true) {
   autoController?.abort();promptRevision++;prepared=null;clearTimeout(tokenTimer);$('prompt').value='';$('copy').disabled=true;
@@ -107,8 +108,10 @@ document.addEventListener('drop', event => { event.preventDefault(); openFile(ev
 document.addEventListener('pointerdown', event => { if (!$('context').contains(event.target)) $('context').hidden = true; });
 document.addEventListener('keydown', event => { if (event.key === 'Escape') $('context').hidden = true; });
 $('ask').onclick = () => { $('context').hidden = true; $('question').focus(); $('question').scrollIntoView({block:'nearest', behavior:'smooth'}); };
-document.querySelectorAll('[data-question]').forEach(button => { button.onclick = () => { $('question').value = button.dataset.question; invalidatePrompt(); }; });
-$('question').oninput = ()=>invalidatePrompt();
+function updateQuestionPreview(){renderMarkdown($('question-markdown-preview'),$('question').value);}
+document.querySelectorAll('[data-question]').forEach(button => { button.onclick = () => { $('question').value = button.dataset.question;updateQuestionPreview();invalidatePrompt(); }; });
+$('question').oninput = ()=>{updateQuestionPreview();invalidatePrompt();};
+updateQuestionPreview();
 $('prepare').onclick = async automatic => {
   const notify=message=>{if(automatic!==true)status(message);};
   if ((!selected && pdfWindow!=='auto') || !viewer?.pdfDocument || busy || autoController || answerController || chatBusy) return;
@@ -185,20 +188,32 @@ function renderChat() {
   const log=$('answer'),scroll=log.scrollTop,follow=log.scrollHeight-scroll-log.clientHeight<80;
   const nodes=(chat?.entries || []).map(entry=>{
     const article=document.createElement('article');article.className='chat-turn';article.dataset.entry=entry.id;
-    const title=document.createElement('strong');title.textContent=entry.test?'연결 테스트':entry.question;
+    const title=document.createElement('div');title.className='chat-question markdown-body';renderMarkdown(title,entry.test?'연결 테스트':entry.question);
     const meta=document.createElement('p');meta.className='chat-meta';meta.textContent=entry.pageLabel+' · '+({complete:'완료',pending:'응답 중',interrupted:'중단된 응답',exported:'복사됨 · 웹 답변은 별도'}[entry.status] || entry.status);
     const quote=document.createElement('details'),summary=document.createElement('summary'),text=document.createElement('p');summary.textContent='당시 선택 문장 · 문맥';text.textContent=entry.selection+'\nPDF 페이지: '+(entry.pages?.join(', ') || '선택 문장만')+' · 이전 대화 '+(entry.historyCount || 0)+'회';quote.append(summary,text);
-    const answer=document.createElement('div');answer.className='chat-answer';answer.textContent=entry.answer || (entry.status==='exported'?'ChatGPT에서 답변을 확인하세요.':'');
+    const answer=document.createElement('div');answer.className='chat-answer markdown-body';renderMarkdown(answer,entry.answer || (entry.status==='exported'?'ChatGPT에서 답변을 확인하세요.':''));
     if(entry.autoContext){text.textContent+='\nAuto: '+entry.autoContext.reason+' · '+entry.autoContext.source;if(entry.autoContext.agentUsage?.inputTokens!=null)text.textContent+=' · 선택용 실제 입력 '+entry.autoContext.agentUsage.inputTokens+' tokens';}
     article.append(title,meta,quote,answer);
     if(entry.status==='complete'){const usage=document.createElement('p');usage.className='chat-token-usage';usage.textContent=entry.usage?.inputTokens!=null?'실제 입력 '+entry.usage.inputTokens.toLocaleString()+' tokens'+(entry.usage.cachedTokens!=null?' · 캐시 '+entry.usage.cachedTokens.toLocaleString():''):'실제 입력 토큰 · 서버 미제공';article.append(usage);}
     return article;
   });
+  clearTimeout(answerRenderTimer);answerRenderTimer=null;
   log.replaceChildren(...nodes);log.scrollTop=follow?log.scrollHeight:scroll;
   $('history-status').textContent='저장된 질문 '+(chat?.entries.length || 0)+'개 · 다음 질문에 완료된 대화 '+historyFor(chat?.entries || [],historyTurns).length+'회 포함';
   if(chat && documentId!==chat.documentId)$('chat-status').textContent='저장된 대화: '+chat.fileName+' · 이어서 질문하려면 같은 PDF를 열어 주세요.';
   else $('chat-status').textContent=chat?'이 PC에 자동 저장 · '+chat.fileName:'새 대화 · 전송하거나 복사하면 이 PC에 자동 저장됩니다.';
   updateSend();
+}
+function queueAnswerRender(entry) {
+  if(answerRenderTimer)return;
+  answerRenderTimer=setTimeout(()=>{
+    answerRenderTimer=null;
+    const log=$('answer'),body=log.querySelector('[data-entry="'+entry.id+'"] .chat-answer');
+    if(!body)return;
+    const follow=log.scrollHeight-log.scrollTop-log.clientHeight<80;
+    renderMarkdown(body,entry.answer);
+    if(follow)log.scrollTop=log.scrollHeight;
+  },80);
 }
 function detachChat() {
   answerController?.abort();chatRevision++;chat=null;chatBusy=false;
@@ -444,7 +459,7 @@ async function sendQuestion(prompt,isTest=false) {
         const event=JSON.parse(line);
         if(revision!==chatRevision)continue;
         if(event.type==='entry'){entry=event.entry;current.entries.push(entry);renderChat();}
-        if(event.type==='delta' && entry){entry.answer+=event.text;const log=$('answer'),follow=log.scrollHeight-log.scrollTop-log.clientHeight<80;const body=log.querySelector('[data-entry="'+entry.id+'"] .chat-answer');if(body)body.textContent=entry.answer;if(follow)log.scrollTop=log.scrollHeight;$('answer-status').textContent='답변 작성 중 · 자동 저장 중…';}
+        if(event.type==='delta' && entry){entry.answer+=event.text;queueAnswerRender(entry);$('answer-status').textContent='답변 작성 중 · 자동 저장 중…';}
         if(event.type==='complete'){complete=true;if(entry){entry.status='complete';entry.usage=event.usage;}}
         if(event.type==='error')throw new Error(event.message);
       }
@@ -452,7 +467,7 @@ async function sendQuestion(prompt,isTest=false) {
     if(revision!==chatRevision)return;
     if(!complete)throw new Error('응답이 완료되지 않았습니다. 부분 응답은 다음 질문에 포함하지 않습니다.');
     $('answer-status').textContent=isTest?'연결 테스트 완료 · 저장됨':'답변 완료 · 저장됨';
-    renderChat();if(!isTest && $('question').value.trim()===snapshot.question)$('question').value='';invalidatePrompt();status('후속 질문을 입력하고 보내세요. Ctrl+Enter로도 전송할 수 있습니다.');await refreshChats();
+    renderChat();if(!isTest && $('question').value.trim()===snapshot.question){$('question').value='';updateQuestionPreview();}invalidatePrompt();status('후속 질문을 입력하고 보내세요. Ctrl+Enter로도 전송할 수 있습니다.');await refreshChats();
   }catch(error){
     if(revision===chatRevision){if(entry)entry.status='interrupted';renderChat();invalidatePrompt();$('answer-status').textContent=controller.signal.aborted?'응답 중지 · 수신한 부분까지 저장합니다.':error.message;await refreshChats().catch(()=>{});}
   }finally{controller.abort();if(answerController===controller)answerController=null;updateSend();}
