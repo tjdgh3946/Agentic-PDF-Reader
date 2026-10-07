@@ -2,6 +2,7 @@ import {retrieveCandidates} from './auto-context.mjs';
 import {renderMarkdown} from './markdown.bundle.mjs';
 import {pageWindow,historyFor,buildPrompt} from './context.mjs';
 import {createAnnotationUI} from './annotation-ui.mjs';
+import {createWebPanelUI} from './web-panel-ui.mjs';
 const $ = id => document.getElementById(id);
 const frame = $('viewer');
 const annotationUI=createAnnotationUI({frame,api,getViewer:()=>viewer});
@@ -12,6 +13,8 @@ let usageState=null,loadingUsage=false;
 let selectedEndPage='',promptRevision=0,prepared=null,pdfWindow='near1',historyTurns=3;
 let chat=null,chatList=[],chatRevision=0,chatBusy=false,documentId='',tokenTimer,autoController=null,autoBudget=8000,answerRenderTimer=null;
 const status = message => { $('status').textContent = message; };
+const webPanelUI=createWebPanelUI({status});
+const writeClipboard=text=>window.paperDesktop?.writeClipboard ? window.paperDesktop.writeClipboard(text) : navigator.clipboard.writeText(text);
 function invalidatePrompt(schedule=true) {
   $('selection-hint').textContent=selected ? selected.slice(0,90) : 'PDF에서 문장을 선택하세요';
   autoController?.abort();promptRevision++;prepared=null;clearTimeout(tokenTimer);$('prompt').value='';$('copy').disabled=true;
@@ -161,7 +164,7 @@ $('prepare').onclick = async automatic => {
   finally{if(generation===docGeneration){busy=false;updateSend();}}
 };
 $('copy').onclick = async () => {
-  try {await navigator.clipboard.writeText($('prompt').value);}
+  try {await writeClipboard($('prompt').value);}
   catch {$('preview').open=true;$('prompt').select();status('자동 복사가 제한되어 있습니다. 선택된 내용을 Ctrl+C로 복사하세요.');return;}
   try {await saveExport();status('준비된 질문을 복사하고 기록을 저장했습니다. 원하는 대화창에 붙여넣으세요.');}
   catch(error){status('복사는 완료했지만 기록을 저장하지 못했습니다: '+error.message);}
@@ -300,6 +303,11 @@ function renderHeaderAccount() {
   $('header-account-source').textContent=connected?'앱 연결':usageState?'Codex':'미연결';
   $('header-avatar').textContent=account?(identity[0] || 'P').toUpperCase():'P';
   $('reader-account-detail').textContent=connected?identity:'로그인되지 않음';
+  if(requestMode==='manual' && webPanelUI.available){
+    $('header-account').textContent='ChatGPT 웹';$('header-account').title='웹 로그인은 앱 연결 계정과 별개입니다.';
+    $('header-account-source').textContent='웹 계정 별도';$('header-avatar').textContent='C';
+    $('usage-summary').textContent='계정·사용량은 오른쪽 웹에서 확인';$('usage-summary').title=$('usage-summary').textContent;$('usage-summary').hidden=false;
+  }
 }
 $('account-settings').onclick=()=>{$('usage-popover').hidePopover();$('settings-open').click();};
 function renderUsage() {
@@ -334,6 +342,7 @@ function renderUsage() {
   $('usage-summary').title=$('usage-summary').textContent;
   $('usage-summary').hidden=false;
   $('usage-updated').textContent=`조회 시각: ${new Date(usageState.checkedAt).toLocaleString('ko-KR')} · 10초 이내 재조회는 직전 결과를 사용합니다.`;
+  renderHeaderAccount();
 }
 $('refresh-usage').onclick=async()=>{
   if(loadingUsage)return;
@@ -362,7 +371,7 @@ function updateSend() {
   $('settings-save').disabled = working || savingSettings || !!answerController || openingChatGPT;
 }
 function applyMode(mode) {
-  requestMode=mode;
+  requestMode=mode;webPanelUI.setMode(mode);
   const direct=mode==='plan';
   $('account-card').hidden=!direct;
   $('model-settings').hidden=!direct;
@@ -370,6 +379,7 @@ function applyMode(mode) {
   $('manual-controls').hidden=mode!=='manual';
   $('mode-title').textContent=direct?'앱에서 직접 요청':'ChatGPT에서 직접 질문';
   $('mode-description').textContent=direct?'앱 안에서 답변받습니다. Codex / ChatGPT Work 공유 사용량 또는 허용한 크레딧을 사용합니다.':'질문을 복사해 ChatGPT 대화창에서 직접 전송합니다. 앱에서 AI 요청은 보내지 않습니다.';
+  renderUsage();
   updateSend();
 }
 $('settings-open').onclick=()=>{
@@ -397,13 +407,14 @@ async function exportToChatGPT(openBrowser) {
   if(!prepared)return;
   openingChatGPT=true;updateSend();$('chatgpt-fallback').hidden=true;
   try {
-    try {await navigator.clipboard.writeText($('prompt').value);}
+    try {await writeClipboard($('prompt').value);}
     catch {
       $('context-popover').showPopover();$('preview').open=true;$('prompt').focus();$('prompt').select();$('chatgpt-fallback').hidden=false;
       status('자동 복사를 사용할 수 없습니다. 선택된 내용을 Ctrl+C로 복사하세요.');return;
     }
     await saveExport();
-    if(!openBrowser){status('질문을 복사했습니다. 열려 있는 ChatGPT 대화에 Ctrl+V로 붙여넣으세요. 답변은 오른쪽 질문 아래에서 가져올 수 있습니다.');return;}
+    if(!openBrowser){status('질문을 복사했습니다. 열려 있는 ChatGPT 대화에 Ctrl+V로 붙여넣으세요. 답변은 앱 기록의 해당 질문 아래에서 가져올 수 있습니다.');return;}
+    if(webPanelUI.available){await webPanelUI.show();status('복사 완료 · 오른쪽 ChatGPT 입력창을 클릭하고 Ctrl+V로 붙여넣어 전송하세요. 대화는 웹 탭에 유지됩니다.');return;}
     const result=await api('/api/open-chatgpt',{});
     $('chatgpt-fallback').hidden=result.opened;
     status(result.opened?'복사 완료 · ChatGPT에서 Ctrl+V → 전송. 받은 답변은 오른쪽의 ‘답변 붙여넣기’로 보관하세요.':'복사 완료 · ChatGPT 직접 열기를 누른 뒤 Ctrl+V로 붙여넣으세요.');

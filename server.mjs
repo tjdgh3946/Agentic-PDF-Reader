@@ -182,7 +182,7 @@ export function createAppServer(auth,{openBrowser=launchBrowser,getOrigin=()=>OR
       if(!['GET','HEAD'].includes(req.method)) {res.writeHead(405).end();return;}
       const urlPath=decodeURIComponent(url.pathname);
       const relativePath=urlPath==='/'?'index.html':urlPath.slice(1);
-      if(!['index.html','app.css','app.mjs','annotation-ui.mjs','annotation-overlay.css','auto-context.mjs','context.mjs','help.mjs','ui.css','auth-page.css','markdown.bundle.mjs'].includes(relativePath) && !relativePath.startsWith('pdfjs/') && !relativePath.startsWith('vendor/katex/')) throw new UserError('Not found',404);
+      if(!['index.html','app.css','app.mjs','web-panel-ui.mjs','annotation-ui.mjs','annotation-overlay.css','auto-context.mjs','context.mjs','help.mjs','ui.css','auth-page.css','markdown.bundle.mjs'].includes(relativePath) && !relativePath.startsWith('pdfjs/') && !relativePath.startsWith('vendor/katex/')) throw new UserError('Not found',404);
       let file=path.resolve(root,relativePath);
       const relative=path.relative(root,file);
       if(relative.startsWith('..') || path.isAbsolute(relative) || (relativePath.startsWith('pdfjs/') && !relative.replaceAll('\\','/').startsWith('pdfjs/')) || (relativePath.startsWith('vendor/katex/') && !relative.replaceAll('\\','/').startsWith('vendor/katex/'))) throw new UserError('Not found',404);

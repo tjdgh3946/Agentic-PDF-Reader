@@ -270,3 +270,16 @@ header .usage-trigger .usage-chevron { color: #8a9383; margin-left: 6px; }
 #import-answer-dialog { width: min(620px, calc(100vw - 32px)); border: 1px solid #e0e4da; border-radius: 16px; padding: 24px; max-height: 85dvh; overflow: auto; }
 #import-answer-question { max-height: 100px; overflow: auto; margin: 14px 0; padding: 12px; background: #f6f7f3; border-radius: 8px; font-size: 13px; }
 #import-answer-text { width: 100%; box-sizing: border-box; margin-top: 8px; min-height: 180px; max-height: 40dvh; resize: vertical; }
+
+/* Desktop web companion keeps its browser session while app records remain available. */
+.web-panel-tabs { display: flex; gap: 4px; padding: 4px; background: #f4f5f1; border-radius: 9px; margin: 4px 0 10px; }
+.web-panel-tabs button { flex: 1; border: 0; background: transparent; padding: 7px 10px; border-radius: 6px; font-size: 12px; color: #778170; }
+.web-panel-tabs button[aria-pressed="true"] { background: #fff; color: #34482f; box-shadow: 0 1px 4px #17251112; font-weight: 600; }
+#chatgpt-workspace { display: flex; flex: 1; flex-direction: column; min-height: 0; margin: 0 -24px -12px; }
+.web-toolbar { display: flex; align-items: center; gap: 5px; padding: 6px 12px; border-bottom: 1px solid #eef0e9; flex-wrap: wrap; }
+.web-toolbar button { font-size: 11px; padding: 5px 7px; border-radius: 6px; }
+#web-state { margin-left: auto; color: #7b8675; font-size: 10px; max-width: 180px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+.web-instruction { margin: 0; padding: 7px 12px; background: #f8faf5; color: #69775f; font-size: 10px; line-height: 1.6; }
+#chatgpt-host { flex: 1; min-height: 100px; background: #fff; display: grid; place-items: center; color: #9bA591; font-size: 12px; }
+.chat-panel.showing-web .chat-actions { display: none; }
+@media(max-width:1000px) { #chatgpt-workspace { margin-inline: -16px; } }

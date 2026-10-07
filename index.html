@@ -43,6 +43,8 @@
     <div id="panel-resizer" role="separator" aria-label="대화 패널 너비" aria-orientation="vertical" aria-controls="chat-panel" tabindex="0" title="드래그 또는 방향키로 대화 너비 조절 · 두 번 클릭해 초기화"></div>
     <aside id="chat-panel" class="chat-panel">
       <div class="chat-heading"><div><h2>대화</h2></div><div class="chat-actions"><button type="button" popovertarget="chat-library-popover">대화 목록</button><button id="new-chat" type="button">＋ 새 대화</button></div></div>
+      <div id="web-panel-tabs" class="web-panel-tabs" hidden><button id="web-tab" type="button" aria-pressed="true">ChatGPT 웹</button><button id="records-tab" type="button" aria-pressed="false">앱 기록</button></div>
+      <section id="chatgpt-workspace" hidden aria-label="앱 안의 ChatGPT 웹"><div class="web-toolbar"><button id="web-back" type="button" aria-label="ChatGPT 이전 페이지">←</button><button id="web-reload" type="button" aria-label="ChatGPT 새로고침">↻</button><button id="web-home" type="button">새 웹 대화</button><button id="web-external" type="button">브라우저 ↗</button><span id="web-state" role="status">연결 준비 중</span></div><p class="web-instruction">질문 복사 → 오른쪽 입력창에 Ctrl+V → 전송 · 로그인과 모델은 웹에서 선택</p><div id="chatgpt-host"><p>ChatGPT 웹을 불러옵니다.</p></div></section>
       <p id="document" class="document">PDF를 열고 궁금한 문장을 선택하세요</p>
 
 
@@ -70,7 +72,7 @@
     <form id="settings-form">
       <h2 id="settings-title">환경 설정</h2>
       <fieldset><legend>질문을 보내는 방식</legend>
-        <label class="mode-option"><input type="radio" name="request-mode" value="manual" required><span><strong>ChatGPT에서 직접 질문</strong><small>질문을 복사하고 기본 브라우저에서 ChatGPT를 엽니다. 이어지는 질문은 ‘질문만 복사’로 같은 웹 대화에 붙여넣으세요. 받은 답변도 앱에 붙여넣어 보관할 수 있습니다.</small></span></label>
+        <label class="mode-option"><input type="radio" name="request-mode" value="manual" required><span><strong>ChatGPT에서 직접 질문</strong><small>질문을 복사하고 기본 브라우저에서 ChatGPT를 엽니다. PC 앱에서는 PDF 옆에 ChatGPT 웹을 유지합니다. 질문을 복사해 오른쪽 웹 입력창에 붙여넣고 전송하세요. 받은 답변은 앱 기록에도 보관할 수 있습니다.</small></span></label>
         <label class="mode-option"><input type="radio" name="request-mode" value="plan" required><span><strong>앱에서 직접 요청</strong><small>ChatGPT 계정을 연결하고 앱 안에서 답변받습니다. 공식 안내상 Codex / ChatGPT Work 공유 사용량을 쓰며, 한도 이후 허용한 크레딧을 사용할 수 있습니다. 개별 요청의 실제 차감 내역은 앱에서 확인하지 못합니다.</small></span></label>
       </fieldset>
       <p id="mode-description"></p>

@@ -5,10 +5,11 @@ import {createAppServer} from './server.mjs';
 import {createChats} from './chats.mjs';
 import {createAnnotations} from './annotations.mjs';
 import {createSettings} from './settings.mjs';
+import {createChatGPTPanel} from './chatgpt-panel.mjs';
 
 app.setName('Paper Reader');
 app.setAppUserModelId('local.paperreader.desktop');
-let window,server,auth,origin,quitting=false;
+let window,server,auth,origin,quitting=false,chatgptPanel;
 if(!app.requestSingleInstanceLock()) app.quit();
 else {
   app.on('second-instance',()=>{if(window){if(window.isMinimized())window.restore();window.show();window.focus();}});
@@ -27,7 +28,9 @@ else {
     origin=`http://127.0.0.1:${server.address().port}`;
     Menu.setApplicationMenu(null);
     session.defaultSession.setPermissionRequestHandler((_contents,_permission,callback)=>callback(false));
-    window=new BrowserWindow({title:'Paper Reader',width:1400,height:950,minWidth:900,minHeight:650,backgroundColor:'#f4f6f4',show:false,webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true}});
+    window=new BrowserWindow({title:'Paper Reader',width:1400,height:950,minWidth:900,minHeight:650,backgroundColor:'#f4f6f4',show:false,webPreferences:{preload:path.join(app.getAppPath(),'desktop-preload.cjs'),nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true}});
+    chatgptPanel=createChatGPTPanel(window,()=>origin);
+    window.on('closed',()=>chatgptPanel.dispose());
     const external=url=>{
       try {
         const parsed=new URL(url);
