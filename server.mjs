@@ -10,6 +10,7 @@ import {spawn} from 'node:child_process';
 import {createAuth,UserError} from './auth.mjs';
 import {responseEvents,responseError} from './stream.mjs';
 import {createChats} from './chats.mjs';
+import {createAnnotations} from './annotations.mjs';
 import {createSettings} from './settings.mjs';
 import {createUsageReader,compareUsageAccount} from './usage.mjs';
 const root=fileURLToPath(new URL('.',import.meta.url));
@@ -30,9 +31,10 @@ function launchBrowser(url) {
     child.once('error',reject);child.once('spawn',()=>{child.unref();resolve();});
   });
 }
-export function createAppServer(auth,{openBrowser=launchBrowser,getOrigin=()=>ORIGIN,externalCssPath,settings,chats,readUsage=createUsageReader()}={}) {
+export function createAppServer(auth,{openBrowser=launchBrowser,getOrigin=()=>ORIGIN,externalCssPath,settings,chats,annotations,readUsage=createUsageReader()}={}) {
   const settingsReady=settings?Promise.resolve(settings):createSettings();
   const chatsReady=chats?Promise.resolve(chats):createChats();
+  const annotationsReady=annotations?Promise.resolve(annotations):createAnnotations(path.join(root,'.local','annotations'));
   let responding=false,changingSettings=false;
   const server=http.createServer(async(req,res)=>{
     const origin=getOrigin(),authority=new URL(origin).host,port=new URL(origin).port;
@@ -83,6 +85,9 @@ export function createAppServer(auth,{openBrowser=launchBrowser,getOrigin=()=>OR
           json(res,estimateInput(input.prompt,preferences.get().mode==='plan'));return;
         }
         if(url.pathname==='/api/chats' && req.method==='GET') {json(res,await (await chatsReady).list());return;}
+        if(url.pathname==='/api/annotations' && req.method==='GET') {json(res,await (await annotationsReady).list(url.searchParams.get('documentId')));return;}
+        if(url.pathname==='/api/annotations/upsert' && req.method==='POST') {const input=await bodyJSON(req);json(res,await (await annotationsReady).upsert(input.documentId,input.item));return;}
+        if(url.pathname==='/api/annotations/delete' && req.method==='POST') {const input=await bodyJSON(req);json(res,await (await annotationsReady).delete(input.documentId,input.id));return;}
         if(url.pathname.startsWith('/api/chat/') && req.method==='POST') {
           const input=await bodyJSON(req),store=await chatsReady;
           if(url.pathname==='/api/chat/new') {json(res,await store.create(input));return;}
@@ -175,7 +180,7 @@ export function createAppServer(auth,{openBrowser=launchBrowser,getOrigin=()=>OR
       if(!['GET','HEAD'].includes(req.method)) {res.writeHead(405).end();return;}
       const urlPath=decodeURIComponent(url.pathname);
       const relativePath=urlPath==='/'?'index.html':urlPath.slice(1);
-      if(!['index.html','app.css','app.mjs','auto-context.mjs','context.mjs','help.mjs','ui.css','auth-page.css'].includes(relativePath) && !relativePath.startsWith('pdfjs/')) throw new UserError('Not found',404);
+      if(!['index.html','app.css','app.mjs','annotation-ui.mjs','auto-context.mjs','context.mjs','help.mjs','ui.css','auth-page.css'].includes(relativePath) && !relativePath.startsWith('pdfjs/')) throw new UserError('Not found',404);
       let file=path.resolve(root,relativePath);
       const relative=path.relative(root,file);
       if(relative.startsWith('..') || path.isAbsolute(relative) || (relativePath.startsWith('pdfjs/') && !relative.replaceAll('\\','/').startsWith('pdfjs/'))) throw new UserError('Not found',404);
@@ -192,14 +197,15 @@ export function createAppServer(auth,{openBrowser=launchBrowser,getOrigin=()=>OR
       if(url.pathname.startsWith('/api/'))json(res,{error:message},error.status || 500);else page(res,'요청을 완료하지 못했습니다',message,error.status || 404);
     }
   });
-  server.drain=async()=>{while(responding)await new Promise(resolve=>setTimeout(resolve,20));await (await chatsReady).flush();};
+  server.drain=async()=>{while(responding)await new Promise(resolve=>setTimeout(resolve,20));await (await chatsReady).flush();await (await annotationsReady).flush();};
   return server;
 }
 if(process.argv[1] && path.resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
   const auth=await createAuth({directory:path.join(root,'.local'),origin:ORIGIN});
   const settings=await createSettings(path.join(root,'.local','settings.json'));
   const chats=await createChats(path.join(root,'.local','conversations'));
-  const server=createAppServer(auth,{settings,chats});
+  const annotations=await createAnnotations(path.join(root,'.local','annotations'));
+  const server=createAppServer(auth,{settings,chats,annotations});
   server.on('error',error=>{console.error(error.code || 'server_error');process.exitCode=1;});
   server.listen(8767,'127.0.0.1',()=>console.log(`Paper Reader: ${ORIGIN}`));
 }

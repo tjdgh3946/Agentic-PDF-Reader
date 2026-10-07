@@ -1,7 +1,9 @@
 import {retrieveCandidates} from './auto-context.mjs';
 import {pageWindow,historyFor,buildPrompt} from './context.mjs';
+import {createAnnotationUI} from './annotation-ui.mjs';
 const $ = id => document.getElementById(id);
 const frame = $('viewer');
+const annotationUI=createAnnotationUI({frame,api,getViewer:()=>viewer});
 let viewer, selected = '', selectedPage = '', docGeneration = 0, textCache = new Map(), busy = false, fileName = '';
 let authState = null, answerController = null, pollTimer = null, pollingUntil = 0, modelAccount = null;
 let requestMode = null, savingSettings = false, openingChatGPT = false;
@@ -21,6 +23,7 @@ function invalidatePrompt(schedule=true) {
   }
 }
 function resetDocument() {
+  annotationUI.reset();
   detachChat();documentId='';
   docGeneration++; textCache = new Map(); selected = ''; selectedPage = ''; selectedEndPage=''; busy = false;
   $('selection').textContent = 'PDF에서 문장을 선택하고 우클릭하세요.';
@@ -32,6 +35,7 @@ function documentReady() {
   fileName = viewer._docFilename || fileName || 'PDF 문서';
   $('document').textContent = `${fileName} · ${viewer.pdfDocument.numPages}페이지`;
   documentId=viewer.pdfDocument.fingerprints[0];
+  annotationUI.ready(documentId);
   restoreDocumentChat();
   $('empty').hidden = true;
   status('문장을 선택하고 우클릭하거나, 오른쪽 질문 유형을 누르세요.');
@@ -40,7 +44,11 @@ frame.addEventListener('load', async () => {
   try {
     viewer = frame.contentWindow.PDFViewerApplication;
     await viewer.initializedPromise;
+    annotationUI.frameLoaded();
     viewer.eventBus.on('documentloaded', documentReady);
+    viewer.eventBus.on('pagerendered',()=>annotationUI.redraw());
+    viewer.eventBus.on('textlayerrendered',()=>annotationUI.redraw());
+    viewer.eventBus.on('rotationchanging',()=>setTimeout(()=>annotationUI.redraw(),100));
     if (viewer.pdfDocument) documentReady();
     const doc = frame.contentDocument;
     doc.addEventListener('contextmenu', event => {
@@ -49,7 +57,7 @@ frame.addEventListener('load', async () => {
       const bounds = frame.getBoundingClientRect();
       $('context').hidden = false;
       $('context').style.left = `${Math.max(0, Math.min(bounds.left + event.clientX, window.innerWidth - 230))}px`;
-      $('context').style.top = `${Math.max(0, Math.min(bounds.top + event.clientY, window.innerHeight - 65))}px`;
+      $('context').style.top = `${Math.max(0, Math.min(bounds.top + event.clientY, window.innerHeight - 135))}px`;
     });
     doc.addEventListener('mouseup', captureSelection);
     doc.addEventListener('keyup', captureSelection);
@@ -66,6 +74,7 @@ function captureSelection() {
   const element = node?.nodeType === 1 ? node : node?.parentElement;
   if (!element?.closest('.textLayer')) return false;
   const other=selection.focusNode?.nodeType===1?selection.focusNode:selection.focusNode?.parentElement;
+  const canAnnotate=annotationUI.capture();$('highlight').disabled=!canAnnotate;$('add-note').disabled=!canAnnotate;
   const anchor=Number(element.closest('.page')?.dataset.pageNumber || viewer.page);
   const focus=Number(other?.closest('.page')?.dataset.pageNumber || anchor);
   const page=Math.min(anchor,focus),end=Math.max(anchor,focus);

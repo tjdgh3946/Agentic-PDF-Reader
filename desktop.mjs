@@ -3,6 +3,7 @@ import path from 'node:path';
 import {createAuth} from './auth.mjs';
 import {createAppServer} from './server.mjs';
 import {createChats} from './chats.mjs';
+import {createAnnotations} from './annotations.mjs';
 import {createSettings} from './settings.mjs';
 
 app.setName('Paper Reader');
@@ -17,7 +18,8 @@ else {
     const stylesDirectory=app.isPackaged ? (process.env.PORTABLE_EXECUTABLE_DIR || path.dirname(app.getPath('exe'))) : app.getAppPath();
     const settings=await createSettings(path.join(app.getPath('userData'),'settings.json'));
     const chats=await createChats(path.join(app.getPath('userData'),'conversations'));
-    server=createAppServer(auth,{settings,chats,getOrigin:()=>origin,externalCssPath:path.join(stylesDirectory,'Paper-Reader.css'),openBrowser:url=>{
+    const annotations=await createAnnotations(path.join(app.getPath('userData'),'annotations'));
+    server=createAppServer(auth,{settings,chats,annotations,getOrigin:()=>origin,externalCssPath:path.join(stylesDirectory,'Paper-Reader.css'),openBrowser:url=>{
       if(url!=='https://chatgpt.com/' && (new URL(url).origin!==origin || new URL(url).pathname!=='/auth/launch')) throw new Error('Invalid external URL');
       return shell.openExternal(url);
     }});
