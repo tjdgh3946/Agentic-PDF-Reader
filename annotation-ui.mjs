@@ -1,49 +1,30 @@
+import {renderMarkdown} from './markdown.bundle.mjs';
+import {findNotes,notesMarkdown,notesFileName} from './reading-tools.mjs';
+import {capturePage,contentBox,resolveRects} from './annotation-geometry.mjs';
 const $=id=>document.getElementById(id);
 const shades={yellow:'#ffe35c',green:'#8fe4a5',pink:'#ff9cc7',blue:'#8ecbff'};
 
-function inline(parent,text){
-  const pattern=/`([^`]+)`|\[([^\]]+)\]\((https?:\/\/[^\s)]+|mailto:[^\s)]+)\)|\*\*([^*]+)\*\*|\*([^*]+)\*/g;
-  let start=0,match;
-  while((match=pattern.exec(text))){
-    if(match.index>start)parent.append(document.createTextNode(text.slice(start,match.index)));
-    if(match[1]){const code=document.createElement('code');code.textContent=match[1];parent.append(code);}
-    else if(match[2]){const link=document.createElement('a');link.textContent=match[2];link.href=match[3];link.target='_blank';link.rel='noopener noreferrer';parent.append(link);}
-    else {const emphasis=document.createElement(match[4]?'strong':'em');inline(emphasis,match[4]||match[5]);parent.append(emphasis);}
-    start=pattern.lastIndex;
-  }
-  if(start<text.length)parent.append(document.createTextNode(text.slice(start)));
-}
-
-export function renderMarkdown(target,source){
-  target.replaceChildren();let list=null,code=null;
-  for(const line of source.split(/\r?\n/)){
-    if(/^\s*```/.test(line)){if(code)code=null;else{const pre=document.createElement('pre');code=document.createElement('code');pre.append(code);target.append(pre);}list=null;continue;}
-    if(code){code.textContent+=(code.textContent?'\n':'')+line;continue;}
-    if(!line.trim()){list=null;continue;}
-    const heading=line.match(/^(#{1,4})\s+(.+)/),item=line.match(/^\s*[-*+]\s+(.+)/),numbered=line.match(/^\s*\d+\.\s+(.+)/),quote=line.match(/^>\s?(.*)/);
-    let node;
-    if(heading){list=null;node=document.createElement('h'+heading[1].length);inline(node,heading[2]);target.append(node);continue;}
-    if(item||numbered){const tag=numbered?'ol':'ul';if(!list || list.tagName.toLowerCase()!==tag){list=document.createElement(tag);target.append(list);}node=document.createElement('li');inline(node,(item||numbered)[1]);list.append(node);continue;}
-    list=null;node=document.createElement(quote?'blockquote':'p');inline(node,quote?quote[1]:line);target.append(node);
-  }
-}
-
-function rotateRect(rect,delta){
-  const [x,y,w,h]=rect;
-  if(delta===90)return [1-y-h,x,h,w];
-  if(delta===180)return [1-x-w,1-y-h,w,h];
-  if(delta===270)return [y,1-x-w,h,w];
-  return rect;
-}
-
-export function createAnnotationUI({frame,api,getViewer}){
+export function createAnnotationUI({frame,api,getViewer,getFileName}){
   let documentId='',items=[],selection=null,editing=null,revision=0,saving=false,activeId='';
   const status=message=>{$('annotation-status').textContent=message;};
   const fail=error=>status(error.message || String(error));
   function setPanel(open){$('annotation-panel').hidden=!open;document.querySelector('main').classList.toggle('has-annotations',open);$('annotations-toggle').setAttribute('aria-expanded',String(open));}
   $('annotations-toggle').onclick=()=>setPanel($('annotation-panel').hidden);
   $('annotations-close').onclick=()=>setPanel(false);
+  $('annotation-search').oninput=drawList;
+  $('annotations-export').onclick=()=>{
+    if(!items.length)return;
+    const url=URL.createObjectURL(new Blob([notesMarkdown(getFileName(),items)],{type:'text/markdown;charset=utf-8'}));
+    const link=document.createElement('a');link.href=url;link.download=notesFileName(getFileName());link.click();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);status('이 논문의 전체 노트를 Markdown 파일로 내보냈습니다.');
+  };
+  function jumpTo(item){
+    activeId=item.id;getViewer().page=item.anchors[0].page;redraw();
+    const mark=[...frame.contentDocument.querySelectorAll('.reader-highlight')].find(mark=>mark.dataset.annotationId===item.id);
+    mark?.scrollIntoView({block:'center',inline:'nearest'});
+  }
   function focusAnnotation(item){
+    $('annotation-search').value='';
     activeId=item.id;setPanel(true);redraw();drawList();
     const row=[...$('annotation-list').children].find(row=>row.dataset.annotationId===item.id);
     row?.scrollIntoView({block:'nearest'});row?.focus({preventScroll:true});
@@ -55,9 +36,9 @@ export function createAnnotationUI({frame,api,getViewer}){
     doc.addEventListener('click',event=>{
       if(doc.defaultView.getSelection()?.toString().trim() || event.target.closest?.('button,a,input,select,textarea'))return;
       const page=event.target.closest?.('.pdfViewer .page[data-page-number]'),viewer=getViewer();if(!page || !viewer)return;
-      const box=page.getBoundingClientRect(),x=(event.clientX-box.left)/box.width,y=(event.clientY-box.top)/box.height;
-      const item=[...items].reverse().find(item=>item.note && item.anchors.some(anchor=>anchor.page===Number(page.dataset.pageNumber) && anchor.rects.some(rect=>{
-        const [left,top,width,height]=rotateRect(rect,(((viewer.pdfViewer?.pagesRotation||0)-(item.rotation||0))%360+360)%360);
+      const box=contentBox(page),x=(event.clientX-box.left)/box.width,y=(event.clientY-box.top)/box.height;
+      const item=[...items].reverse().find(item=>item.note && item.anchors.some(anchor=>anchor.page===Number(page.dataset.pageNumber) && resolveRects(anchor,item,page,viewer.pdfViewer?.pagesRotation||0).some(rect=>{
+        const [left,top,width,height]=rect;
         return x>=left && x<=left+width && y>=top && y<=top+height;
       })));
       if(item)focusAnnotation(item);
@@ -74,15 +55,16 @@ export function createAnnotationUI({frame,api,getViewer}){
       markers.replaceChildren();
       const number=Number(page.dataset.pageNumber);
       for(const item of items)for(const anchor of item.anchors)if(anchor.page===number){
-        const delta=(((viewer.pdfViewer?.pagesRotation||0)-(item.rotation||0))%360+360)%360;
-        for(const original of anchor.rects){
-          const [x,y,w,h]=rotateRect(original,delta),mark=doc.createElement('span');
+        const rects=resolveRects(anchor,item,page,viewer.pdfViewer?.pagesRotation||0);
+        for(const rect of rects){
+          const [x,y,w,h]=rect,mark=doc.createElement('span');
+          mark.dataset.annotationId=item.id;
           mark.className='reader-highlight'+(item.id===activeId?' is-active':'');mark.style.backgroundColor=shades[item.color]||shades.yellow;
           mark.style.left=x*100+'%';mark.style.top=y*100+'%';mark.style.width=w*100+'%';mark.style.height=h*100+'%';
           layer.append(mark);
         }
-        if(item.note && anchor.rects.length){
-          const [x,y,w,h]=rotateRect(anchor.rects[anchor.rects.length-1],delta),marker=doc.createElement('button');
+        if(item.note && rects.length){
+          const [x,y,w,h]=rects[rects.length-1],marker=doc.createElement('button');
           marker.type='button';marker.className='reader-note-marker'+(item.id===activeId?' is-active':'');marker.textContent='✎';
           marker.title=item.note;marker.setAttribute('aria-label','주석 보기: '+item.quote.slice(0,100));
           marker.style.left=`calc(${Math.min(x+w,1)*100}% - ${x+w>.95?24:-4}px)`;marker.style.top=(y+h/2)*100+'%';
@@ -93,12 +75,15 @@ export function createAnnotationUI({frame,api,getViewer}){
   }
   function drawList(){
     $('annotation-count').textContent=String(items.length);const list=$('annotation-list');list.replaceChildren();
-    for(const item of items){
+    $('annotations-export').disabled=!items.length;
+    const visible=findNotes(items,$('annotation-search').value);
+    if(!visible.length){const empty=document.createElement('p');empty.className='notes-empty';empty.textContent=items.length?'검색과 일치하는 노트가 없습니다.':'문장을 선택해 노트를 추가하세요. Link로 받은 답변도 여기에 쌓입니다.';list.append(empty);}
+    for(const item of visible){
       const row=document.createElement('article');row.className='annotation-item'+(item.id===activeId?' is-active':'');row.dataset.annotationId=item.id;row.tabIndex=-1;
       const jump=document.createElement('button');jump.type='button';jump.className='annotation-jump';jump.textContent='p. '+item.anchors.map(a=>a.page).join(', ')+' · '+item.quote.slice(0,140);
       jump.style.borderLeftColor=shades[item.color]||shades.yellow;
-      jump.onclick=()=>{activeId=item.id;getViewer().page=item.anchors[0].page;redraw();drawList();frame.focus();};row.append(jump);
-      if(item.note){const preview=document.createElement('div');preview.className='annotation-item-note';renderMarkdown(preview,item.note);row.append(preview);}
+      jump.title='원문의 정확한 위치로 이동';jump.onclick=()=>{jumpTo(item);drawList();};row.append(jump);
+      if(item.note){const preview=document.createElement('div');preview.className='annotation-item-note markdown-body';renderMarkdown(preview,item.note);row.append(preview);}
       const actions=document.createElement('div');actions.className='annotation-actions';
       const edit=document.createElement('button');edit.type='button';edit.textContent='수정';edit.onclick=()=>openEditor(item);
       const remove=document.createElement('button');remove.type='button';remove.textContent='삭제';remove.onclick=async()=>{
@@ -115,16 +100,7 @@ export function createAnnotationUI({frame,api,getViewer}){
     const quote=win.getSelection().toString().trim();if(!quote)return false;
     const anchors=[];
     for(const page of frame.contentDocument.querySelectorAll('.pdfViewer .page[data-page-number]')){
-      const layer=page.querySelector('.textLayer');if(!layer || !layer.contains(range.commonAncestorContainer) && !page.contains(range.startContainer) && !page.contains(range.endContainer) && !range.intersectsNode(layer))continue;
-      const box=page.getBoundingClientRect(),textBox=layer.getBoundingClientRect(),rects=[];
-      for(const part of range.getClientRects()){
-        const left=Math.max(part.left,textBox.left),top=Math.max(part.top,textBox.top),right=Math.min(part.right,textBox.right),bottom=Math.min(part.bottom,textBox.bottom);
-        if(right-left<2 || bottom-top<2)continue;
-        const x=Math.max(0,(left-box.left)/box.width),y=Math.max(0,(top-box.top)/box.height);
-        const w=Math.min(1-x,(right-left)/box.width),h=Math.min(1-y,(bottom-top)/box.height);
-        if(w>0 && h>0 && rects.length<250)rects.push([x,y,w,h]);
-      }
-      if(rects.length)anchors.push({page:Number(page.dataset.pageNumber),rects});
+      const anchor=capturePage(range,page);if(anchor)anchors.push(anchor);
       if(anchors.length>=40)break;
     }
     selection=anchors.length?{quote,anchors,rotation:viewer.pdfViewer?.pagesRotation||0}:null;
@@ -138,6 +114,7 @@ export function createAnnotationUI({frame,api,getViewer}){
     $('annotation-editor-status').textContent='';renderMarkdown($('annotation-preview'),$('annotation-note').value);
     $('annotation-dialog').showModal();$('annotation-note').focus();
   }
+  $('annotation-preview').classList.add('markdown-body');
   $('annotation-note').addEventListener('input',()=>renderMarkdown($('annotation-preview'),$('annotation-note').value));
   $('annotation-cancel').onclick=()=>$('annotation-dialog').close();
   $('annotation-form').onsubmit=async event=>{
@@ -160,11 +137,25 @@ export function createAnnotationUI({frame,api,getViewer}){
     catch(error){fail(error);}
   };
   $('add-note').onclick=()=>{$('context').hidden=true;openEditor();};
+  $('selection-note').onclick=()=>openEditor();
+  $('selection-highlight').onclick=()=>$('highlight').click();
   return {
     capture,
+    selectionSnapshot:()=>selection?structuredClone(selection):null,
+    clearSelection(){selection=null;},
+    open(id){const item=items.find(item=>item.id===id);if(!item)return false;focusAnnotation(item);jumpTo(item);return true;},
+    async refresh(){
+      if(!documentId)return true;
+      if(saving)return false;
+      const id=documentId,current=revision;
+      const result=await api('/api/annotations?documentId='+encodeURIComponent(id));
+      if(current!==revision || saving)return false;
+      items=result;drawList();redraw();status(items.length+'개 저장됨 · PDF의 주석 아이콘을 눌러 답변을 확인하세요.');
+      return true;
+    },
     frameLoaded,
     redraw,
-    reset(){revision++;documentId='';items=[];selection=null;editing=null;activeId='';drawList();status('PDF 문장을 선택하고 우클릭하여 추가하세요.');if($('annotation-dialog').open)$('annotation-dialog').close();},
+    reset(){revision++;documentId='';items=[];selection=null;editing=null;activeId='';$('annotation-search').value='';drawList();status('선택한 문장과 답변을 이곳에 모아두세요.');if($('annotation-dialog').open)$('annotation-dialog').close();},
     async ready(id){const current=++revision;documentId=id;items=[];drawList();try{const result=await api('/api/annotations?documentId='+encodeURIComponent(id));if(current!==revision)return;items=result;drawList();redraw();status(items.length+'개 저장됨 · PDF 문장을 우클릭하여 추가하세요.');}catch(error){if(current===revision)fail(error);}}
   };
 }

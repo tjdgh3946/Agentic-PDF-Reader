@@ -13,3 +13,6 @@ coverage/
 *.pfx
 *.exe
 *.asar
+plugins/paper-reader-link/server.bundle.mjs
+plugins/paper-reader-link/widget.html
+plugins/paper-reader-link/THIRD_PARTY_LICENSES.txt

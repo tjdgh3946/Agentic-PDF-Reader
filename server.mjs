@@ -13,6 +13,7 @@ import {createChats} from './chats.mjs';
 import {createAnnotations} from './annotations.mjs';
 import {createSettings} from './settings.mjs';
 import {createUsageReader,compareUsageAccount} from './usage.mjs';
+import {createPaperLink} from './paper-link.mjs';
 const root=fileURLToPath(new URL('.',import.meta.url));
 export const ORIGIN='http://127.0.0.1:8767';
 const mime={'.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript','.mjs':'text/javascript','.json':'application/json','.pdf':'application/pdf','.wasm':'application/wasm','.svg':'image/svg+xml','.png':'image/png','.woff':'font/woff','.woff2':'font/woff2','.ttf':'font/ttf','.ftl':'text/plain; charset=utf-8','.bcmap':'application/octet-stream'};
@@ -31,10 +32,11 @@ function launchBrowser(url) {
     child.once('error',reject);child.once('spawn',()=>{child.unref();resolve();});
   });
 }
-export function createAppServer(auth,{openBrowser=launchBrowser,getOrigin=()=>ORIGIN,externalCssPath,settings,chats,annotations,readUsage=createUsageReader()}={}) {
+export function createAppServer(auth,{openBrowser=launchBrowser,getOrigin=()=>ORIGIN,externalCssPath,settings,chats,annotations,linkDiscoveryPath=path.join(root,'.local','link-connection.json'),readUsage=createUsageReader()}={}) {
   const settingsReady=settings?Promise.resolve(settings):createSettings();
   const chatsReady=chats?Promise.resolve(chats):createChats();
   const annotationsReady=annotations?Promise.resolve(annotations):createAnnotations(path.join(root,'.local','annotations'));
+  const link=createPaperLink({annotations:annotationsReady,discoveryPath:linkDiscoveryPath,getOrigin});
   let responding=false,changingSettings=false;
   const server=http.createServer(async(req,res)=>{
     const origin=getOrigin(),authority=new URL(origin).host,port=new URL(origin).port;
@@ -45,11 +47,18 @@ export function createAppServer(auth,{openBrowser=launchBrowser,getOrigin=()=>OR
     try {url=new URL(req.url,origin);} catch {res.writeHead(400).end();return;}
     if(req.headers.host===`localhost:${port}`) {res.writeHead(302,{Location:`${origin}${url.pathname}${url.search}`}).end();return;}
     try {
+      if(url.pathname==='/link/rpc'){
+        if(req.method!=='POST' || req.headers.origin || req.headers['sec-fetch-site'] || !link.authorize(req.headers.authorization))throw new UserError('Link 인증이 필요합니다.',403);
+        const input=await bodyJSON(req);json(res,await link.call(input.method,input.args));return;
+      }
       if(url.pathname==='/health') {res.writeHead(200,{'Content-Type':'text/plain'}).end('paper-reader-local-v2');return;}
       if(url.pathname.startsWith('/api/')) {
         if(req.headers['x-paper-reader']!=='1' || (req.headers.origin && req.headers.origin!==origin) || req.headers['sec-fetch-site']==='cross-site') throw new UserError('허용되지 않은 요청입니다.',403);
         if(req.method==='POST' && req.headers.origin!==origin) throw new UserError('요청 출처를 확인하지 못했습니다.',403);
         const preferences=await settingsReady;
+        if(url.pathname==='/api/link/status' && req.method==='GET'){json(res,link.status());return;}
+        if(url.pathname==='/api/link/enable' && req.method==='POST'){json(res,await link.setEnabled((await bodyJSON(req)).enabled));return;}
+        if(url.pathname==='/api/link/share' && req.method==='POST'){json(res,await link.share(await bodyJSON(req)));return;}
         if(url.pathname==='/api/auto-context' && req.method==='POST') {
           const input=validateAuto(await bodyJSON(req)),direct=preferences.get().mode==='plan';
           if(changingSettings || responding)throw new UserError('진행 중인 요청이 끝난 뒤 다시 시도하세요.',409);
@@ -182,7 +191,7 @@ export function createAppServer(auth,{openBrowser=launchBrowser,getOrigin=()=>OR
       if(!['GET','HEAD'].includes(req.method)) {res.writeHead(405).end();return;}
       const urlPath=decodeURIComponent(url.pathname);
       const relativePath=urlPath==='/'?'index.html':urlPath.slice(1);
-      if(!['index.html','app.css','app.mjs','web-panel-ui.mjs','annotation-ui.mjs','annotation-overlay.css','auto-context.mjs','context.mjs','help.mjs','ui.css','auth-page.css','markdown.bundle.mjs'].includes(relativePath) && !relativePath.startsWith('pdfjs/') && !relativePath.startsWith('vendor/katex/')) throw new UserError('Not found',404);
+      if(!['index.html','app.css','app.mjs','link-ui.mjs','web-panel-ui.mjs','annotation-ui.mjs','annotation-geometry.mjs','reading-tools.mjs','annotation-overlay.css','auto-context.mjs','context.mjs','help.mjs','ui.css','auth-page.css','markdown.bundle.mjs'].includes(relativePath) && !relativePath.startsWith('pdfjs/') && !relativePath.startsWith('vendor/katex/')) throw new UserError('Not found',404);
       let file=path.resolve(root,relativePath);
       const relative=path.relative(root,file);
       if(relative.startsWith('..') || path.isAbsolute(relative) || (relativePath.startsWith('pdfjs/') && !relative.replaceAll('\\','/').startsWith('pdfjs/')) || (relativePath.startsWith('vendor/katex/') && !relative.replaceAll('\\','/').startsWith('vendor/katex/'))) throw new UserError('Not found',404);
@@ -196,10 +205,12 @@ export function createAppServer(auth,{openBrowser=launchBrowser,getOrigin=()=>OR
       if(req.method==='HEAD')res.end();else createReadStream(file).on('error',()=>res.destroy()).pipe(res);
     } catch(error) {
       const message=error instanceof UserError?error.message:'요청을 처리하지 못했습니다. 잠시 후 다시 시도하세요.';
-      if(url.pathname.startsWith('/api/'))json(res,{error:message},error.status || 500);else page(res,'요청을 완료하지 못했습니다',message,error.status || 404);
+      if(url.pathname.startsWith('/api/') || url.pathname==='/link/rpc')json(res,{error:message},error.status || 500);else page(res,'요청을 완료하지 못했습니다',message,error.status || 404);
     }
   });
-  server.drain=async()=>{while(responding)await new Promise(resolve=>setTimeout(resolve,20));await (await chatsReady).flush();await (await annotationsReady).flush();};
+  server.link=link;
+  server.drain=async()=>{while(responding)await new Promise(resolve=>setTimeout(resolve,20));await link.flush();await (await chatsReady).flush();await (await annotationsReady).flush();};
+  server.once('close',()=>{link.close().catch(()=>{});});
   return server;
 }
 if(process.argv[1] && path.resolve(process.argv[1])===fileURLToPath(import.meta.url)) {

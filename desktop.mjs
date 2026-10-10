@@ -20,7 +20,7 @@ else {
     const settings=await createSettings(path.join(app.getPath('userData'),'settings.json'));
     const chats=await createChats(path.join(app.getPath('userData'),'conversations'));
     const annotations=await createAnnotations(path.join(app.getPath('userData'),'annotations'));
-    server=createAppServer(auth,{settings,chats,annotations,getOrigin:()=>origin,externalCssPath:path.join(stylesDirectory,'Paper-Reader.css'),openBrowser:url=>{
+    server=createAppServer(auth,{settings,chats,annotations,linkDiscoveryPath:path.join(app.getPath('userData'),'link-connection.json'),getOrigin:()=>origin,externalCssPath:path.join(stylesDirectory,'Paper-Reader.css'),openBrowser:url=>{
       if(url!=='https://chatgpt.com/' && (new URL(url).origin!==origin || new URL(url).pathname!=='/auth/launch')) throw new Error('Invalid external URL');
       return shell.openExternal(url);
     }});

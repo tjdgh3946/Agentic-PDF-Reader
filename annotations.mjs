@@ -2,10 +2,10 @@ import {mkdir,readFile,writeFile,rename} from 'node:fs/promises';
 import path from 'node:path';
 import {createHash,randomUUID} from 'node:crypto';
 import {UserError} from './auth.mjs';
+import {validAnchor} from './annotation-geometry.mjs';
 
 const COLORS=new Set(['yellow','green','pink','blue']);
 const validId=value=>typeof value==='string' && value.length>0 && value.length<=200 && /^[\da-f-]+$/i.test(value);
-const validRect=rect=>Array.isArray(rect) && rect.length===4 && rect.every(n=>Number.isFinite(n)&&n>=0&&n<=1) && rect[2]>0 && rect[3]>0 && rect[0]+rect[2]<=1.001 && rect[1]+rect[3]<=1.001;
 
 export async function createAnnotations(directory) {
   const fileFor=id=>path.join(directory,createHash('sha256').update(id).digest('hex')+'.json');
@@ -25,8 +25,9 @@ export async function createAnnotations(directory) {
       if(!validId(id))throw new UserError('PDF 식별자가 올바르지 않습니다.');
       if(!input || typeof input!=='object' || !COLORS.has(input.color) || typeof input.quote!=='string' || !input.quote.trim() || input.quote.length>10000 || typeof input.note!=='string' || input.note.length>30000 || ![0,90,180,270].includes(input.rotation) || !Array.isArray(input.anchors) || !input.anchors.length || input.anchors.length>40)throw new UserError('주석 정보가 올바르지 않습니다.');
       const anchors=input.anchors.map(anchor=>{
-        if(!Number.isInteger(anchor.page) || anchor.page<1 || anchor.page>100000 || !Array.isArray(anchor.rects) || !anchor.rects.length || anchor.rects.length>250 || !anchor.rects.every(validRect))throw new UserError('형광펜 위치가 올바르지 않습니다.');
-        return {page:anchor.page,rects:anchor.rects};
+        if(!validAnchor(anchor))throw new UserError('형광펜 위치가 올바르지 않습니다.');
+        return {page:anchor.page,rects:anchor.rects,...(anchor.space?{space:anchor.space}:{}),
+          ...(anchor.textQuote!==undefined?{textQuote:anchor.textQuote}:{}),...(anchor.textStart!==undefined?{textStart:anchor.textStart}:{})};
       });
       const items=await read(id),index=items.findIndex(item=>item.id===input.id);
       if(input.id && index<0)throw new UserError('수정할 주석을 찾을 수 없습니다.',404);

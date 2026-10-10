@@ -1,6 +1,6 @@
 {
   "name": "paper-reader-local",
-  "version": "0.7.1",
+  "version": "0.9.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -9,7 +9,9 @@
   "scripts": {
     "build:markdown": "esbuild markdown-renderer.mjs --bundle --format=esm --platform=browser --target=es2022 --outfile=markdown.bundle.mjs",
     "start": "node server.mjs",
-    "test": "npm run build:markdown && node --test tests/*.test.mjs",
+    "build:link": "node scripts/build-link.mjs",
+    "link": "node plugins/paper-reader-link/server.bundle.mjs",
+    "test": "npm run build:markdown && npm run build:link && node --test tests/*.test.mjs",
     "desktop": "electron .",
     "build": "npm run build:markdown && electron-builder --config electron-builder.json --win portable --x64"
   },
@@ -21,9 +23,12 @@
     "markdown-it": "^15.0.2"
   },
   "devDependencies": {
+    "@modelcontextprotocol/ext-apps": "^2.0.3",
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "electron": "^43.7.8",
     "electron-builder": "^26.17.0",
-    "esbuild": "^0.28.2"
+    "esbuild": "^0.28.2",
+    "zod": "^4.6.5"
   },
   "main": "desktop.mjs",
   "description": "Local PDF reader with ChatGPT plan integration",

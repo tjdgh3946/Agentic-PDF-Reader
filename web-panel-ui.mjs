@@ -5,7 +5,7 @@ export function createWebPanelUI({status}) {
   async function sync(){
     if(!bridge)return;
     const rect=$('chatgpt-host').getBoundingClientRect();
-    const blocked=!!document.querySelector('dialog[open],:popover-open') || document.body.classList.contains('resizing-panels');
+    const blocked=!!document.querySelector('dialog[open],:popover-open') || document.body.classList.contains('resizing-panels') || document.body.classList.contains('reading-focus');
     const input={visible:mode==='manual' && showWeb && !blocked,x:rect.x,y:rect.y,width:rect.width,height:rect.height};
     const key=JSON.stringify(input);if(key===lastLayout)return;lastLayout=key;
     try{await bridge.setWebPanel(input);}catch{lastLayout='';$('web-state').textContent='웹 연결 실패 · 브라우저로 열 수 있습니다.';}

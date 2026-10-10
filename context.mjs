@@ -23,6 +23,6 @@ export function buildPrompt({fileName,question,selection,startPage,endPage,pages
     pages.length?`--- 이번 질문의 PDF 문맥 (${pages.map(page=>page.number).join(', ')}페이지) ---\n${pages.map(page=>`[페이지 ${page.number}]\n${page.text || '(추출 가능한 텍스트 없음)'}`).join('\n\n')}\n--- PDF 문맥 끝 ---`:'PDF 본문은 선택 문장 외에는 제공되지 않았습니다.'
   ];
   if(history.length)sections.push(`--- 이전 대화 (${history.length}회, 과거 PDF 본문은 재첨부하지 않음) ---\n${history.map((entry,index)=>`[이전 질문 ${index+1}]\n${entry.question}\n[당시 선택 문장 · ${entry.pageLabel}]\n${entry.selection}\n[이전 답변 ${index+1}]\n${entry.answer}`).join('\n\n')}\n--- 이전 대화 끝 ---`);
-  sections.push(`--- 현재 사용자 질문 ---\n${question}\n\n선택한 문장 (${label}):\n${selection}`);
+  sections.push(`--- 현재 사용자 질문 ---\n${question}\n\n${selection?`선택한 문장 (${label}):\n${selection}`:`선택 문장 없음 · 현재 읽는 위치: ${label}. 제공된 PDF 문맥을 기준으로 답하세요.`}`);
   return {text:sections.join('\n\n'),pageLabel:label};
 }

@@ -2,11 +2,56 @@
   "appId": "local.paperreader.desktop",
   "productName": "Paper Reader",
   "asar": true,
-  "directories": {"output": "../../work/electron-build"},
-  "files": ["desktop.mjs", "desktop-preload.cjs", "chatgpt-panel.mjs", "web-panel-policy.mjs", "server.mjs", "auth.mjs", "settings.mjs", "tokens.mjs", "context.mjs", "auto-context.mjs", "auto-budget.mjs", "chats.mjs", "annotations.mjs", "annotation-ui.mjs", "annotation-overlay.css", "usage.mjs", "stream.mjs", "index.html", "app.mjs", "web-panel-ui.mjs", "help.mjs", "app.css", "ui.css", "auth-page.css", "markdown.bundle.mjs", "vendor/**/*", "pdfjs/**/*", "package.json", "!pdfjs/**/*.map"],
+  "directories": {
+    "output": "../../work/electron-build"
+  },
+  "files": [
+    "desktop.mjs",
+    "desktop-preload.cjs",
+    "chatgpt-panel.mjs",
+    "web-panel-policy.mjs",
+    "server.mjs",
+    "auth.mjs",
+    "settings.mjs",
+    "tokens.mjs",
+    "context.mjs",
+    "auto-context.mjs",
+    "auto-budget.mjs",
+    "chats.mjs",
+    "annotations.mjs",
+    "annotation-ui.mjs",
+    "annotation-geometry.mjs",
+    "reading-tools.mjs",
+    "annotation-overlay.css",
+    "usage.mjs",
+    "stream.mjs",
+    "index.html",
+    "app.mjs",
+    "web-panel-ui.mjs",
+    "help.mjs",
+    "app.css",
+    "ui.css",
+    "auth-page.css",
+    "markdown.bundle.mjs",
+    "vendor/**/*",
+    "pdfjs/**/*",
+    "package.json",
+    "!pdfjs/**/*.map",
+    "paper-link.mjs",
+    "link-ui.mjs"
+  ],
   "win": {
-    "target": [{"target": "portable", "arch": ["x64"]}],
+    "target": [
+      {
+        "target": "portable",
+        "arch": [
+          "x64"
+        ]
+      }
+    ],
     "signAndEditExecutable": false
   },
-  "portable": {"artifactName": "Paper-Reader-${version}-Windows-x64.exe"}
+  "portable": {
+    "artifactName": "Paper-Reader-${version}-Windows-x64.exe"
+  }
 }
