@@ -108,7 +108,10 @@ test('full stdio MCP loop uses the scoped bridge and writes a real persisted ann
   const client=new Client({name:'paper-link-test',version:'1.0.0'});
   const transport=new StdioClientTransport({command:process.execPath,args:[fileURLToPath(new URL('../plugins/paper-reader-link/server.bundle.mjs',import.meta.url)),'--connection',f.discoveryPath],stderr:'pipe'});
   await client.connect(transport);t.after(()=>client.close());
-  const catalog=await client.listTools();assert.deepEqual(catalog.tools.map(tool=>tool.name),['open_paper_reader','get_selection','save_annotation']);
+  const catalog=await client.listTools();assert.deepEqual(catalog.tools.map(tool=>tool.name),['open_paper_reader','get_selection','save_annotation','inspect_pdf','query_pdf','read_pdf','render_pdf_page']);
+  // ChatGPT tool import needs homogeneous array items, not JSON Schema tuples.
+  const cropSchema=catalog.tools.find(tool=>tool.name==='render_pdf_page').inputSchema.properties.region;
+  assert.equal(cropSchema.items.type,'number');assert.equal(cropSchema.minItems,4);assert.equal(cropSchema.maxItems,4);
   assert.equal(catalog.tools[0]._meta['openai/ui'].entrypoints[0].type,'thread');
   const opened=await client.callTool({name:'open_paper_reader',arguments:{}});assert.equal(opened.structuredContent.selection.selectionId,shared.selectionId);
   const resource=await client.readResource({uri:UI_URI});assert.equal(resource.contents[0].mimeType,'text/html;profile=mcp-app');assert.ok(resource.contents[0].text.includes('Paper Reader Link'));

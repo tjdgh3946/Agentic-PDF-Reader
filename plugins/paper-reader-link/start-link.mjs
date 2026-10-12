@@ -4,6 +4,7 @@ import {spawn} from 'node:child_process';
 import {access} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
+import {createCredentialStore,credentialDirectory,previousTunnelId,validTunnelId} from './credential-store.mjs';
 
 const root=path.dirname(fileURLToPath(import.meta.url));
 const tunnelExecutable=path.join(root,'tools','tunnel-client.exe');
@@ -28,14 +29,20 @@ try{
   await Promise.all([access(tunnelExecutable),access(serverScript),access(path.join(root,'widget.html'))]);
   if(process.argv.includes('--check')){console.log('Ready: Node.js, tunnel-client, MCP server and question card are present.');process.exit(0);}
   console.log('Paper Reader Link - Secure MCP Tunnel\nCreate a tunnel at https://platform.openai.com/settings/organization/tunnels\nAssociate your ChatGPT workspace and use a runtime key with Tunnels Read + Use.');
-  const tunnelId=process.argv[2] || await question('Tunnel ID (tunnel_...): ');
-  if(!/^tunnel_[a-zA-Z0-9_-]+$/.test(tunnelId))throw new Error('Invalid tunnel ID.');
-  const profileDirectory=path.join(process.env.LOCALAPPDATA || root,'PaperReaderLink','tunnel');
+  const directory=credentialDirectory(),store=createCredentialStore(directory);
+  if(process.argv.includes('--forget-key')){await store.forget();console.log('Saved runtime key removed. Tunnel profile retained.');process.exit(0);}
+  const reset=process.argv.includes('--reset-key');
+  const saved=reset?null:await store.load();
+  const tunnelId=process.argv.slice(2).find(value=>!value.startsWith('--')) || saved?.tunnelId || await previousTunnelId(directory) || await question('Tunnel ID (tunnel_...): ');
+  if(!validTunnelId(tunnelId))throw new Error('Invalid tunnel ID.');
+  const profileDirectory=path.join(directory,'tunnel');
   // tunnel-client parses a shell-style command; forward slashes preserve Windows paths.
   const mcpCommand='"'+process.execPath.replaceAll('\\','/')+'" "'+serverScript.replaceAll('\\','/')+'"';
   await run(['init','--sample','sample_mcp_stdio_local','--profile','paper-reader-link','--profile-dir',profileDirectory,'--tunnel-id',tunnelId,'--mcp-command',mcpCommand,'--health-listen-addr','127.0.0.1:0','--force']);
-  let key=await question('Runtime API key (hidden, this session only): ',true);
+  let key=saved?.key || (!reset&&process.env.CONTROL_PLANE_API_KEY) || await question('Runtime API key (hidden; saved with Windows encryption): ',true);
   if(!key)throw new Error('A runtime API key is required.');
+  if(!saved||saved.key!==key||saved.tunnelId!==tunnelId)await store.save(tunnelId,key);
+  console.log('Using saved Windows-encrypted credentials. Next launch needs no key entry.');
   console.log('Keep this window and Paper Reader open. Stop with Ctrl+C.\nIn ChatGPT > Plugins > Add custom MCP server, choose Tunnel and this tunnel ID.\nFor this private stdio server choose No authentication; the tunnel controls access.');
   const environment={...process.env,CONTROL_PLANE_API_KEY:key};key='';
   try{await run(['run','--profile-dir',profileDirectory,'--profile','paper-reader-link','--open-web-ui'],environment);}

@@ -11,6 +11,8 @@ coverage/
 *.pem
 *.key
 *.pfx
+credentials.json
+credentials.json.*.tmp
 *.exe
 *.asar
 plugins/paper-reader-link/server.bundle.mjs

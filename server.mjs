@@ -15,6 +15,7 @@ import {createSettings} from './settings.mjs';
 import {createUsageReader,compareUsageAccount} from './usage.mjs';
 import {createPaperLink} from './paper-link.mjs';
 import {createReadingState} from './reading-state.mjs';
+import {createPdfSnapshots,PDF_LIMITS} from './pdf-snapshots.mjs';
 const root=fileURLToPath(new URL('.',import.meta.url));
 export const ORIGIN='http://127.0.0.1:8767';
 const mime={'.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript','.mjs':'text/javascript','.json':'application/json','.pdf':'application/pdf','.wasm':'application/wasm','.svg':'image/svg+xml','.png':'image/png','.woff':'font/woff','.woff2':'font/woff2','.ttf':'font/ttf','.ftl':'text/plain; charset=utf-8','.bcmap':'application/octet-stream'};
@@ -33,12 +34,14 @@ function launchBrowser(url) {
     child.once('error',reject);child.once('spawn',()=>{child.unref();resolve();});
   });
 }
-export function createAppServer(auth,{openBrowser=launchBrowser,getOrigin=()=>ORIGIN,externalCssPath,settings,chats,annotations,reading,linkDiscoveryPath=path.join(root,'.local','link-connection.json'),readUsage=createUsageReader()}={}) {
+export function createAppServer(auth,{pdfRenderer,openBrowser=launchBrowser,getOrigin=()=>ORIGIN,externalCssPath,settings,chats,annotations,reading,linkDiscoveryPath=path.join(root,'.local','link-connection.json'),readUsage=createUsageReader()}={}) {
   const settingsReady=settings?Promise.resolve(settings):createSettings();
   const chatsReady=chats?Promise.resolve(chats):createChats();
   const annotationsReady=annotations?Promise.resolve(annotations):createAnnotations(path.join(root,'.local','annotations'));
   const readingReady=reading?Promise.resolve(reading):createReadingState();
-  const link=createPaperLink({annotations:annotationsReady,discoveryPath:linkDiscoveryPath,getOrigin});
+  const pdfs=createPdfSnapshots({renderer:pdfRenderer});
+  const link=createPaperLink({annotations:annotationsReady,discoveryPath:linkDiscoveryPath,getOrigin,pdfs});
+  let uploading=false;
   let responding=false,changingSettings=false;
   const server=http.createServer(async(req,res)=>{
     const origin=getOrigin(),authority=new URL(origin).host,port=new URL(origin).port;
@@ -57,6 +60,18 @@ export function createAppServer(auth,{openBrowser=launchBrowser,getOrigin=()=>OR
       if(url.pathname.startsWith('/api/')) {
         if(req.headers['x-paper-reader']!=='1' || (req.headers.origin && req.headers.origin!==origin) || req.headers['sec-fetch-site']==='cross-site') throw new UserError('허용되지 않은 요청입니다.',403);
         if(req.method==='POST' && req.headers.origin!==origin) throw new UserError('요청 출처를 확인하지 못했습니다.',403);
+        if(url.pathname==='/api/link/pdf' && req.method==='POST'){
+          if(uploading)throw new UserError('다른 PDF를 등록하고 있습니다.',409);
+          if(req.headers['content-type']!=='application/pdf')throw new UserError('PDF 원본이 필요합니다.',415);
+          if(Number(req.headers['content-length'])>PDF_LIMITS.bytes)throw new UserError('PDF는 최대 64 MiB입니다.',413);
+          uploading=true;
+          try{
+            let size=0;const chunks=[];
+            for await(const chunk of req){size+=chunk.length;if(size>PDF_LIMITS.bytes)throw new UserError('PDF는 최대 64 MiB입니다.',413);chunks.push(chunk);}
+            json(res,await pdfs.register(Buffer.concat(chunks),url.searchParams.get('documentId'),url.searchParams.get('fileName')));
+          }finally{uploading=false;}
+          return;
+        }
         const preferences=await settingsReady;
         if(url.pathname==='/api/reading' && req.method==='GET'){json(res,(await readingReady).get(url.searchParams.get('documentId')));return;}
         if(url.pathname==='/api/reading' && req.method==='POST'){const input=await bodyJSON(req);json(res,await (await readingReady).set(input.documentId,input));return;}
@@ -195,7 +210,7 @@ export function createAppServer(auth,{openBrowser=launchBrowser,getOrigin=()=>OR
       if(!['GET','HEAD'].includes(req.method)) {res.writeHead(405).end();return;}
       const urlPath=decodeURIComponent(url.pathname);
       const relativePath=urlPath==='/'?'index.html':urlPath.slice(1);
-      if(!['index.html','app.css','app.mjs','link-ui.mjs','link-question.mjs','web-panel-ui.mjs','annotation-ui.mjs','annotation-geometry.mjs','reading-tools.mjs','annotation-overlay.css','auto-context.mjs','context.mjs','help.mjs','ui.css','notes.css','auth-page.css','markdown.bundle.mjs'].includes(relativePath) && !relativePath.startsWith('pdfjs/') && !relativePath.startsWith('vendor/katex/')) throw new UserError('Not found',404);
+      if(!['pdf-renderer.html','pdf-renderer.mjs','index.html','app.css','app.mjs','link-ui.mjs','link-question.mjs','web-panel-ui.mjs','annotation-ui.mjs','annotation-geometry.mjs','reading-tools.mjs','annotation-overlay.css','auto-context.mjs','context.mjs','help.mjs','ui.css','notes.css','auth-page.css','markdown.bundle.mjs'].includes(relativePath) && !relativePath.startsWith('pdfjs/') && !relativePath.startsWith('vendor/katex/')) throw new UserError('Not found',404);
       let file=path.resolve(root,relativePath);
       const relative=path.relative(root,file);
       if(relative.startsWith('..') || path.isAbsolute(relative) || (relativePath.startsWith('pdfjs/') && !relative.replaceAll('\\','/').startsWith('pdfjs/')) || (relativePath.startsWith('vendor/katex/') && !relative.replaceAll('\\','/').startsWith('vendor/katex/'))) throw new UserError('Not found',404);
@@ -213,8 +228,9 @@ export function createAppServer(auth,{openBrowser=launchBrowser,getOrigin=()=>OR
     }
   });
   server.link=link;
+  server.pdfs=pdfs;
   server.drain=async()=>{while(responding)await new Promise(resolve=>setTimeout(resolve,20));await link.flush();await (await chatsReady).flush();await (await annotationsReady).flush();await (await readingReady).flush();};
-  server.once('close',()=>{link.close().catch(()=>{});});
+  server.once('close',()=>{link.close().finally(()=>pdfs.close()).catch(()=>{});});
   return server;
 }
 if(process.argv[1] && path.resolve(process.argv[1])===fileURLToPath(import.meta.url)) {

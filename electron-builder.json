@@ -43,7 +43,14 @@
     "package.json",
     "!pdfjs/**/*.map",
     "paper-link.mjs",
-    "link-ui.mjs"
+    "link-ui.mjs",
+    "pdf-query-worker.mjs",
+    "pdf-query.mjs",
+    "pdf-snapshots.mjs",
+    "pdf-render-service.mjs",
+    "pdf-renderer.html",
+    "pdf-renderer.mjs",
+    "pdf-renderer-preload.cjs"
   ],
   "win": {
     "target": [

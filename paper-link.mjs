@@ -16,19 +16,22 @@ function validateSelection(value){
     || !value.anchors.every(validAnchor))
     throw new UserError('선택 문장·질문·PDF 위치를 확인하세요. 문맥은 120,000자까지 공유할 수 있습니다.');
   return {documentId:value.documentId,fileName:value.fileName,quote:value.quote.trim(),question:value.question.trim(),context:value.context,
+    ...(value.snapshotId?{snapshotId:value.snapshotId}:{}),
     allowSave:value.allowSave,rotation:value.rotation,anchors:structuredClone(value.anchors)};
 }
 
 // A capability bridge, not a proxy for the app's settings, OAuth tokens or files.
 // Only explicit shares can be read and each share can create one annotation.
-export function createPaperLink({annotations,discoveryPath,getOrigin,now=Date.now}){
+export function createPaperLink({annotations,discoveryPath,getOrigin,pdfs,now=Date.now}){
   const records=new Map();let enabled=false,token='',revision=0,lastContactAt=null,queue=Promise.resolve();
+  let activeReads=0;
+  const expiryTimer=setInterval(()=>{if(enabled)prune();},60000);expiryTimer.unref?.();
   const serial=fn=>{const result=queue.then(fn);queue=result.catch(()=>{});return result;};
-  const prune=()=>{for(const [id,record] of records)if(now()-record.timestamp>=DAY)records.delete(id);};
+  const prune=()=>{for(const [id,record] of records)if(now()-record.timestamp>=DAY){records.delete(id);if(record.snapshotId)pdfs?.unpin(record.snapshotId,id);}};
   function snapshot(record){
     if(!record)return null;
     const {selectionId,fileName,quote,question,context,allowSave,createdAt,expiresAt,saved}=record;
-    return {selectionId,fileName,quote,question,context,allowSave,createdAt,expiresAt,scope:record.anchors[0].kind==='page-note'?'page':'selection',pages:record.anchors.map(a=>a.page),saved:saved?{annotationId:saved.id,note:saved.note}:null};
+    return {selectionId,fileName,quote,question,context,allowSave,createdAt,expiresAt,...(record.snapshotId?{snapshotId:record.snapshotId,pdfAvailable:true}:{}),scope:record.anchors[0].kind==='page-note'?'page':'selection',pages:record.anchors.map(a=>a.page),saved:saved?{annotationId:saved.id,note:saved.note}:null};
   }
   async function enable(){
     if(enabled)return;
@@ -40,6 +43,7 @@ export function createPaperLink({annotations,discoveryPath,getOrigin,now=Date.no
   }
   async function disable(){
     const oldToken=token;enabled=false;token='';records.clear();lastContactAt=null;revision++;
+    pdfs?.reset();
     try{const connection=JSON.parse(await readFile(discoveryPath,'utf8'));if(connection.token===oldToken)await unlink(discoveryPath);}
     catch(error){if(error.code!=='ENOENT')throw error;}
   }
@@ -48,22 +52,40 @@ export function createPaperLink({annotations,discoveryPath,getOrigin,now=Date.no
     if(!record)throw new UserError('공유가 만료되었거나 해제되었습니다. Paper Reader에서 문장을 다시 Link로 보내세요.',404);
     return record;
   }
+  async function readTool(method,args){
+    const record=await serial(()=>{if(!enabled)throw new UserError('Paper Reader Link 연결이 꺼져 있습니다.',409);const item=getRecord(args.selectionId);if(!item.snapshotId)throw new UserError('이 질문에는 PDF 전체가 공유되지 않았습니다. AI가 문맥 찾기를 선택해 다시 공유하세요.',409);if(activeReads>=3)throw new UserError('PDF 작업이 진행 중입니다. 잠시 후 다시 시도하세요.',429);activeReads++;lastContactAt=new Date(now()).toISOString();return item;});
+    const event={tool:method,state:'running',pages:[],at:new Date(now()).toISOString()};
+    record.trace.push(event);if(record.trace.length>12)record.trace.shift();revision++;
+    try{
+      let value;
+      if(method==='inspect_pdf')value=pdfs.inspect(record.snapshotId);
+      if(method==='query_pdf')value=await pdfs.query(record.snapshotId,args.sql,args.params);
+      if(method==='read_pdf')value=pdfs.read(record.snapshotId,args.pages);
+      if(method==='render_pdf_page')value=await pdfs.render(record.snapshotId,args.page,args.region);
+      if(!enabled || getRecord(record.selectionId)!==record)throw new UserError('PDF 공유가 종료되었습니다.',410);
+      event.state='complete';
+      event.pages=method==='query_pdf'?[...new Set(value.rows.map(row=>Number(row.page_no)).filter(n=>Number.isInteger(n)&&n>=1&&n<=pdfs.inspect(record.snapshotId).pageCount))]:method==='read_pdf'?value.pages.map(p=>p.page):method==='render_pdf_page'?[args.page]:[];
+      revision++;return {selectionId:record.selectionId,...value};
+    }catch(error){event.state='error';revision++;throw error;}
+    finally{activeReads--;}
+  }
   return {
     authorize(header){
       if(!enabled || typeof header!=='string')return false;
       const supplied=Buffer.from(header),expected=Buffer.from('Bearer '+token);
       return supplied.length===expected.length&&timingSafeEqual(supplied,expected);
     },
-    status(){prune();const latest=[...records.values()].at(-1);return {enabled,revision,sharedCount:records.size,lastContactAt,latest:latest?{selectionId:latest.selectionId,documentId:latest.documentId,fileName:latest.fileName,pages:latest.anchors.map(a=>a.page),saved:!!latest.saved,annotationId:latest.saved?.id||null}:null};},
+    status(){prune();const latest=[...records.values()].at(-1);return {pdfAvailable:!!pdfs?.available,enabled,revision,sharedCount:records.size,lastContactAt,latest:latest?{selectionId:latest.selectionId,documentId:latest.documentId,fileName:latest.fileName,pages:latest.anchors.map(a=>a.page),trace:structuredClone(latest.trace),saved:!!latest.saved,annotationId:latest.saved?.id||null}:null};},
     setEnabled:value=>serial(async()=>{if(typeof value!=='boolean')throw new UserError('연결 설정이 올바르지 않습니다.');await (value?enable():disable());return {enabled};}),
     share:value=>serial(async()=>{
       const selection=validateSelection(value);prune();
       if(records.size>=100)throw new UserError('공유 문장이 100개입니다. Link 연결을 해제한 뒤 다시 시작하세요.',409);
       await enable();
-      const timestamp=now(),selectionId=randomUUID(),record={...selection,selectionId,timestamp,createdAt:new Date(timestamp).toISOString(),expiresAt:new Date(timestamp+DAY).toISOString(),saved:null};
+      const timestamp=now(),selectionId=randomUUID(),record={...selection,selectionId,timestamp,createdAt:new Date(timestamp).toISOString(),expiresAt:new Date(timestamp+DAY).toISOString(),saved:null,trace:[]};
+      if(selection.snapshotId){if(typeof selection.snapshotId!=='string'||!/^[a-f\d]{64}$/.test(selection.snapshotId)||!pdfs)throw new UserError('PDF 고정본 ID를 확인하세요.');pdfs.pin(selection.snapshotId,selection.documentId,selectionId);}
       records.set(selectionId,record);revision++;return snapshot(record);
     }),
-    call:(method,args={})=>serial(async()=>{
+    call:(method,args={})=>['inspect_pdf','query_pdf','read_pdf','render_pdf_page'].includes(method)?readTool(method,args):serial(async()=>{
       if(!enabled)throw new UserError('Paper Reader Link 연결이 꺼져 있습니다.',409);
       lastContactAt=new Date(now()).toISOString();
       if(method==='get_selection'){
@@ -88,7 +110,7 @@ export function createPaperLink({annotations,discoveryPath,getOrigin,now=Date.no
       }
       throw new UserError('지원하지 않는 Link 도구입니다.',404);
     }),
-    close:()=>serial(disable),
+    close:()=>{clearInterval(expiryTimer);return serial(disable);},
     flush:()=>queue
   };
 }

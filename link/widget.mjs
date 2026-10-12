@@ -1,6 +1,6 @@
 import {App} from '@modelcontextprotocol/ext-apps';
 import {linkQuestion} from '../link-question.mjs';
-const app=new App({name:'Paper Reader Link',version:'0.1.0'},{});
+const app=new App({name:'Paper Reader Link',version:'0.2.0'},{});
 const $=id=>document.getElementById(id);
 let selection=null,busy=false,connected=false,sentId='';
 function status(text){$('status').textContent=text;}
@@ -21,8 +21,8 @@ function update(result){
     if(changed)$('question').value=selection.question;
     $('save').disabled=!selection.allowSave;
     if(changed)$('save').checked=selection.allowSave;
-    $('context').textContent=selection.context;
-    $('context-size').textContent='공유 문맥 · '+selection.context.length.toLocaleString()+'자';
+    $('context').textContent=selection.pdfAvailable?'PDF 전체 검색 허용 · 질문에는 본문을 미리 붙이지 않습니다.':selection.context;
+    $('context-size').textContent=selection.pdfAvailable?'PDF 전체 · 검색·이미지 도구로 읽기':'공유 문맥 · '+selection.context.length.toLocaleString()+'자';
     status(selection.saved?'PDF 주석 저장 완료 · 새 답변은 앱에서 문장을 다시 공유하세요.':sentId===selection.selectionId?'질문을 보냈습니다. 이 대화에서 후속 질문을 이어가세요.':'질문을 보내면 현재 ChatGPT 대화에서 답변합니다.');
   }else status('Paper Reader에서 문장을 선택하고 Link로 보내세요.');
   controls();

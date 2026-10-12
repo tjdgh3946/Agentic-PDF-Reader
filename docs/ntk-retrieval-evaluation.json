@@ -1,0 +1,873 @@
+{
+  "date": "2026-10-13",
+  "paper": "1806.07572v4.pdf",
+  "sha256": "e052eb972f646747ac4554a294eb62874077e59a5f585f459e2dbd5cb2a0975d",
+  "pageCount": 19,
+  "method": "Codex selected and adapted queries through live local MCP, read source pages and viewed five PNG crops. No separate ChatGPT web conversation or inference API was invoked. Query examples from earlier development were available to the evaluator; this is not a blind benchmark.",
+  "calls": {
+    "query_pdf": 28,
+    "read_pdf": 7,
+    "render_pdf_page": 5,
+    "inspect_pdf": 1
+  },
+  "initialRetrieval": {
+    "questions": 17,
+    "anyRelevantSourcePageInTop5": 11,
+    "zeroResults": 4,
+    "referenceOnly": 1,
+    "ftsSyntaxError": 1,
+    "definition": "At least one relevant source page; not complete-answer accuracy. Deliberate difficult/negative cases included."
+  },
+  "timing": {
+    "scope": "warm local query tool calls, includes deliberate error; excludes LLM/remote tunnel latency",
+    "minMs": 4,
+    "medianMs": 14.5,
+    "maxMs": 17
+  },
+  "fixValidation": "Updated source index replay over the same 19 PDF.js pages now finds p14/17 for Gronwall and Grönwall; raw_text unchanged. npm test: 80 passed. Running portable EXE has not been rebuilt/restarted for these changes.",
+  "remaining": [
+    "FTS5 is lexical; multilingual and synonym reformulation depends on the model.",
+    "Page-level BM25 may rank references/appendix mentions ahead of the primary statement.",
+    "FTS numeric punctuation is not exact numeric matching.",
+    "A separate ChatGPT web model end-to-end test is still pending."
+  ],
+  "cases": [
+    {
+      "id": "T1",
+      "question": "NTK가 학습 중 일정하다는 정리와 전제조건은?",
+      "firstSearch": "\"Theorem 2\"",
+      "firstHitPages": [
+        15,
+        13,
+        14,
+        6
+      ],
+      "firstError": false,
+      "evidencePages": [
+        6,
+        13
+      ],
+      "answer": "Theorem 2는 Lipschitz·두 번 미분 가능·유계 2차 미분과 학습 방향 적분의 확률적 유계를 가정한다. 고정된 T에 대해 시간 구간에서 균일한 수렴이다.",
+      "assessment": "첫 결과 p15는 Lemma 설명. 정리 진술 p6/13을 직접 확인해야 한다.",
+      "followUpSearches": []
+    },
+    {
+      "id": "T2",
+      "question": "ReLU에도 그 정리의 매끄러움 가정이 성립하는가?",
+      "firstSearch": "ReLU",
+      "firstHitPages": [
+        7
+      ],
+      "firstError": false,
+      "evidencePages": [
+        6,
+        7
+      ],
+      "answer": "실험은 ReLU를 쓰지만 ReLU는 Theorem 2의 두 번 미분 가능 가정을 그대로 만족하지 않는다. 실험 결과를 정리의 적용 보장으로 확대할 수 없다.",
+      "assessment": "서로 다른 페이지의 이론 가정과 실험 설정을 대조했다.",
+      "followUpSearches": []
+    },
+    {
+      "id": "T3",
+      "question": "각 층 폭을 동시에 무한대로 보내는가, 순서대로 보내는가?",
+      "firstSearch": "sequentially",
+      "firstHitPages": [
+        11,
+        12,
+        13,
+        14
+      ],
+      "firstError": false,
+      "evidencePages": [
+        11,
+        13
+      ],
+      "answer": "부록은 n1부터 순차적으로 폭을 무한대로 보낸다. min(width)→∞라는 일반 극한은 확장 가능성으로 언급한다.",
+      "assessment": "순차 극한과 동시 극한을 구별했다.",
+      "followUpSearches": []
+    },
+    {
+      "id": "T4",
+      "question": "early stopping은 고유값과 어떤 관계인가?",
+      "firstSearch": "\"early stopping\"",
+      "firstHitPages": [
+        7,
+        1,
+        9,
+        2
+      ],
+      "firstError": false,
+      "evidencePages": [
+        6,
+        7
+      ],
+      "answer": "양의 고유값 방향의 오차는 exp(-t*lambda)로 감소한다. early stopping은 큰 고유값 방향을 먼저 맞추고 작은 고유값 방향의 적합을 제한한다.",
+      "assessment": "앞 페이지의 최소제곱 설정을 함께 읽고 p7 수식을 이미지로 확인했다.",
+      "followUpSearches": []
+    },
+    {
+      "id": "T5",
+      "question": "NTK의 양의 정부호성은 어떤 입력과 활성화 조건에서 성립하는가?",
+      "firstSearch": "\"Proposition 2\"",
+      "firstHitPages": [
+        17,
+        18,
+        19,
+        6
+      ],
+      "firstError": false,
+      "evidencePages": [
+        6,
+        17,
+        18,
+        19
+      ],
+      "answer": "비다항 Lipschitz 활성화, 단위 구면 입력, 깊이 L>=2 조건의 Proposition 2와 Lemma 2·Theorem 3을 연결했다.",
+      "assessment": "일반 입력 분포에 대한 무조건적 보장으로 확대하지 않았다.",
+      "followUpSearches": []
+    },
+    {
+      "id": "T6",
+      "question": "초기 GP covariance와 NTK는 같은 커널인가?",
+      "firstSearch": "\"Gaussian process\" AND covariance",
+      "firstHitPages": [
+        5,
+        12,
+        11
+      ],
+      "firstError": false,
+      "evidencePages": [
+        5,
+        6
+      ],
+      "answer": "초기 출력의 GP 공분산 Sigma와 학습 NTK Theta는 일반적으로 다르다. NTK 재귀식에는 이전 층 Theta와 미분 공분산의 곱 항이 추가된다.",
+      "assessment": "같은 초기 커널을 쓰는 깊이 1을 일반 깊이로 혼동하지 않았다.",
+      "followUpSearches": []
+    },
+    {
+      "id": "T7",
+      "question": "bias 계수 beta는 무엇이고 실험에서는 얼마인가?",
+      "firstSearch": "bias",
+      "firstHitPages": [
+        3,
+        13,
+        15,
+        2
+      ],
+      "firstError": false,
+      "evidencePages": [
+        3,
+        7,
+        9
+      ],
+      "answer": "beta는 bias와 연결 가중치의 학습 영향을 조절하며 실험에서는 0.1을 사용한다.",
+      "assessment": "FTS의 숫자 '0.1'은 '0,1' 등에도 일치한다. beta AND experiments로 재검색하고 원문에서 값을 확인했다.",
+      "followUpSearches": [
+        {
+          "query": "β AND \"0.1\"",
+          "pages": [
+            18,
+            3,
+            19,
+            9,
+            17
+          ]
+        },
+        {
+          "query": "β AND experiments",
+          "pages": [
+            7,
+            3
+          ]
+        }
+      ]
+    },
+    {
+      "id": "T8",
+      "question": "최소제곱 학습의 시간별 해와 무한시간 극한은?",
+      "firstSearch": "\"least-squares\"",
+      "firstHitPages": [
+        6,
+        8,
+        1,
+        2
+      ],
+      "firstError": false,
+      "evidencePages": [
+        6,
+        7
+      ],
+      "answer": "시간별 해 f_t=f*+exp(-t Pi)(f0-f*)를 찾았다. 무한시간 해는 데이터에서 양의 정부호인 커널을 가정하며 초기화에서 유래한 잔여항을 포함한다.",
+      "assessment": "첫 검색은 p6을 찾았지만 수식이 p7로 이어져 이웃 페이지를 읽고 이미지를 대조했다.",
+      "followUpSearches": []
+    },
+    {
+      "id": "T9",
+      "question": "Figure 3 세 패널이 실제 보여주는 것은?",
+      "firstSearch": "\"Figure 3\"",
+      "firstHitPages": [
+        9
+      ],
+      "firstError": false,
+      "evidencePages": [
+        8,
+        9
+      ],
+      "answer": "Figure 3(a)는 MNIST의 2·3번째 kernel PC, (b)는 직선 궤적에서의 이탈, (c)는 2번째 PC 방향 수렴이다.",
+      "assessment": "PNG에서 세 패널, 폭 100/1000/10000 및 무한 폭 곡선을 확인했다.",
+      "followUpSearches": []
+    },
+    {
+      "id": "T10",
+      "question": "Figure 2가 유한 폭에서 보여주는 오차는 무엇인가?",
+      "firstSearch": "\"Figure 2\"",
+      "firstHitPages": [
+        8
+      ],
+      "firstError": false,
+      "evidencePages": [
+        8
+      ],
+      "answer": "Figure 2는 오차 곡선이 아니라 수렴 부근의 네트워크 함수와 극한 Gaussian 분포의 10·50·90 분위수 비교다.",
+      "assessment": "질문의 잘못된 전제를 캡션·본문·실제 그림으로 교정했다.",
+      "followUpSearches": []
+    },
+    {
+      "id": "T11",
+      "question": "무한 너비에서 커널 수렴을 설명해줘.",
+      "firstSearch": "무한 너비",
+      "firstHitPages": [],
+      "firstError": false,
+      "evidencePages": [
+        5,
+        6,
+        11
+      ],
+      "answer": "한국어 literal 검색은 0건이었다. 영어 원문 검색어로 전환한 뒤 Theorem 1 AND initialization으로 초기 커널 수렴을 찾았다.",
+      "assessment": "OR 검색에서는 다른 문헌의 Theorem 1이 p18에 우선 매칭되어 추가 제약이 필요했다.",
+      "followUpSearches": [
+        {
+          "query": "\"infinite width\" OR \"Theorem 1\"",
+          "pages": [
+            18,
+            5,
+            12,
+            6,
+            1
+          ]
+        },
+        {
+          "query": "\"Theorem 1\" AND initialization",
+          "pages": [
+            5,
+            12
+          ]
+        }
+      ]
+    },
+    {
+      "id": "T12",
+      "question": "폭 100이면 NTK 근사가 정확하다고 보장하는가?",
+      "firstSearch": "\"minimum width\" OR \"minimal width\"",
+      "firstHitPages": [],
+      "firstError": false,
+      "evidencePages": [
+        5,
+        6,
+        8,
+        9,
+        11
+      ],
+      "answer": "확인한 정리들은 폭의 극한에 관한 결과다. 폭 100이면 정확하다는 보장은 이 근거로 지지되지 않으며 유한 폭 실험은 편차를 보인다.",
+      "assessment": "검색 0건만으로 부재를 단정하지 않고 정리의 범위와 실제 유한 폭 실험을 읽었다.",
+      "followUpSearches": [
+        {
+          "query": "\"finite width\" OR \"100\"",
+          "pages": [
+            9,
+            8,
+            3
+          ]
+        }
+      ]
+    },
+    {
+      "id": "T13",
+      "question": "Theorem 2 증명에서 Gronwall은 어떻게 쓰이는가?",
+      "firstSearch": "Gronwall",
+      "firstHitPages": [
+        10
+      ],
+      "firstError": false,
+      "evidencePages": [
+        13,
+        14,
+        15,
+        16,
+        17
+      ],
+      "answer": "p14는 Grönwall 부등식으로 가중치·활성화 변화를 제어하고 p17은 비선형 형태로 Lemma 1의 유계를 얻는다.",
+      "assessment": "원래 Gronwall 검색은 p10 참고문헌만 반환. PDF의 Gr¨ onwall 분리를 발견하여 소스 색인 정규화 후 p14/17 회수 확인. 순위 1위는 여전히 참고문헌이다.",
+      "followUpSearches": [
+        {
+          "query": "Gron* OR Grön* OR \"Lemma 1\"",
+          "pages": [
+            10,
+            15,
+            14
+          ]
+        },
+        {
+          "query": "\"inequality\" OR \"inequalities\"",
+          "pages": [
+            14,
+            10
+          ]
+        },
+        {
+          "query": "\"onwall\"",
+          "pages": [
+            17,
+            14
+          ]
+        }
+      ]
+    },
+    {
+      "id": "T14",
+      "question": "gradient flow를 검색해도 관련 문맥이 나오는가?",
+      "firstSearch": "\"gradient flow\"",
+      "firstHitPages": [],
+      "firstError": false,
+      "evidencePages": [
+        4,
+        5,
+        6
+      ],
+      "answer": "gradient flow라는 정확 구문은 0건이지만 gradient descent AND kernel로 연속시간 미분방정식 설명을 찾았다.",
+      "assessment": "동의 개념과 원문 용어 차이를 재검색으로 해결했다.",
+      "followUpSearches": [
+        {
+          "query": "\"gradient descent\" AND kernel",
+          "pages": [
+            4,
+            9,
+            6,
+            2,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "T15",
+      "question": "비다항 활성화라는 조건은 왜 필요한가?",
+      "firstSearch": "non-polynomial",
+      "firstHitPages": [],
+      "firstError": true,
+      "evidencePages": [
+        6,
+        17,
+        18,
+        19
+      ],
+      "answer": "비다항 활성화의 무한 Hermite 계수와 구면 커널의 양·정부호 조건으로 연결되는 증명을 찾았다.",
+      "assessment": "non-polynomial은 FTS 구문 오류. 큰따옴표로 감싼 검색어로 복구했다. 소스에 오류 복구 안내를 추가했다.",
+      "followUpSearches": [
+        {
+          "query": "\"non-polynomial\"",
+          "pages": [
+            19,
+            1,
+            10,
+            17,
+            6
+          ]
+        }
+      ]
+    },
+    {
+      "id": "T16",
+      "question": "CNN이나 Transformer에도 같은 정리를 증명했는가?",
+      "firstSearch": "Transformer OR convolutional",
+      "firstHitPages": [],
+      "firstError": false,
+      "evidencePages": [
+        2,
+        7
+      ],
+      "answer": "논문이 명시적으로 분석·실험하는 대상은 fully connected network다. 이 논문만으로 CNN/Transformer에도 같은 증명을 했다고 답할 근거는 없다.",
+      "assessment": "모델 이름 0건만으로 결론 내리지 않고 연구 대상의 명시적 문장을 확인했다.",
+      "followUpSearches": [
+        {
+          "query": "\"fully connected\" OR \"fully-connected\"",
+          "pages": [
+            2,
+            7
+          ]
+        }
+      ]
+    },
+    {
+      "id": "T17",
+      "question": "Figure 3(c)의 작은 네트워크가 더 빠른 이유를 Figure 1과 연결해줘.",
+      "firstSearch": "inflation OR inflate",
+      "firstHitPages": [
+        9,
+        8
+      ],
+      "firstError": false,
+      "evidencePages": [
+        8,
+        9
+      ],
+      "answer": "작은 네트워크의 더 빠른 수렴을 NTK inflation이 설명할 수 있다는 저자의 해석을 Figure 1·3과 연결했다. 학습률과 step/time 차이를 고려해야 한다.",
+      "assessment": "두 그림의 실제 PNG를 보았다. 관찰과 저자의 가능한 설명을 인과적 증명으로 과장하지 않았다.",
+      "followUpSearches": []
+    }
+  ],
+  "requests": [
+    {
+      "id": "inspect",
+      "tool": "inspect_pdf",
+      "arguments": {}
+    },
+    {
+      "id": "T1",
+      "question": "NTK가 학습 중 일정하다는 정리와 전제조건은?",
+      "tool": "query_pdf",
+      "arguments": {
+        "sql": "SELECT CAST(page_no AS INTEGER) AS page_no, snippet(page_fts,1,'[',']',' … ',40) AS excerpt FROM page_fts WHERE page_fts MATCH ? ORDER BY bm25(page_fts), CAST(page_no AS INTEGER) LIMIT 5",
+        "params": [
+          "\"Theorem 2\""
+        ]
+      }
+    },
+    {
+      "id": "T2",
+      "question": "ReLU에도 그 정리의 매끄러움 가정이 성립하는가?",
+      "tool": "query_pdf",
+      "arguments": {
+        "sql": "SELECT CAST(page_no AS INTEGER) AS page_no, snippet(page_fts,1,'[',']',' … ',40) AS excerpt FROM page_fts WHERE page_fts MATCH ? ORDER BY bm25(page_fts), CAST(page_no AS INTEGER) LIMIT 5",
+        "params": [
+          "ReLU"
+        ]
+      }
+    },
+    {
+      "id": "T3",
+      "question": "각 층 폭을 동시에 무한대로 보내는가, 순서대로 보내는가?",
+      "tool": "query_pdf",
+      "arguments": {
+        "sql": "SELECT CAST(page_no AS INTEGER) AS page_no, snippet(page_fts,1,'[',']',' … ',40) AS excerpt FROM page_fts WHERE page_fts MATCH ? ORDER BY bm25(page_fts), CAST(page_no AS INTEGER) LIMIT 5",
+        "params": [
+          "sequentially"
+        ]
+      }
+    },
+    {
+      "id": "T4",
+      "question": "early stopping은 고유값과 어떤 관계인가?",
+      "tool": "query_pdf",
+      "arguments": {
+        "sql": "SELECT CAST(page_no AS INTEGER) AS page_no, snippet(page_fts,1,'[',']',' … ',40) AS excerpt FROM page_fts WHERE page_fts MATCH ? ORDER BY bm25(page_fts), CAST(page_no AS INTEGER) LIMIT 5",
+        "params": [
+          "\"early stopping\""
+        ]
+      }
+    },
+    {
+      "id": "T5",
+      "question": "NTK의 양의 정부호성은 어떤 입력과 활성화 조건에서 성립하는가?",
+      "tool": "query_pdf",
+      "arguments": {
+        "sql": "SELECT CAST(page_no AS INTEGER) AS page_no, snippet(page_fts,1,'[',']',' … ',40) AS excerpt FROM page_fts WHERE page_fts MATCH ? ORDER BY bm25(page_fts), CAST(page_no AS INTEGER) LIMIT 5",
+        "params": [
+          "\"Proposition 2\""
+        ]
+      }
+    },
+    {
+      "id": "T6",
+      "question": "초기 GP covariance와 NTK는 같은 커널인가?",
+      "tool": "query_pdf",
+      "arguments": {
+        "sql": "SELECT CAST(page_no AS INTEGER) AS page_no, snippet(page_fts,1,'[',']',' … ',40) AS excerpt FROM page_fts WHERE page_fts MATCH ? ORDER BY bm25(page_fts), CAST(page_no AS INTEGER) LIMIT 5",
+        "params": [
+          "\"Gaussian process\" AND covariance"
+        ]
+      }
+    },
+    {
+      "id": "T7",
+      "question": "bias 계수 beta는 무엇이고 실험에서는 얼마인가?",
+      "tool": "query_pdf",
+      "arguments": {
+        "sql": "SELECT CAST(page_no AS INTEGER) AS page_no, snippet(page_fts,1,'[',']',' … ',40) AS excerpt FROM page_fts WHERE page_fts MATCH ? ORDER BY bm25(page_fts), CAST(page_no AS INTEGER) LIMIT 5",
+        "params": [
+          "bias"
+        ]
+      }
+    },
+    {
+      "id": "T8",
+      "question": "최소제곱 학습의 시간별 해와 무한시간 극한은?",
+      "tool": "query_pdf",
+      "arguments": {
+        "sql": "SELECT CAST(page_no AS INTEGER) AS page_no, snippet(page_fts,1,'[',']',' … ',40) AS excerpt FROM page_fts WHERE page_fts MATCH ? ORDER BY bm25(page_fts), CAST(page_no AS INTEGER) LIMIT 5",
+        "params": [
+          "\"least-squares\""
+        ]
+      }
+    },
+    {
+      "id": "T9",
+      "question": "Figure 3 세 패널이 실제 보여주는 것은?",
+      "tool": "query_pdf",
+      "arguments": {
+        "sql": "SELECT CAST(page_no AS INTEGER) AS page_no, snippet(page_fts,1,'[',']',' … ',40) AS excerpt FROM page_fts WHERE page_fts MATCH ? ORDER BY bm25(page_fts), CAST(page_no AS INTEGER) LIMIT 5",
+        "params": [
+          "\"Figure 3\""
+        ]
+      }
+    },
+    {
+      "id": "T10",
+      "question": "Figure 2가 유한 폭에서 보여주는 오차는 무엇인가?",
+      "tool": "query_pdf",
+      "arguments": {
+        "sql": "SELECT CAST(page_no AS INTEGER) AS page_no, snippet(page_fts,1,'[',']',' … ',40) AS excerpt FROM page_fts WHERE page_fts MATCH ? ORDER BY bm25(page_fts), CAST(page_no AS INTEGER) LIMIT 5",
+        "params": [
+          "\"Figure 2\""
+        ]
+      }
+    },
+    {
+      "id": "T11",
+      "question": "무한 너비에서 커널 수렴을 설명해줘.",
+      "tool": "query_pdf",
+      "arguments": {
+        "sql": "SELECT CAST(page_no AS INTEGER) AS page_no, snippet(page_fts,1,'[',']',' … ',40) AS excerpt FROM page_fts WHERE page_fts MATCH ? ORDER BY bm25(page_fts), CAST(page_no AS INTEGER) LIMIT 5",
+        "params": [
+          "무한 너비"
+        ]
+      }
+    },
+    {
+      "id": "T12",
+      "question": "폭 100이면 NTK 근사가 정확하다고 보장하는가?",
+      "tool": "query_pdf",
+      "arguments": {
+        "sql": "SELECT CAST(page_no AS INTEGER) AS page_no, snippet(page_fts,1,'[',']',' … ',40) AS excerpt FROM page_fts WHERE page_fts MATCH ? ORDER BY bm25(page_fts), CAST(page_no AS INTEGER) LIMIT 5",
+        "params": [
+          "\"minimum width\" OR \"minimal width\""
+        ]
+      }
+    },
+    {
+      "id": "T13",
+      "question": "Theorem 2 증명에서 Gronwall은 어떻게 쓰이는가?",
+      "tool": "query_pdf",
+      "arguments": {
+        "sql": "SELECT CAST(page_no AS INTEGER) AS page_no, snippet(page_fts,1,'[',']',' … ',40) AS excerpt FROM page_fts WHERE page_fts MATCH ? ORDER BY bm25(page_fts), CAST(page_no AS INTEGER) LIMIT 5",
+        "params": [
+          "Gronwall"
+        ]
+      }
+    },
+    {
+      "id": "T14",
+      "question": "gradient flow를 검색해도 관련 문맥이 나오는가?",
+      "tool": "query_pdf",
+      "arguments": {
+        "sql": "SELECT CAST(page_no AS INTEGER) AS page_no, snippet(page_fts,1,'[',']',' … ',40) AS excerpt FROM page_fts WHERE page_fts MATCH ? ORDER BY bm25(page_fts), CAST(page_no AS INTEGER) LIMIT 5",
+        "params": [
+          "\"gradient flow\""
+        ]
+      }
+    },
+    {
+      "id": "T15",
+      "question": "비다항 활성화라는 조건은 왜 필요한가?",
+      "tool": "query_pdf",
+      "arguments": {
+        "sql": "SELECT CAST(page_no AS INTEGER) AS page_no, snippet(page_fts,1,'[',']',' … ',40) AS excerpt FROM page_fts WHERE page_fts MATCH ? ORDER BY bm25(page_fts), CAST(page_no AS INTEGER) LIMIT 5",
+        "params": [
+          "non-polynomial"
+        ]
+      }
+    },
+    {
+      "id": "T16",
+      "question": "CNN이나 Transformer에도 같은 정리를 증명했는가?",
+      "tool": "query_pdf",
+      "arguments": {
+        "sql": "SELECT CAST(page_no AS INTEGER) AS page_no, snippet(page_fts,1,'[',']',' … ',40) AS excerpt FROM page_fts WHERE page_fts MATCH ? ORDER BY bm25(page_fts), CAST(page_no AS INTEGER) LIMIT 5",
+        "params": [
+          "Transformer OR convolutional"
+        ]
+      }
+    },
+    {
+      "id": "T11b",
+      "tool": "query_pdf",
+      "arguments": {
+        "sql": "SELECT CAST(page_no AS INTEGER) AS page_no, snippet(page_fts,1,'[',']',' … ',40) AS excerpt FROM page_fts WHERE page_fts MATCH ? ORDER BY bm25(page_fts), CAST(page_no AS INTEGER) LIMIT 5",
+        "params": [
+          "\"infinite width\" OR \"Theorem 1\""
+        ]
+      }
+    },
+    {
+      "id": "T12b",
+      "tool": "query_pdf",
+      "arguments": {
+        "sql": "SELECT CAST(page_no AS INTEGER) AS page_no, snippet(page_fts,1,'[',']',' … ',40) AS excerpt FROM page_fts WHERE page_fts MATCH ? ORDER BY bm25(page_fts), CAST(page_no AS INTEGER) LIMIT 5",
+        "params": [
+          "\"finite width\" OR \"100\""
+        ]
+      }
+    },
+    {
+      "id": "T13b",
+      "tool": "query_pdf",
+      "arguments": {
+        "sql": "SELECT CAST(page_no AS INTEGER) AS page_no, snippet(page_fts,1,'[',']',' … ',40) AS excerpt FROM page_fts WHERE page_fts MATCH ? ORDER BY bm25(page_fts), CAST(page_no AS INTEGER) LIMIT 5",
+        "params": [
+          "Gron* OR Grön* OR \"Lemma 1\""
+        ]
+      }
+    },
+    {
+      "id": "T14b",
+      "tool": "query_pdf",
+      "arguments": {
+        "sql": "SELECT CAST(page_no AS INTEGER) AS page_no, snippet(page_fts,1,'[',']',' … ',40) AS excerpt FROM page_fts WHERE page_fts MATCH ? ORDER BY bm25(page_fts), CAST(page_no AS INTEGER) LIMIT 5",
+        "params": [
+          "\"gradient descent\" AND kernel"
+        ]
+      }
+    },
+    {
+      "id": "T15b",
+      "tool": "query_pdf",
+      "arguments": {
+        "sql": "SELECT CAST(page_no AS INTEGER) AS page_no, snippet(page_fts,1,'[',']',' … ',40) AS excerpt FROM page_fts WHERE page_fts MATCH ? ORDER BY bm25(page_fts), CAST(page_no AS INTEGER) LIMIT 5",
+        "params": [
+          "\"non-polynomial\""
+        ]
+      }
+    },
+    {
+      "id": "T16b",
+      "tool": "query_pdf",
+      "arguments": {
+        "sql": "SELECT CAST(page_no AS INTEGER) AS page_no, snippet(page_fts,1,'[',']',' … ',40) AS excerpt FROM page_fts WHERE page_fts MATCH ? ORDER BY bm25(page_fts), CAST(page_no AS INTEGER) LIMIT 5",
+        "params": [
+          "\"fully connected\" OR \"fully-connected\""
+        ]
+      }
+    },
+    {
+      "id": "T7b",
+      "tool": "query_pdf",
+      "arguments": {
+        "sql": "SELECT CAST(page_no AS INTEGER) AS page_no, snippet(page_fts,1,'[',']',' … ',40) AS excerpt FROM page_fts WHERE page_fts MATCH ? ORDER BY bm25(page_fts), CAST(page_no AS INTEGER) LIMIT 5",
+        "params": [
+          "β AND \"0.1\""
+        ]
+      }
+    },
+    {
+      "id": "R1",
+      "tool": "read_pdf",
+      "arguments": {
+        "pages": [
+          3,
+          5,
+          6
+        ]
+      }
+    },
+    {
+      "id": "R2",
+      "tool": "read_pdf",
+      "arguments": {
+        "pages": [
+          7,
+          8,
+          9
+        ]
+      }
+    },
+    {
+      "id": "R3",
+      "tool": "read_pdf",
+      "arguments": {
+        "pages": [
+          11,
+          13,
+          16
+        ]
+      }
+    },
+    {
+      "id": "T13c",
+      "tool": "query_pdf",
+      "arguments": {
+        "sql": "SELECT CAST(page_no AS INTEGER) AS page_no, snippet(page_fts,1,'[',']',' … ',40) AS excerpt FROM page_fts WHERE page_fts MATCH ? ORDER BY bm25(page_fts), CAST(page_no AS INTEGER) LIMIT 5",
+        "params": [
+          "\"inequality\" OR \"inequalities\""
+        ]
+      }
+    },
+    {
+      "id": "T7c",
+      "tool": "query_pdf",
+      "arguments": {
+        "sql": "SELECT CAST(page_no AS INTEGER) AS page_no, snippet(page_fts,1,'[',']',' … ',40) AS excerpt FROM page_fts WHERE page_fts MATCH ? ORDER BY bm25(page_fts), CAST(page_no AS INTEGER) LIMIT 5",
+        "params": [
+          "β AND experiments"
+        ]
+      }
+    },
+    {
+      "id": "T11c",
+      "tool": "query_pdf",
+      "arguments": {
+        "sql": "SELECT CAST(page_no AS INTEGER) AS page_no, snippet(page_fts,1,'[',']',' … ',40) AS excerpt FROM page_fts WHERE page_fts MATCH ? ORDER BY bm25(page_fts), CAST(page_no AS INTEGER) LIMIT 5",
+        "params": [
+          "\"Theorem 1\" AND initialization"
+        ]
+      }
+    },
+    {
+      "id": "R4",
+      "tool": "read_pdf",
+      "arguments": {
+        "pages": [
+          17,
+          18,
+          19
+        ]
+      }
+    },
+    {
+      "id": "R5",
+      "tool": "read_pdf",
+      "arguments": {
+        "pages": [
+          2,
+          14,
+          15
+        ]
+      }
+    },
+    {
+      "id": "F3",
+      "tool": "render_pdf_page",
+      "arguments": {
+        "page": 9,
+        "region": [
+          0.1,
+          0.075,
+          0.8,
+          0.235
+        ]
+      }
+    },
+    {
+      "id": "F2",
+      "tool": "render_pdf_page",
+      "arguments": {
+        "page": 8,
+        "region": [
+          0.49,
+          0.06,
+          0.42,
+          0.29
+        ]
+      }
+    },
+    {
+      "id": "formula",
+      "tool": "render_pdf_page",
+      "arguments": {
+        "page": 7,
+        "region": [
+          0.1,
+          0.08,
+          0.8,
+          0.47
+        ]
+      }
+    },
+    {
+      "id": "T13d",
+      "tool": "query_pdf",
+      "arguments": {
+        "sql": "SELECT CAST(page_no AS INTEGER) AS page_no, snippet(page_fts,1,'[',']',' … ',40) AS excerpt FROM page_fts WHERE page_fts MATCH ? ORDER BY bm25(page_fts), CAST(page_no AS INTEGER) LIMIT 5",
+        "params": [
+          "\"onwall\""
+        ]
+      }
+    },
+    {
+      "id": "T17",
+      "question": "Figure 3(c)의 작은 네트워크가 더 빠른 이유를 Figure 1과 연결해줘.",
+      "tool": "query_pdf",
+      "arguments": {
+        "sql": "SELECT CAST(page_no AS INTEGER) AS page_no, snippet(page_fts,1,'[',']',' … ',40) AS excerpt FROM page_fts WHERE page_fts MATCH ? ORDER BY bm25(page_fts), CAST(page_no AS INTEGER) LIMIT 5",
+        "params": [
+          "inflation OR inflate"
+        ]
+      }
+    },
+    {
+      "id": "R6",
+      "tool": "read_pdf",
+      "arguments": {
+        "pages": [
+          1,
+          4,
+          10
+        ]
+      }
+    },
+    {
+      "id": "R7",
+      "tool": "read_pdf",
+      "arguments": {
+        "pages": [
+          12
+        ]
+      }
+    },
+    {
+      "id": "F1",
+      "tool": "render_pdf_page",
+      "arguments": {
+        "page": 8,
+        "region": [
+          0.1,
+          0.06,
+          0.42,
+          0.29
+        ]
+      }
+    },
+    {
+      "id": "Gronwall",
+      "tool": "render_pdf_page",
+      "arguments": {
+        "page": 14,
+        "region": [
+          0.1,
+          0.65,
+          0.8,
+          0.26
+        ]
+      }
+    }
+  ]
+}

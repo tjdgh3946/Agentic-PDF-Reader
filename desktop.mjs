@@ -8,6 +8,7 @@ import {createSettings} from './settings.mjs';
 import {createChatGPTPanel} from './chatgpt-panel.mjs';
 import {configureDesktopProfile} from './desktop-profile.mjs';
 import {createReadingState} from './reading-state.mjs';
+import {createPdfRenderer} from './pdf-render-service.mjs';
 
 app.setName('Paper Reader');
 app.setAppUserModelId('local.paperreader.desktop');
@@ -24,7 +25,7 @@ else {
     const chats=await createChats(path.join(app.getPath('userData'),'conversations'));
     const annotations=await createAnnotations(path.join(app.getPath('userData'),'annotations'));
     const reading=await createReadingState(path.join(app.getPath('userData'),'reading.json'));
-    server=createAppServer(auth,{settings,chats,annotations,reading,linkDiscoveryPath:path.join(app.getPath('userData'),'link-connection.json'),getOrigin:()=>origin,externalCssPath:path.join(stylesDirectory,'Paper-Reader.css'),openBrowser:url=>{
+    server=createAppServer(auth,{pdfRenderer:createPdfRenderer(()=>origin),settings,chats,annotations,reading,linkDiscoveryPath:path.join(app.getPath('userData'),'link-connection.json'),getOrigin:()=>origin,externalCssPath:path.join(stylesDirectory,'Paper-Reader.css'),openBrowser:url=>{
       if(url!=='https://chatgpt.com/' && (new URL(url).origin!==origin || new URL(url).pathname!=='/auth/launch')) throw new Error('Invalid external URL');
       return shell.openExternal(url);
     }});
@@ -34,7 +35,7 @@ else {
     session.defaultSession.setPermissionRequestHandler((_contents,_permission,callback)=>callback(false));
     window=new BrowserWindow({title:'Paper Reader',width:1400,height:950,minWidth:900,minHeight:650,backgroundColor:'#f4f6f4',show:false,webPreferences:{preload:path.join(app.getAppPath(),'desktop-preload.cjs'),nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true}});
     chatgptPanel=createChatGPTPanel(window,()=>origin);
-    window.on('closed',()=>chatgptPanel.dispose());
+    window.on('closed',()=>{chatgptPanel.dispose();server.pdfs.close();app.quit();});
     const external=url=>{
       try {
         const parsed=new URL(url);

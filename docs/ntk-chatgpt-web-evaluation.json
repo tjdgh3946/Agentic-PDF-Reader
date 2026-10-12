@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-13",
+  "host": "Authenticated ChatGPT web, ordinary Chat, Medium setting, Codex in-app browser",
+  "applicationVersion": "0.10.0",
+  "linkVersion": "0.2.0",
+  "pdf": "1806.07572v4.pdf",
+  "pdfSha256": "e052eb972f646747ac4554a294eb62874077e59a5f585f459e2dbd5cb2a0975d",
+  "exeSha256": "C7E802DDBC7197CD3D9CF1FF797CCAEA12480A18A3C73E70464719D8F3EDB1F7",
+  "registeredTools": 7,
+  "observedCalls": {"inspect_pdf": 1, "query_pdf": 8, "read_pdf": 4, "render_pdf_page": 6},
+  "failedCalls": 0,
+  "savedAnnotation": false,
+  "cases": [
+    {"question": "Theorem 2 activation assumptions, sequential width limit, and ReLU experiments", "result": "pass", "readPages": [2,5,6,7,13,14], "imagePages": [6,7,13,14], "checks": ["ReLU does not meet twice differentiable assumption", "sequential and diagonal width limits distinguished", "finite time and bounded training direction integral", "citations to PDF pages"]},
+    {"question": "Figure 3(c) faster small-network convergence and relation to Figure 1", "result": "pass", "readPages": [8,9], "imagePages": [8,9], "checks": ["correct axes and width legends", "NTK inflation as proposed explanation", "learning rate comparison caveat", "actual image calls observed"]},
+    {"question": "Gronwall proof locations and whether width 100 has exactly constant NTK", "result": "pass", "searchPages": [10,14,17], "readPages": [14,16,17], "checks": ["proof text read beyond reference hit", "two proof uses distinguished", "finite-width exact invariance rejected"]}
+  ],
+  "limits": ["Three cases in one conversation; follow-up context reused", "Not a general accuracy benchmark", "This run used separate ChatGPT web tab, not EXE embedded-panel send automation", "Server trace stores method, state, pages and time, not SQL or image bytes"],
+  "credentialReuse": "CurrentUser DPAPI storage; actual tunnel stop/start succeeded without another key prompt"
+}

@@ -1,4 +1,7 @@
-# 개발 인수인계 · Paper Reader 0.9.6
+# 개발 인수인계 · Paper Reader 0.10.0
+
+> 2026-10-13 업데이트: 아래의 0.9.6 기록은 개발 당시 계획으로 보존합니다. 0.10.0에서는 명시적 AI 문맥 검색 모드, 질문 당시 SHA-256 PDF 고정본, 격리된 PDF.js 추출·렌더링, SQLite FTS5 읽기 전용 검색, 네 가지 MCP 읽기 도구와 근거 페이지 UI를 구현했습니다. NTK 19페이지로 로컬 MCP 전 구간을 검증해 `Figure 3`의 p.9 검색·본문 읽기·실제 PNG 반환을 확인했습니다. 자동 테스트 79개가 통과했습니다. 실제 ChatGPT 모델 호출 검증은 새 버전의 터널·플러그인 연결이 필요합니다. 0.10.0 소스의 구현 상태는 README와 코드를 기준으로 확인하세요.
+
 
 작성일: 2026-10-12. 다른 Windows PC에서 이 문서부터 읽고 개발을 재개한다.
 
@@ -59,7 +62,7 @@ npm run build
 2. 올바른 OpenAI Platform organization과 ChatGPT workspace에서 터널 접근 권한을 확인한다. 기존 터널을 재사용할 수 있는지는 계정 권한과 활성 클라이언트 상태를 확인해 판단한다. 같은 터널에 두 PC를 동시에 연결하는 운용은 이 작업에서 검증하지 않았다.
 3. `npm run build:link`로 `plugins/paper-reader-link/server.bundle.mjs`, `widget.html` 등 생성물을 만든다.
 4. 공식 Secure MCP Tunnel 클라이언트를 `plugins/paper-reader-link/tools/tunnel-client.exe`에 준비한다. 이 바이너리는 `.exe` 제외 규칙 때문에 Git에 포함되지 않는다. 기존 PC에서는 **v0.0.16**을 사용했다. 공식 배포와 설치 방법은 [Secure MCP Tunnel 안내](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels)를 확인한다.
-5. `node plugins/paper-reader-link/start-link.mjs --check`로 준비 상태를 확인한 뒤 `plugins/paper-reader-link/Start-Link.cmd`를 실행한다. 터널 ID와 Runtime API Key를 직접 입력한다. 키는 숨김 입력으로 받아 현재 프로세스 환경에서만 사용한다.
+5. `node plugins/paper-reader-link/start-link.mjs --check`로 준비 상태를 확인한 뒤 `plugins/paper-reader-link/Start-Link.cmd`를 실행한다. 처음 한 번 터널 ID와 Runtime API Key를 입력한다. Windows DPAPI(CurrentUser) 암호화 저장 후 다음 실행부터 자동 재사용한다. 같은 PC에서 매번 입력을 요구하지 않는다.
 6. ChatGPT의 사용자 지정 MCP 플러그인에서 해당 터널의 Paper Reader Link를 연결한다. 권한·등록 화면은 [한국어 연결 안내](../Paper-Reader-Link-연결안내.md)를 참고한다.
 7. 앱에서 질문을 공유해야 현재 localhost와 새 capability token이 `link-connection.json`에 기록된다. 앱 재시작 직후 과거 연결 파일만으로 현재 연결 여부를 판단하지 않는다.
 
@@ -72,7 +75,7 @@ npm run build
 | 브라우저용 Node 서버 데이터 | 저장소 `.local/` |
 | 브라우저 서버용 MCP 연결 | `--connection <저장소>/.local/link-connection.json` |
 | Tunnel 클라이언트 프로필 | `%LOCALAPPDATA%\PaperReaderLink\tunnel` |
-| Tunnel Runtime API Key | 실행 중인 프로세스 환경, 파일에 저장하지 않음 |
+| Tunnel Runtime API Key | `%LOCALAPPDATA%\PaperReaderLink\credentials.json`, Windows DPAPI CurrentUser 암호화 |
 | 공유 선택 ID | 24시간, 연결 해제 또는 앱 종료까지 |
 
 API 키, 연결 파일의 token, identity 파일, 브라우저 프로필/쿠키, 사용자 대화와 노트를 커밋하거나 로그에 출력하지 않는다. 기존 PC의 인증 프로필을 복사해 새 PC 로그인 절차를 우회하지 않는다. 원본 PDF는 사용자 PC 파일이며 주석 저장이 원본 PDF를 수정하지 않는다.
@@ -129,7 +132,7 @@ API 키, 연결 파일의 token, identity 파일, 브라우저 프로필/쿠키,
 - PDF 본문과 캡션은 신뢰하지 않는 자료로 처리하고 자료 안의 지시를 실행하지 않도록 한다. 실제 접근 제한은 서버에서 구현한다.
 - 이미지 base64를 text JSON에만 넣으면 모델이 그림으로 읽는 것이 아니다. MCP 어댑터에서 `{type:'image', data:<base64>, mimeType:'image/png'}`로 반환한다. metadata만 structuredContent에 두고 base64를 중복하지 않는다. 실제 ChatGPT 호스트에서 시각 입력으로 수신되는지 별도 확인한다.
 - MCP bridge의 현재 10초 timeout은 이미지 작업에 맞춰 검토한다. 렌더 자체의 제한 시간·취소와 별도로 무한 대기하지 않게 한다.
-- 번들 재생성만으로 실행 중 터널의 stdio 프로세스나 ChatGPT의 도구 목록이 갱신되는 것은 아니다. 안전하게 터널/MCP 프로세스를 재시작하고 호스트에 새 도구가 실제 노출되는지 확인한다. runtime key를 읽어 추출하거나 로그로 재사용하지 않는다.
+- 번들 재생성만으로 실행 중 터널의 stdio 프로세스나 ChatGPT의 도구 목록이 갱신되는 것은 아니다. 안전하게 터널/MCP 프로세스를 재시작하고 호스트에 새 도구가 실제 노출되는지 확인한다. 저장된 키는 launcher의 credential-store에서 복호화하여 자식 터널 환경에만 전달한다. 키를 출력하거나 로그에서 재사용하지 않는다.
 
 ### 4. 페이지 이미지 및 영역 crop
 
@@ -206,3 +209,38 @@ Figure 위치 지도: **p.8 Figure 1·2, p.9 Figure 3(a/b/c)**. p.7은 실험 �
 - 기존 작업 디렉터리 바깥의 임시 SQLite DB, 본문 추출 JSON, 사용자 세션을 사용하는 일회성 라이브 테스트 스크립트, 스크린샷·로그·EXE는 Git에 포함하지 않는다. SQL 예시와 외부 테마만 재사용 가능한 형태로 보관했다.
 
 다음 개발은 snapshot/SQL isolation부터 시작하고, MCP 도구 → 이미지 → UI → **실제 ChatGPT 종단 테스트** → EXE 빌드 순서로 진행한다. MVP 완료 전 README에 전체 PDF 검색이나 Figure 자동 읽기를 현재 기능으로 표기하지 않는다.
+
+## 2026-10-13 NTK 실제 문맥 검색 평가
+
+위 계획 이후 snapshot/SQL/MCP 이미지 MVP를 구현하고, 실행 중인 0.10.0 portable 앱에 공유한 `1806.07572v4.pdf`로 평가했다. SHA-256은 `e052eb972f646747ac4554a294eb62874077e59a5f585f459e2dbd5cb2a0975d`, 19페이지다.
+
+- Codex가 질문별 검색어를 선택하고 결과에 따라 재검색했다. **17가지 질문, SQL 28회, 본문 읽기 7회, PNG 확인 5회**. 기존 개발 예시를 참고했으므로 blind benchmark가 아니다. 별도의 ChatGPT 웹 모델이 수행한 종단 평가와 구별한다.
+- 첫 검색의 상위 5개 안에 관련 본문 페이지가 있었던 질문은 **11/17**이다. 나머지는 0건 4개, 참고문헌만 1개, FTS 구문 오류 1개다. 이 수치는 답변 정확도가 아니다. 본문/인접 페이지와 이미지를 읽어 가정, 반례성 질문, 증명, 실험을 대조했다.
+- 특히 ReLU 실험을 Theorem 2의 매끄러움 가정 충족으로 오인하지 않고, 순차 폭 극한과 동시 극한을 구별했다. Figure 2의 함수 분포를 오차 그래프로 오인하지 않았으며, 폭 100의 정확성 보장이나 CNN/Transformer에 대한 증명을 근거 없이 주장하지 않았다.
+- 발견한 오류: PDF.js의 `Gr¨ onwall` 추출 때문에 `Gronwall`이 참고문헌 p.10만 찾았다. **검색 색인만** 분리된 diaeresis를 정규화하도록 수정했다. 실행 앱에서 읽은 19페이지를 수정 소스에 재색인하여 p.14/17 증명도 검색되는 것을 확인했고 raw_text는 그대로 보존된다. 참고문헌이 여전히 첫 순위일 수 있으므로 순위를 정답으로 취급하면 안 된다.
+- `non-polynomial`의 FTS 오류에 따옴표 복구 안내를 추가했다. MCP 검색 설명에 원문 언어/동의어 재검색, FTS 따옴표, 숫자 구두점 매칭, 참고문헌·본문 구별 및 인접 페이지 읽기를 명시했다.
+- 전체 테스트 **80개 통과**. 이번 검색 보완은 소스와 개발 MCP 번들에 반영했다. 실행 중 portable EXE와 기존 배포 ZIP은 이 보완 이후 다시 빌드하지 않았다.
+- 상세 질문, 최초/후속 검색, 근거 페이지, 판정, 41개 읽기 전용 재생 요청은 [ntk-retrieval-evaluation.json](ntk-retrieval-evaluation.json)에 있다. NTK PDF 전체 공유가 켜진 앱에서 `node scripts/ntk-query-eval.mjs docs/ntk-retrieval-evaluation.json ../outputs/ntk-eval-replay.json`으로 재생할 수 있다. 고정 요청 재생은 모델의 자율 검색 품질을 다시 측정하는 것이 아니다.
+
+남은 검증은 실제 ChatGPT 호스트의 새 도구 목록 갱신 후 동일 질문을 독립적으로 수행하는 것이다. 한국어·동의어 처리는 모델의 재검색에 의존하며, 현재 검색은 페이지 단위 lexical FTS5다. 숫자는 원문으로, 그림·수식은 PNG로 검증해야 한다.
+
+## 2026-10-13 인증 저장 및 EXE 재빌드
+
+- 사용자는 키/로그인을 매번 다시 입력하지 않도록 저장하고 재연결 정보를 기록하도록 명시적으로 요청했다. 같은 PC에서 저장소를 먼저 확인하고, 이미 저장된 키를 다시 요구하지 않는다.
+- Link launcher는 터널 ID와 실행 키를 `%LOCALAPPDATA%\PaperReaderLink\credentials.json`에 저장한다. 키는 Windows DPAPI `CurrentUser`로 암호화한다. 암호화/복호화 데이터는 private stdin/stdout pipe로만 전달하며 키를 명령 인자나 로그에 넣지 않는다. 저장은 임시 파일 작성 후 교체한다.
+- `Start-Link.cmd`는 저장된 인증을 자동 사용한다. 기존 프로필의 터널 ID도 복구한다. `--reset-key`는 숨김 입력으로 키를 교체하고, `--forget-key`는 암호화 저장 파일만 제거한다. Platform의 키 자체를 폐기하지는 않는다. 다른 Windows 계정/PC에서는 새로 입력한다.
+- 현재 사용자가 입력한 실제 터널 키의 암호화 저장을 완료했고, 실행 중 터널을 종료한 뒤 새 launcher가 추가 입력 없이 연결되는 것을 확인했다. 기존 ChatGPT 로그인 프로필은 유지한다. 개인 터널 ID와 실행 경로는 Git 제외 `.local/LOCAL-HANDOFF.md`에 기록했다. 키 원문은 어느 문서에도 기록하지 않는다.
+- `npm test`: **81개 통과**, 실패/skip 0. 실제 Windows DPAPI로 더미 키 저장·복호화·교체·손상·삭제를 검증한다.
+- 새 portable EXE SHA-256: `C7E802DDBC7197CD3D9CF1FF797CCAEA12480A18A3C73E70464719D8F3EDB1F7`. 패키지 내부 SQL worker/snapshot 모듈과 소스 일치 확인. NTK를 다시 열고 `Gronwall` 검색이 p.10/17/14를 반환하는 것을 확인했다.
+- ChatGPT 웹의 기존 플러그인 도구 갱신과 실제 모델 검증도 완료했다. 아래 기록을 참고한다.
+
+## 2026-10-13 실제 ChatGPT 웹 종단 검증 완료
+
+- 로그인된 ChatGPT **일반 Chat**에서 Paper Reader Link를 명시적으로 선택하고, 새 EXE가 공유한 NTK 고정본으로 세 질문을 실행했다. 별도 Codex 인앱 브라우저를 사용했으며 EXE 내장 패널의 직접 전송 자체를 이번에 재검증한 것은 아니다.
+- 호스트의 도구 새로 고침이 처음에는 실패했다. 이미지 `region` 스키마를 tuple의 `items: [...]` 대신 길이 4의 동질 숫자 배열로 수정하고 터널 재시작 및 관리 화면 새로고침 후 **Write 1 / Read 6**을 확인했다. 이 순서를 재현했지만 호스트의 상세 실패 원인은 제공되지 않아 단일 원인으로 확정하지 않는다.
+- 실제 모델이 **inspect 1회, SQL 검색 8회, 본문 읽기 4회, PNG 반환 6회 = 19회** 호출했고 앱 trace에서 모두 complete였다. 로컬 사전 확인 호출은 집계에서 제외했다. UI에는 도구 상태와 근거 페이지가 표시됐다.
+- Theorem 2: p.6/13의 가정, p.7 ReLU, p.13/14의 순차 너비 극한을 대조했다. p.6/7/13/14 PNG도 읽었다. ReLU 미분 가능성 가정의 불충족, finite-T 범위, 실험과 정리의 차이를 구별했다.
+- Figure 3(c) → Figure 1: p.8/9를 검색하고 읽은 뒤 두 페이지 PNG를 확인했다. 폭·축·범례, NTK inflation 설명을 올바르게 연결했다. 가능한 설명을 확정된 인과관계로 표현하지 않았고 learning rate 비교의 한계도 언급했다.
+- Gronwall/유한 너비: 검색이 p.10/14/17을 반환했고 모델은 p.14/16/17 본문을 읽었다. 참고문헌만으로 결론 내리지 않았으며, 폭 100에서 NTK가 정확히 불변이라는 잘못된 전제를 거부했다.
+- 테스트는 `allowSave:false`로 수행해 노트를 생성하지 않았다. 세 질문은 같은 대화에서 순차 진행하여 후속 질문은 앞선 문맥을 재사용했다. 세 사례의 성공은 일반적인 정확도 보장이 아니다.
+- 재사용 가능한 집계는 [ntk-chatgpt-web-evaluation.json](ntk-chatgpt-web-evaluation.json). 사용자 대화 URL·화면·본문·trace는 Git 바깥 `outputs/chatgpt-ntk-*`에 보관한다. trace는 도구명·상태·페이지·시각을 보관하며 SQL 원문이나 이미지 바이트는 포함하지 않는다.
