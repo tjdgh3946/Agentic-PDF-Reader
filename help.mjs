@@ -47,6 +47,7 @@ function showHelp(button,tip) {
 function scheduleClose() {clearTimeout(closeTimer);closeTimer=setTimeout(hideHelp,180);}
 
 guides.forEach(([selector,title,content],index)=>{
+  if(['#open','#settings-open','#new-chat','label[for="question"]'].includes(selector))return;
   const target=document.querySelector(selector);
   if(!target) return;
   const wrap=document.createElement('span');wrap.className='control-with-help';

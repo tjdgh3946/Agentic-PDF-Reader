@@ -26,7 +26,7 @@ export async function createAnnotations(directory) {
       if(!input || typeof input!=='object' || !COLORS.has(input.color) || typeof input.quote!=='string' || !input.quote.trim() || input.quote.length>10000 || typeof input.note!=='string' || input.note.length>30000 || ![0,90,180,270].includes(input.rotation) || !Array.isArray(input.anchors) || !input.anchors.length || input.anchors.length>40)throw new UserError('주석 정보가 올바르지 않습니다.');
       const anchors=input.anchors.map(anchor=>{
         if(!validAnchor(anchor))throw new UserError('형광펜 위치가 올바르지 않습니다.');
-        return {page:anchor.page,rects:anchor.rects,...(anchor.space?{space:anchor.space}:{}),
+        return {page:anchor.page,rects:anchor.rects,...(anchor.space?{space:anchor.space}:{}),...(anchor.kind?{kind:anchor.kind}:{}),
           ...(anchor.textQuote!==undefined?{textQuote:anchor.textQuote}:{}),...(anchor.textStart!==undefined?{textStart:anchor.textStart}:{})};
       });
       const items=await read(id),index=items.findIndex(item=>item.id===input.id);

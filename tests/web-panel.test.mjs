@@ -1,6 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {allowedWebNavigation,isChatGPTPage,webPanelBounds} from '../web-panel-policy.mjs';
+import {allowedWebNavigation,isChatGPTPage,webPanelBounds,stableChatGPTUserAgent} from '../web-panel-policy.mjs';
+
+test('ChatGPT browser identity stays the same across Paper Reader releases',()=>{
+  const old='Mozilla/5.0 PaperReader/0.9.1 Chrome/150.0.7871.250 Electron/43.7.8 Safari/537.36';
+  const next=old.replace('0.9.1','0.9.2');
+  assert.equal(stableChatGPTUserAgent(old),stableChatGPTUserAgent(next));
+  assert.match(stableChatGPTUserAgent(next),/Chrome\/150\.0\.7871\.250 Electron\/43\.7\.8/);
+  assert.equal(stableChatGPTUserAgent('Mozilla/5.0 Chrome/150 Safari/537.36'),'Mozilla/5.0 Chrome/150 Safari/537.36');
+});
 test('embedded web navigation keeps auth hosts isolated from local app and privileged schemes',()=>{
   for(const url of ['https://chatgpt.com/c/123','https://auth.openai.com/login','https://accounts.google.com/o/oauth2/auth'])assert.equal(allowedWebNavigation(url),true);
   for(const url of ['http://chatgpt.com/','https://chatgpt.com.evil.test/','https://evil.test/','file:///C:/','javascript:alert(1)','http://127.0.0.1:1234/','https://user:pass@chatgpt.com/'])assert.equal(allowedWebNavigation(url),false);

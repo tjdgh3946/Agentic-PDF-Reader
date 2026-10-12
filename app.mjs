@@ -4,7 +4,7 @@ import {pageWindow,historyFor,buildPrompt} from './context.mjs';
 import {createAnnotationUI} from './annotation-ui.mjs';
 import {createWebPanelUI} from './web-panel-ui.mjs';
 import {createLinkUI} from './link-ui.mjs';
-import {questionContext,readingQuestion} from './reading-tools.mjs';
+import {questionContext,readingQuestion,pageNote} from './reading-tools.mjs';
 const $ = id => document.getElementById(id);
 const frame = $('viewer');
 const annotationUI=createAnnotationUI({frame,api,getViewer:()=>viewer,getFileName:()=>fileName});
@@ -15,6 +15,8 @@ let usageState=null,loadingUsage=false;
 let pageImageTask=null,pageImageBusy=false;
 let selectedEndPage='',promptRevision=0,prepared=null,pdfWindow='near1',historyTurns=3;
 let chat=null,chatList=[],chatRevision=0,chatBusy=false,documentId='',tokenTimer,autoController=null,autoBudget=8000,answerRenderTimer=null;
+let readingTimer,readingRestoring=false,openingPdf=false;
+let lastReadingQuestion='';
 const status = message => { $('status').textContent = message; };
 const webPanelUI=createWebPanelUI({status});
 function currentContext(){return questionContext({selection:selected,startPage:selectedPage,endPage:selectedEndPage,currentPage:viewer?.page,total:viewer?.pdfDocument?.numPages,window:pdfWindow});}
@@ -32,7 +34,8 @@ function updateReadingContext(){
   $('selection-note').disabled=!anchored;$('selection-highlight').disabled=!anchored;
   $('page-image').disabled=!loaded || pageImageBusy;
   $('visual-context-hint').hidden=!loaded || !/수식|기호|그림|그래프|도식|도표|표\s|figure|equation|diagram|chart|table/i.test($('question').value);
-  $('page-question-helper').hidden=!loaded || !!selected || requestMode!=='manual' || manualDelivery!=='link';
+  $('context-button').textContent=loaded?`문맥 · ${scope}`:'문맥 설정';
+  $('reading-tools-hint').textContent='설명·번역·수식 버튼은 질문 초안을 만듭니다. Ctrl+Enter로 '+(webPanelUI.canSend?'전송':'복사')+'하세요.';
   linkUI?.render();
 }
 function closePopovers(){for(const popover of document.querySelectorAll(':popover-open'))popover.hidePopover();}
@@ -64,9 +67,6 @@ $('page-image').onclick=async()=>{
   }catch(error){if(generation===docGeneration)status('페이지 이미지 저장 실패: '+error.message);}
   finally{pageImageTask=null;pageImageBusy=false;updateReadingContext();}
 };
-$('page-question-copy').onclick=async()=>{
-  $('manual-delivery').value='clipboard';await $('manual-delivery').onchange();$('question').focus();
-};
 function focusShortcut(event){if(event.key==='F8'){event.preventDefault();$('reading-focus').click();}}
 document.addEventListener('keydown',focusShortcut);
 $('selection-clear').onclick=()=>{
@@ -75,8 +75,9 @@ $('selection-clear').onclick=()=>{
 };
 document.querySelectorAll('[data-reading-action]').forEach(button=>{button.onclick=()=>{
   const question=readingQuestion(button.dataset.readingAction,!!selected);
-  if($('question').value.trim() && $('question').value.trim()!==question && !confirm('작성 중인 질문을 이 읽기 도구의 질문으로 바꿀까요?'))return;
-  $('question').value=question;updateQuestionPreview();invalidatePrompt();$('question').focus();
+  if($('question').value.trim() && $('question').value.trim()!==lastReadingQuestion && $('question').value.trim()!==question && !confirm('작성 중인 질문을 이 읽기 도구의 질문으로 바꿀까요?'))return;
+  lastReadingQuestion=question;
+  $('question').value=question;updateQuestionPreview();invalidatePrompt();scheduleReading();$('question').focus();
   status('질문을 준비했습니다. 내용을 확인하고 Ctrl+Enter를 누르세요.');
 };});
 const writeClipboard=text=>window.paperDesktop?.writeClipboard ? window.paperDesktop.writeClipboard(text) : navigator.clipboard.writeText(text);
@@ -93,25 +94,46 @@ function invalidatePrompt(schedule=true) {
   }
 }
 function resetDocument() {
+  clearTimeout(readingTimer);
   pageImageTask?.cancel();
   annotationUI.reset();
   detachChat();documentId='';
   docGeneration++; textCache = new Map(); selected = ''; selectedPage = ''; selectedEndPage=''; busy = false;
+  $('question').value='';updateQuestionPreview();
   $('selection').textContent = 'PDF에서 문장을 선택하고 우클릭하세요.';
   $('page').textContent = ''; $('prepare').disabled = true;
   $('context').hidden = true; invalidatePrompt();
 }
-function documentReady() {
+async function documentReady() {
   resetDocument();
   fileName = fileName || viewer._docFilename || 'PDF 문서';
   $('document').textContent = `${fileName} · ${viewer.pdfDocument.numPages}페이지`;
   documentId=viewer.pdfDocument.fingerprints[0];
   annotationUI.ready(documentId);
   updateReadingContext();
-  restoreDocumentChat();
+  const generation=docGeneration;
+  readingRestoring=true;
   $('empty').hidden = true;
-  status('문장을 선택해 읽기 도구를 사용하거나, 현재 페이지에 바로 질문하세요.');
+  try{
+    const [saved]=await Promise.all([api('/api/reading?documentId='+encodeURIComponent(documentId)),restoreDocumentChat()]);
+    if(generation!==docGeneration)return;
+    if(saved){viewer.pdfViewer.pagesRotation=saved.rotation;viewer.pdfViewer.currentScaleValue=saved.zoom;viewer.page=Math.min(saved.page,viewer.pdfDocument.numPages);$('question').value=saved.question;updateQuestionPreview();}
+    updateReadingContext();invalidatePrompt();
+    status(saved?`읽던 p. ${viewer.page}와 배율·질문 초안을 복원했습니다.`:'문장을 선택하거나 현재 페이지에 질문하세요. 노트는 이 PC에 자동 저장됩니다.');
+  }catch(error){if(generation===docGeneration)status('읽던 위치 복원 실패: '+error.message);}
+  finally{if(generation===docGeneration){readingRestoring=false;updateSend();}}
 }
+function readingSnapshot(){
+  if(!documentId || !viewer?.pdfDocument || readingRestoring)return null;
+  const zoom=viewer.pdfViewer.currentScaleValue;
+  return {documentId,page:viewer.page,zoom:typeof zoom==='string' && /^\d/.test(zoom)?Number(zoom):zoom,rotation:viewer.pdfViewer.pagesRotation,question:$('question').value.slice(0,10000)};
+}
+function saveReading(){
+  clearTimeout(readingTimer);const value=readingSnapshot();if(!value)return Promise.resolve();
+  return api('/api/reading',value).catch(()=>status('읽던 위치를 저장하지 못했습니다. 앱 연결을 확인하세요.'));
+}
+function scheduleReading(){if(!readingRestoring && documentId){clearTimeout(readingTimer);readingTimer=setTimeout(saveReading,350);}}
+window.addEventListener('pagehide',()=>{const value=readingSnapshot();if(value)fetch('/api/reading',{method:'POST',headers:{'Content-Type':'application/json','X-Paper-Reader':'1'},body:JSON.stringify(value),keepalive:true}).catch(()=>{});});
 let initializedViewerDocument;
 async function initializeViewer() {
   const doc=frame.contentDocument,application=frame.contentWindow?.PDFViewerApplication;
@@ -125,8 +147,10 @@ async function initializeViewer() {
     viewer.eventBus.on('documentloaded', documentReady);
     viewer.eventBus.on('pagerendered',()=>annotationUI.redraw());
     viewer.eventBus.on('textlayerrendered',()=>annotationUI.redraw());
-    viewer.eventBus.on('rotationchanging',()=>setTimeout(()=>annotationUI.redraw(),100));
-    viewer.eventBus.on('pagechanging',()=>{if(!selected)invalidatePrompt();else updateReadingContext();});
+    viewer.eventBus.on('rotationchanging',()=>{scheduleReading();setTimeout(()=>annotationUI.redraw(),100);});
+    viewer.eventBus.on('scalechanging',scheduleReading);
+    viewer.eventBus.on('pagechanging',()=>{scheduleReading();if(!selected)invalidatePrompt();else updateReadingContext();});
+    doc.getElementById('pageNumber').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();const page=Number(event.target.value);if(Number.isInteger(page) && page>=1 && page<=viewer.pagesCount)viewer.page=page;}});
     if (viewer.pdfDocument) documentReady();
     doc.addEventListener('contextmenu', event => {
       if (!captureSelection()) return;
@@ -168,18 +192,19 @@ function captureSelection() {
   return true;
 }
 async function openFile(file) {
-  if (!viewer || !file) return;
+  if (!viewer || !file || openingPdf) return;
   if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') { status('PDF 파일을 선택해 주세요.'); return; }
-  resetDocument(); $('empty').hidden = true; fileName = file.name;
+  openingPdf=true;$('open').disabled=true;await saveReading();resetDocument(); $('empty').hidden = true; fileName = file.name;
   $('document').textContent = `${file.name} · 여는 중`;
   try { await viewer.open({data: new Uint8Array(await file.arrayBuffer()), originalUrl: file.name}); }
-  catch (error) { status(`PDF를 열 수 없습니다: ${error.message}`); $('document').textContent = 'PDF 열기 실패'; }
+  catch (error) { status(`PDF를 열 수 없습니다: ${error.message}`); $('document').textContent = 'PDF 열기 실패';$('empty').hidden=false; }
+  finally{openingPdf=false;$('open').disabled=false;}
 }
 $('open').onclick = () => $('file').click();
 $('file').onchange = async () => { await openFile($('file').files[0]); $('file').value = ''; };
 $('sample').onclick = async () => {
   if (!viewer) return;
-  resetDocument(); $('empty').hidden = true;
+  await saveReading();resetDocument(); $('empty').hidden = true;
   fileName='compressed.tracemonkey-pldi-09.pdf';
   try { await viewer.open({url: new URL('pdfjs/web/compressed.tracemonkey-pldi-09.pdf', location.href).href}); }
   catch (error) { status(`샘플 열기 실패: ${error.message}`); }
@@ -190,7 +215,7 @@ document.addEventListener('pointerdown', event => { if (!$('context').contains(e
 document.addEventListener('keydown', event => { if (event.key === 'Escape') $('context').hidden = true; });
 $('ask').onclick = () => { $('context').hidden = true; $('question').focus(); $('question').scrollIntoView({block:'nearest', behavior:'smooth'}); };
 function updateQuestionPreview(){renderMarkdown($('question-markdown-preview'),$('question').value);}
-$('question').oninput = ()=>{updateQuestionPreview();invalidatePrompt();};
+$('question').oninput = ()=>{updateQuestionPreview();invalidatePrompt();scheduleReading();};
 updateQuestionPreview();
 $('prepare').onclick = async automatic => {
   const notify=message=>{if(automatic!==true)status(message);};
@@ -269,7 +294,7 @@ function renderChat() {
   const nodes=(chat?.entries || []).map(entry=>{
     const article=document.createElement('article');article.className='chat-turn';article.dataset.entry=entry.id;
     const title=document.createElement('div');title.className='chat-question markdown-body';renderMarkdown(title,entry.test?'연결 테스트':entry.question);
-    const meta=document.createElement('p');meta.className='chat-meta';meta.textContent=entry.pageLabel+' · '+({complete:'완료',pending:'응답 중',interrupted:'중단된 응답',exported:'복사됨 · 답변 붙여넣기 대기'}[entry.status] || entry.status);
+    const meta=document.createElement('p');meta.className='chat-meta';meta.textContent=entry.pageLabel+' · '+({complete:'완료',pending:'응답 중',interrupted:'중단된 응답',exported:'질문 기록 · 웹 답변 미등록'}[entry.status] || entry.status);
     const quote=document.createElement('details'),summary=document.createElement('summary'),text=document.createElement('p');summary.textContent='당시 선택 문장 · 문맥';text.textContent=entry.selection+'\nPDF 페이지: '+(entry.pages?.join(', ') || '선택 문장만')+' · 이전 대화 '+(entry.historyCount || 0)+'회';quote.append(summary,text);
     const answer=document.createElement('div');answer.className='chat-answer markdown-body';renderMarkdown(answer,entry.answer || (entry.status==='exported'?'ChatGPT에서 답변을 확인하세요.':''));
     if(entry.autoContext){text.textContent+='\nAuto: '+entry.autoContext.reason+' · '+entry.autoContext.source;if(entry.autoContext.agentUsage?.inputTokens!=null)text.textContent+=' · 선택용 실제 입력 '+entry.autoContext.agentUsage.inputTokens+' tokens';}
@@ -287,7 +312,9 @@ function renderChat() {
     return article;
   });
   clearTimeout(answerRenderTimer);answerRenderTimer=null;
-  log.replaceChildren(...nodes);log.scrollTop=follow?log.scrollHeight:scroll;
+  log.replaceChildren(...nodes);
+  if(!nodes.length){const hint=document.createElement('p');hint.className='chat-empty-hint';hint.textContent=requestMode==='plan'?'PDF 아래에서 질문을 보내면 답변이 여기에 표시됩니다.':'질문을 보내거나 복사하면 이곳에 기록됩니다. ChatGPT의 답변은 웹 대화에서 확인하세요. Link로 저장한 답변은 위의 논문 노트에 모입니다.';log.append(hint);}
+  log.scrollTop=follow?log.scrollHeight:scroll;
   $('history-status').textContent='저장된 질문 '+(chat?.entries.length || 0)+'개 · 다음 질문에 완료된 대화 '+historyFor(chat?.entries || [],historyTurns).length+'회 포함';
   if(chat && documentId!==chat.documentId)$('chat-status').textContent='저장된 대화: '+chat.fileName+' · 이어서 질문하려면 같은 PDF를 열어 주세요.';
   else $('chat-status').textContent=chat?'이 PC에 자동 저장 · '+chat.fileName:'새 대화 · 전송하거나 복사하면 이 PC에 자동 저장됩니다.';
@@ -317,7 +344,6 @@ async function loadChat(id) {
   detachChat();if(!id)return;
   const revision=chatRevision;chatBusy=true;updateSend();
   try{const saved=await api('/api/chat/get',{id});if(revision!==chatRevision)return;chat=saved;$('chat-choice').value=id;
-      if(chat.documentId===documentId){const last=[...chat.entries].reverse().find(entry=>entry.selection);const pages=last?.pageLabel.match(/\d+/g);if(last && pages){selected=last.selection;selectedPage=Number(pages[0]);selectedEndPage=Number(pages[1] || pages[0]);$('selection').textContent=selected;$('page').textContent=last.pageLabel;}}
       renderChat();invalidatePrompt();}
   catch(error){if(revision===chatRevision)$('chat-status').textContent=error.message;}
   finally{if(revision===chatRevision){chatBusy=false;updateSend();}}
@@ -442,7 +468,7 @@ function updateSend() {
   for(const id of ['pdf-window','history-window','auto-budget'])$(id).disabled=working || !!answerController || savingSettings;
   $('chat-choice').disabled=chatBusy; $('new-chat').disabled=chatBusy; $('delete-chat').disabled=chatBusy || !chat;
   const ready = !chatBusy && !working && requestMode==='plan' && !savingSettings && authState?.planEnabled && !!$('model').value && !answerController;
-  const canAsk=!!viewer?.pdfDocument && !!$('question').value.trim() && (!chat || chat.documentId===documentId) && !working && !chatBusy;
+  const canAsk=!!viewer?.pdfDocument && !!$('question').value.trim() && (!chat || chat.documentId===documentId) && !working && !chatBusy && !readingRestoring;
   $('send').disabled = !ready || !canAsk;
   $('send').title=!authState?.planEnabled?'환경 설정에서 ChatGPT 계정을 연결하세요.':!viewer?.pdfDocument?'PDF를 먼저 열어주세요.':'Ctrl+Enter';
   $('connection-test').disabled = !ready;
@@ -453,12 +479,12 @@ function updateSend() {
   $('copy-manual').hidden=manualDelivery==='link';$('open-chatgpt').hidden=manualDelivery==='link';
   $('manual-delivery').disabled=savingSettings || openingChatGPT || !!answerController || !!linkUI?.busy;
   const anchor=annotationUI.selectionSnapshot();
-  $('link-share').disabled=requestMode!=='manual' || !canAsk || !selected || anchor?.quote!==selected || savingSettings || !!linkUI?.busy;
-  $('link-share').title=!selected?'원문 문장을 선택하세요. 페이지 질문은 전달 방식을 복사 후 붙여넣기로 바꾸세요.':'선택 문장과 질문을 준비 · Ctrl+Enter';
+  $('link-share').disabled=requestMode!=='manual' || !canAsk || (selected && anchor?.quote!==selected) || savingSettings || !!linkUI?.busy;
+  $('link-share').title=!viewer?.pdfDocument?'PDF를 먼저 열어주세요.':!$('question').value.trim()?'질문을 입력하거나 위의 질문 도구를 선택하세요.':`선택 문장 또는 현재 페이지 질문을 ${webPanelUI.canSend?'오른쪽 ChatGPT로 전송':'복사'} · Ctrl+Enter`;
   $('settings-save').disabled = working || savingSettings || !!answerController || openingChatGPT;
 }
 function applyMode(mode) {
-  requestMode=mode;webPanelUI.setMode(mode);
+  requestMode=mode;webPanelUI.setMode(mode);renderChat();
   const direct=mode==='plan';
   $('account-card').hidden=!direct;
   $('model-settings').hidden=!direct;
@@ -473,7 +499,7 @@ function applyMode(mode) {
 $('manual-delivery').onchange=async()=>{
   const next=$('manual-delivery').value;savingSettings=true;updateSend();
   try{const saved=await api('/api/settings',{mode:requestMode||'manual',manualDelivery:next});manualDelivery=saved.manualDelivery;
-    status(manualDelivery==='link'?'문장을 선택하고 Link로 질문을 준비하세요. 답변은 원문의 노트로 돌아옵니다.':'질문을 복사해 ChatGPT에서 전송하세요. 선택 문장이 없어도 현재 페이지로 질문할 수 있습니다.');}
+    status(manualDelivery==='link'?'문장 또는 현재 페이지로 질문할 수 있습니다. 연결된 플러그인은 답변을 논문 노트에 저장합니다.':'질문을 복사해 ChatGPT에서 전송하세요.');}
   catch(error){status('전달 방식을 저장하지 못했습니다: '+error.message);}
   finally{$('manual-delivery').value=manualDelivery;savingSettings=false;updateReadingContext();updateSend();}
 };
@@ -509,7 +535,7 @@ async function exportToChatGPT(openBrowser) {
     }
     await saveExport();
     if(!openBrowser){status('질문을 복사했습니다. 열려 있는 ChatGPT 대화에 Ctrl+V로 붙여넣으세요. 답변은 앱 기록의 해당 질문 아래에서 가져올 수 있습니다.');return;}
-    if(webPanelUI.available){setReadingFocus(false);await webPanelUI.show();status('복사 완료 · 오른쪽 ChatGPT 입력창을 클릭하고 Ctrl+V로 붙여넣어 전송하세요. 대화는 웹 탭에 유지됩니다.');return;}
+    if(webPanelUI.available){annotationUI.close();setReadingFocus(false);await webPanelUI.show();status('복사 완료 · 오른쪽 ChatGPT 입력창을 클릭하고 Ctrl+V로 붙여넣어 전송하세요. 대화는 웹 탭에 유지됩니다.');return;}
     const result=await api('/api/open-chatgpt',{});
     $('chatgpt-fallback').hidden=result.opened;
     status(result.opened?'복사 완료 · ChatGPT에서 Ctrl+V → 전송. 받은 답변은 오른쪽의 ‘답변 붙여넣기’로 보관하세요.':'복사 완료 · ChatGPT 직접 열기를 누른 뒤 Ctrl+V로 붙여넣으세요.');
@@ -518,12 +544,12 @@ async function exportToChatGPT(openBrowser) {
 }
 $('open-chatgpt').onclick=()=>exportToChatGPT(true);
 $('copy-manual').onclick=()=>exportToChatGPT(false);
-linkUI=createLinkUI({api,status,updateSend,getDocumentId:()=>documentId,openNote:id=>annotationUI.open(id),onAnnotations:()=>annotationUI.refresh(),prepare:async()=>{
+linkUI=createLinkUI({api,status,updateSend,writeClipboard,recordQuestion:saveExport,getDocumentId:()=>documentId,openNote:id=>annotationUI.open(id),onAnnotations:()=>annotationUI.refresh(),sendToChatGPT:webPanelUI.canSend?async(text,id)=>{annotationUI.close();setReadingFocus(false);return webPanelUI.send(text,id);}:null,prepare:async()=>{
   if(busy || answerController || autoController || chatBusy)throw new Error('문맥 준비 또는 진행 중인 요청이 끝나면 다시 보내세요.');
-  const generation=docGeneration,location=annotationUI.selectionSnapshot();
-  if(!documentId || !location || location.quote!==selected || location.anchors[0].page!==Number(selectedPage))throw new Error('PDF에서 주석을 연결할 문장을 다시 선택하세요.');
+  const generation=docGeneration,page=viewer.page,question=$('question').value.trim(),selection=selected,location=selected?annotationUI.selectionSnapshot():pageNote(viewer.page,viewer.pdfViewer.pagesRotation);
+  if(!documentId || !location || (selected && (location.quote!==selected || location.anchors[0].page!==Number(selectedPage))))throw new Error('PDF에서 주석을 연결할 문장을 다시 선택하세요.');
   if(!prepared)await $('prepare').onclick();
-  if(!prepared || generation!==docGeneration || prepared.selection!==location.quote)throw new Error('질문을 입력하고 문맥 준비가 끝난 뒤 다시 보내세요.');
+  if(!prepared || generation!==docGeneration || prepared.selection!==selection || prepared.question!==question || (!selection && page!==viewer.page))throw new Error('질문 또는 문서가 바뀌었습니다. 내용을 확인하고 다시 보내세요.');
   return {documentId,fileName,...location,question:prepared.question,context:prepared.prompt};
 }});
 let importTarget=null,importSaving=false;
@@ -640,7 +666,7 @@ async function sendQuestion(prompt,isTest=false) {
   }finally{controller.abort();if(answerController===controller)answerController=null;updateSend();}
 }
 $('send').onclick=async()=>{if($('send').disabled)return;if(!prepared)await $('prepare').onclick();if(prepared?.needsAgent && prepared.autoContext?.source!=='agent'){if(!await refineAuto())return;}if(prepared)await sendQuestion(prepared.prompt);};
-$('question').onkeydown=event=>{if(event.key==='Enter' && (event.ctrlKey || event.metaKey)){event.preventDefault();$(requestMode==='plan'?'send':event.shiftKey?'copy-manual':manualDelivery==='link'?'link-share':'open-chatgpt').click();}};
+$('question').onkeydown=event=>{if(event.key==='Enter' && (event.ctrlKey || event.metaKey)){event.preventDefault();const button=$(requestMode==='plan'?'send':event.shiftKey?'copy-manual':manualDelivery==='link'?'link-share':'open-chatgpt');if(button.disabled)status(button.title || '문맥을 준비하고 있습니다. 잠시 후 다시 보내세요.');else button.click();}};
 $('connection-test').onclick=()=>sendQuestion("한국어로 '연결 확인 완료'라고만 답하세요.",true);
 window.addEventListener('focus',refreshAuth);
 const workspace=document.querySelector('main'),divider=$('panel-resizer');

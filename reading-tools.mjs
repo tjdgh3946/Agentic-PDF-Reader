@@ -16,6 +16,10 @@ export function readingQuestion(kind,selected){
   }[kind]||'';
 }
 
+export function pageNote(page,rotation=0){
+  return {quote:`p. ${page} · 페이지 질문`,rotation,anchors:[{page,space:'page',kind:'page-note',rects:[[.92,.04,.03,.025]]}]};
+}
+
 export function findNotes(items,query=''){
   const words=query.trim().normalize('NFKC').toLocaleLowerCase().split(/\s+/).filter(Boolean);
   return items.filter(item=>{const text=[item.quote,item.note,...item.anchors.map(a=>'p. '+a.page)].join(' ').normalize('NFKC').toLocaleLowerCase();return words.every(word=>text.includes(word));})

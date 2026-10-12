@@ -28,7 +28,7 @@ export function createPaperLink({annotations,discoveryPath,getOrigin,now=Date.no
   function snapshot(record){
     if(!record)return null;
     const {selectionId,fileName,quote,question,context,allowSave,createdAt,expiresAt,saved}=record;
-    return {selectionId,fileName,quote,question,context,allowSave,createdAt,expiresAt,pages:record.anchors.map(a=>a.page),saved:saved?{annotationId:saved.id,note:saved.note}:null};
+    return {selectionId,fileName,quote,question,context,allowSave,createdAt,expiresAt,scope:record.anchors[0].kind==='page-note'?'page':'selection',pages:record.anchors.map(a=>a.page),saved:saved?{annotationId:saved.id,note:saved.note}:null};
   }
   async function enable(){
     if(enabled)return;

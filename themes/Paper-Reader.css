@@ -1,0 +1,631 @@
+/*
+ * Paper Reader — main application stylesheet (lancel 판)
+ * Paper-Reader.css 파일을 EXE와 같은 폴더에 두세요 (v0.3.1 이상).
+ * 저장 후 앱을 다시 실행하면 적용됩니다. CSS가 없으면 기본 디자인을 사용합니다.
+ * PDF.js 내부 도구 모음은 별도의 PDF.js 기본 스타일을 사용합니다.
+ *
+ * 색·서체·라운딩은 lancel PDF 테마(lancel-pdf-style.css)의 값을 옮겼다.
+ *   - 색면 대신 헤어라인으로 나눈다. 칠한 면은 주 버튼 하나뿐이다.
+ *   - 오렌지(#C94B12)는 작은 표지(안내 라벨·포커스 링·링크 hover)에만 쓴다.
+ *   - 라운딩은 3px 하나.
+ * 서체: Pretendard · Source Serif 4 · Noto Serif KR · IBM Plex Mono 를 Windows 에
+ * 설치하면 PDF 와 같은 모양이 된다. 없으면 Segoe UI · 맑은 고딕 · Georgia · Consolas 로 떨어진다.
+ */
+
+/* 자주 바꾸는 값: 강조색, 배경색, 글자색, 오른쪽 패널 너비 */
+:root {
+  --accent: #17120F;            /* 주 버튼 = lancel 잉크. 오렌지로 칠하지 않는다 */
+  --accent-hover: #3B302A;
+  --text-color: #211B18;        /* lancel 본문색 */
+  --page-background: #ffffff;
+  --panel-width: clamp(380px, 32vw, 480px);   /* 1280px 창 410 · 1440px 461 · 1600px 이상 480. 고정하려면 380px 처럼 숫자로 */
+  --header-height: 64px;        /* header 높이와 main 높이 계산이 같이 쓴다 */
+}
+
+/* lancel 팔레트 — 위 값을 바꿔도 이 블록은 그대로 둔다 */
+:root {
+  --ink: #17120F;
+  --ink-soft: #3B302A;
+  --muted: #766B64;
+  --orange: #C94B12;
+  --link: #1E5A9E;
+  --rule: #D9D2C9;
+  --border: rgba(31, 27, 24, 0.14);
+  --border-soft: rgba(31, 27, 24, 0.07);
+  --hover: rgba(31, 27, 24, 0.04);
+  --desk: #EEEBE7;              /* PDF 지면 뒤 책상. 패널은 흰 지면 그대로 둔다 */
+  --desk-text: #62554E;         /* 책상 위 글자. --muted 는 책상에서 4.36:1 이라 한 계단 진하게 */
+  --radius: 3px;
+
+  --font-sans: "Pretendard", "Pretendard Variable", "Segoe UI", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  /* Georgia 뒤에 맑은 고딕을 둔다. 한글 세리프가 없을 때 바탕체 대신 고딕이 한글을 받는다. */
+  --font-serif: "Source Serif 4", "Noto Serif KR", "Nanum Myeongjo", Georgia, "Malgun Gothic", serif;
+  --font-mono: "IBM Plex Mono", "Cascadia Mono", Consolas, "Pretendard", "Malgun Gothic", monospace;
+}
+
+/* 가독성 기준
+ *   - 대비: 글자는 바탕 대비 4.5:1 이상(WCAG AA). --muted 흰 바탕 5.18 · --desk-text 책상 6.03
+ *   - 크기: 한글은 12px 이상. 등폭·대문자 라벨만 10.5px 까지 내린다
+ *   - 읽는 글(답변·인용·질문 입력)은 14px 이상, 한 줄 한글 26~29자
+ */
+
+/* 기본 글꼴과 공통 컨트롤 */
+:root {
+  font-family: var(--font-sans);
+  color: var(--text-color);
+  background: var(--page-background);
+  font-size: 14px;
+  word-break: keep-all;         /* 한글은 어절 단위로 줄을 바꾼다 */
+  overflow-wrap: break-word;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button,textarea {
+  font: inherit;
+}
+
+button {
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: var(--radius);
+  padding: 8px 14px;
+  cursor: pointer;
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.4;
+  transition: border-color .12s ease, color .12s ease, background-color .12s ease;
+}
+
+button:hover {
+  border-color: var(--muted);
+  color: var(--ink);
+  background: #fff;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
+}
+
+button:disabled {
+  opacity: .4;
+  cursor: default;
+}
+
+button:disabled:hover {
+  border-color: var(--border);
+  color: var(--ink-soft);
+}
+
+.primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: #fff;
+}
+
+.primary:disabled,
+.primary:disabled:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* 상단 도구 모음 */
+header {
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--border);
+  background: #fff;
+}
+
+header strong {
+  font-family: var(--font-serif);
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -.005em;
+  color: var(--ink);
+}
+
+header span {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2px 6px;
+  margin-left: 10px;
+  vertical-align: middle;
+}
+
+header small {
+  display: block;
+  color: var(--muted);
+  margin-top: 3px;
+  font-size: 12px;
+}
+
+nav {
+  display: flex;
+  gap: 6px;
+}
+
+nav button {
+  padding: 7px 12px;
+  font-size: 13px;
+}
+
+/* PDF / 질문 패널 배치 */
+main {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) var(--panel-width);
+  height: calc(100dvh - var(--header-height));
+}
+
+.reader {
+  position: relative;
+  min-height: 0;
+  background: var(--desk);
+}
+
+iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+#empty {
+  position: absolute;
+  inset: 34px 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--desk);
+  text-align: center;
+  padding: 25px;
+  pointer-events: none;
+}
+
+#empty[hidden] {
+  display: none;
+}
+
+/* 빈 화면의 종이 한 장. 오렌지는 윗변 2px 에만 둔다 */
+.paper-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 84px;
+  min-height: 116px;
+  padding: 0 14px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .18em;
+  color: var(--muted);
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-top: 2px solid var(--orange);
+  border-radius: 0;
+  margin-bottom: 22px;
+}
+
+h1 {
+  font-family: var(--font-serif);
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  color: var(--ink);
+  margin: 0 0 8px;
+}
+
+#empty p {
+  color: var(--desk-text);
+  font-size: 13.5px;
+  text-wrap: pretty;
+  line-height: 1.7;
+  margin: 3px;
+}
+
+/* 질문 패널 */
+aside {
+  overflow-y: auto;
+  padding: 28px 26px 32px;
+  background: #fff;
+  border-left: 1px solid var(--border);
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule) transparent;
+}
+
+/* lancel kicker — 등폭 대문자, 색 대신 자간으로 선다 */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+h2 {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -.015em;
+  color: var(--ink);
+  margin: 8px 0 10px;
+}
+
+.intro {
+  line-height: 1.7;
+  color: var(--muted);
+  font-size: 13.5px;
+  text-wrap: pretty;
+}
+
+/* lancel 편집 노트 — 상자 없이 이탤릭 세리프 오렌지 라벨로만 알린다 */
+.notice {
+  padding: 13px 0 14px;
+  margin: 20px 0 24px;
+  border-top: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.notice strong {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: var(--orange);
+}
+
+.notice p {
+  font-size: 13px;
+  text-wrap: pretty;
+  line-height: 1.7;
+  color: var(--ink-soft);
+  margin: 5px 0 0;
+}
+
+.section-label,label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .01em;
+  color: var(--ink);
+}
+
+/* 파일 이름은 기계값이라 등폭으로 */
+.document {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  margin: 4px 0 24px;
+}
+
+.selection-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+#page {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+/* 선택한 원문 — lancel 인용구처럼 세리프. 왼쪽 세로선 대신 위아래 괘선으로 스크롤 영역을 닫는다 */
+blockquote {
+  margin: 8px 0 14px;
+  padding: 12px 2px;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.7;
+  color: var(--ink);
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule) transparent;
+}
+
+.presets {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+
+.presets button {
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: var(--radius);
+}
+
+textarea {
+  display: block;
+  width: 100%;
+  resize: vertical;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 11px 12px;
+  margin: 8px 0 12px;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--ink);
+  background: #fff;
+}
+
+textarea::placeholder {
+  color: var(--muted);
+}
+
+textarea:focus {
+  outline: 1px solid var(--orange);
+  outline-offset: 0;
+  border-color: var(--orange);
+}
+
+.wide {
+  width: 100%;
+}
+
+#status {
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.65;
+  min-height: 38px;
+  margin-top: 8px;
+}
+
+details {
+  margin-bottom: 15px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+summary {
+  cursor: pointer;
+  color: var(--muted);
+}
+
+summary:hover {
+  color: var(--ink);
+}
+
+summary::marker {
+  color: var(--muted);
+}
+
+#prompt {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.6;
+}
+
+footer {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.8;
+  margin-top: 28px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-soft);
+}
+
+/* 문장 우클릭 메뉴 */
+#context {
+  position: fixed;
+  z-index: 10;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgba(23, 18, 15, .10);
+  background: #fff;
+  padding: 4px;
+}
+
+#context button {
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 7px 12px;
+}
+
+#context button:hover {
+  background: var(--hover);
+}
+
+#context span {
+  margin-left: 14px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+/* 좁은 화면에 맞춘 배치 */
+@media(max-width:850px) {
+  main {
+    grid-template-columns: minmax(0,1fr) 320px;
+  }
+  aside {
+    padding: 20px 16px;
+  }
+  header {
+    padding: 0 16px;
+  }
+}
+
+@media(max-width:620px) {
+  main {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+  }
+  .reader {
+    height: 65dvh;
+  }
+  aside {
+    overflow: visible;
+    border-left: 0;
+    border-top: 1px solid var(--border);
+  }
+  header span,header small {
+    display: none;
+  }
+  header strong {
+    font-size: 17px;
+  }
+  header {
+    height: 56px;
+  }
+  nav button {
+    padding: 6px 9px;
+  }
+}
+
+/* ChatGPT 로그인과 답변 */
+.account-card select,select#model {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 9px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 12.5px;
+  margin: 10px 0;
+}
+
+.account-card select:hover,select#model:hover {
+  border-color: var(--muted);
+}
+
+.account-card select:focus,select#model:focus {
+  outline: 1px solid var(--orange);
+  outline-offset: 0;
+  border-color: var(--orange);
+}
+
+.sign-in {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+  font-weight: 600;
+  margin: 5px 0;
+}
+
+.sign-in:hover {
+  background: var(--ink-soft);
+  border-color: var(--ink-soft);
+  color: #fff;
+}
+
+.account-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.account-actions button,.model-row button {
+  font-size: 12px;
+  padding: 5px 9px;
+}
+
+/* lancel 링크 — 밑줄 없이 파랑, hover 때만 옅은 오렌지 바탕 */
+.account-actions a,#login-link {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--link);
+  text-decoration: none;
+  padding: 1px 3px;
+  margin: 0 -3px;
+  border-radius: var(--radius);
+  transition: background-color .15s ease;
+}
+
+.account-actions a:hover,#login-link:hover {
+  background-color: rgba(201, 75, 18, .12);
+}
+
+.account-actions a:focus-visible,#login-link:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
+}
+
+.model-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 24px;
+}
+
+#plan-note,#answer-status {
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+#answer {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+  line-height: 1.75;
+  font-size: 14.5px;
+  color: var(--text-color);
+}
+
+/* 답변은 상자 대신 booktabs 처럼 위 잉크선·아래 헤어라인으로 묶는다 */
+#answer:not(:empty) {
+  margin-top: 6px;
+  padding: 14px 0 16px;
+  border-top: 1px solid var(--ink);
+  border-bottom: 1px solid var(--border);
+}
+
+.account-card>strong {
+  overflow-wrap: anywhere;
+  color: var(--ink);
+}
+
+/* Page questions use a quiet note outline; excerpt swatches retain their highlight color. */
+.annotation-item:not(:has(.annotation-source-quote)) .annotation-kind::before {
+  flex: none; width: 13px; height: 13px; border: 0; border-radius: 0;
+  background: var(--muted);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9.5 1.75h-5A1.75 1.75 0 0 0 2.75 3.5v9A1.75 1.75 0 0 0 4.5 14.25h7A1.75 1.75 0 0 0 13.25 12.5v-7L9.5 1.75Z'/%3E%3Cpath d='M9.5 1.75v3.75h3.75M5.5 8h5M5.5 10.5h3.5'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.annotation-item:not(:has(.annotation-source-quote)) .annotation-jump:hover .annotation-kind::before { background: var(--ink); }
+.annotation-item.is-active:not(:has(.annotation-source-quote)) .annotation-kind::before { background: var(--orange); }

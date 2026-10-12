@@ -1,16 +1,20 @@
 import {WebContentsView,clipboard,ipcMain,session,shell} from 'electron';
-import {CHATGPT_HOME,allowedWebNavigation,isChatGPTPage,webPanelBounds} from './web-panel-policy.mjs';
+import {CHATGPT_HOME,allowedWebNavigation,isChatGPTPage,webPanelBounds,stableChatGPTUserAgent} from './web-panel-policy.mjs';
+import {createWebSender} from './web-panel-send.mjs';
 
 export function createChatGPTPanel(window,getOrigin){
   let view,attached=false,error='',loading=false;
   const popups=new Set();
   const webSession=session.fromPartition('persist:paper-reader-chatgpt');
+  webSession.setUserAgent(stableChatGPTUserAgent(webSession.getUserAgent()));
+  const flush=async()=>{webSession.flushStorageData();await webSession.cookies.flushStore();};
   webSession.setPermissionRequestHandler((_contents,permission,callback)=>callback(permission==='clipboard-sanitized-write'));
   webSession.setPermissionCheckHandler((_contents,permission)=>permission==='clipboard-sanitized-write');
   const preferences={session:webSession,nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true};
   const state=()=>({url:view?.webContents.getURL() || CHATGPT_HOME,loading,error,canGoBack:view?.webContents.navigationHistory.canGoBack() || false});
   const publish=()=>{if(!window.isDestroyed())window.webContents.send('paper:web-state',state());};
   const trusted=event=>event.sender===window.webContents && event.senderFrame===window.webContents.mainFrame && new URL(event.senderFrame.url).origin===getOrigin();
+  const sendQuestion=createWebSender({getContents:()=>view?.webContents,isAttached:()=>attached});
   const guard=contents=>{
     contents.on('will-navigate',(event,url)=>{if(!allowedWebNavigation(url)){event.preventDefault();try{if(new URL(url).protocol==='https:')shell.openExternal(url).catch(()=>{});}catch{}}});
     contents.on('will-redirect',(event,url)=>{if(!allowedWebNavigation(url))event.preventDefault();});
@@ -26,7 +30,7 @@ export function createChatGPTPanel(window,getOrigin){
     view=new WebContentsView({webPreferences:preferences});guard(view.webContents);
     view.setBackgroundColor('#ffffff');
     view.webContents.on('did-start-loading',()=>{loading=true;error='';publish();});
-    view.webContents.on('did-stop-loading',()=>{loading=false;publish();});
+    view.webContents.on('did-stop-loading',()=>{loading=false;publish();flush().catch(()=>{});});
     view.webContents.on('did-navigate',publish);view.webContents.on('did-navigate-in-page',publish);
     view.webContents.on('did-fail-load',(_event,code,_description,_url,main)=>{if(main && code!==-3){error='ChatGPT 웹을 열지 못했습니다. 새로고침하거나 기본 브라우저에서 여세요.';publish();}});
     view.webContents.on('render-process-gone',()=>{error='웹 화면이 종료되었습니다. 새로고침하세요.';publish();});
@@ -54,5 +58,9 @@ export function createChatGPTPanel(window,getOrigin){
     if(command==='focus')contents.focus();
     return state();
   });
-  return {dispose(){ipcMain.removeHandler('paper:copy-text');ipcMain.removeHandler('paper:web-panel');ipcMain.removeHandler('paper:web-command');for(const popup of popups)if(!popup.isDestroyed())popup.close();if(view && !view.webContents.isDestroyed())view.webContents.close();}};
+  ipcMain.handle('paper:web-send',(event,input)=>{
+    if(!trusted(event))throw new Error('Invalid desktop sender');
+    return sendQuestion(input || {});
+  });
+  return {flush,dispose(){ipcMain.removeHandler('paper:copy-text');ipcMain.removeHandler('paper:web-panel');ipcMain.removeHandler('paper:web-command');ipcMain.removeHandler('paper:web-send');for(const popup of popups)if(!popup.isDestroyed())popup.close();if(view && !view.webContents.isDestroyed())view.webContents.close();}};
 }

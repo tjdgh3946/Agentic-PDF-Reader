@@ -11,6 +11,7 @@ export function rotateRect(rect,delta){
 export const compactText=text=>text.replace(/\s/g,'');
 export const validAnchor=anchor=>anchor && Number.isInteger(anchor.page) && anchor.page>=1 && anchor.page<=100000
   && (anchor.space===undefined || anchor.space==='page')
+  && (anchor.kind===undefined || anchor.kind==='page-note')
   && (anchor.textQuote===undefined || typeof anchor.textQuote==='string' && anchor.textQuote.length<=10000)
   && (anchor.textStart===undefined || Number.isInteger(anchor.textStart) && anchor.textStart>=0 && anchor.textStart<=10000000)
   && Array.isArray(anchor.rects) && anchor.rects.length>0 && anchor.rects.length<=250
@@ -112,6 +113,7 @@ export function resolveRects(anchor,item,page,rotation){
   const delta=((rotation-(item.rotation||0))%360+360)%360,box=contentBox(page);
   const rotated=anchor.rects.map(rect=>rotateRect(rect,delta));
   const fallback=anchor.space==='page'?rotated:rotated.map(rect=>legacyRect(rect,page.getBoundingClientRect(),box)).filter(Boolean);
+  if(anchor.kind==='page-note')return fallback;
   const layer=page.querySelector('.textLayer');if(!layer)return fallback;
   const index=textIndex(layer),matches=quoteMatches(index.text,anchor.textQuote??item.quote,{partial:item.anchors.length>1,start:anchor.textStart});
   let best=null,distance=Infinity;

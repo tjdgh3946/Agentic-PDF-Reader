@@ -1,4 +1,6 @@
 /* Loaded as a same-origin stylesheet to respect the PDF viewer's CSP. */
+/* The app supplies persistent highlights and notes; PDF.js editors use a separate save flow. */
+#editorModeButtons,#editorModeSeparator{display:none!important}
 .reader-highlights,.reader-note-markers{position:absolute;inset:0;pointer-events:none;z-index:2}
 .reader-highlights{mix-blend-mode:multiply}
 .reader-highlight{position:absolute;border-radius:2px;opacity:.5;pointer-events:none}

@@ -5,7 +5,7 @@ export function createWebPanelUI({status}) {
   async function sync(){
     if(!bridge)return;
     const rect=$('chatgpt-host').getBoundingClientRect();
-    const blocked=!!document.querySelector('dialog[open],:popover-open') || document.body.classList.contains('resizing-panels') || document.body.classList.contains('reading-focus');
+    const blocked=!!document.querySelector('dialog[open],:popover-open') || !$('annotation-panel').hidden || document.body.classList.contains('resizing-panels') || document.body.classList.contains('reading-focus');
     const input={visible:mode==='manual' && showWeb && !blocked,x:rect.x,y:rect.y,width:rect.width,height:rect.height};
     const key=JSON.stringify(input);if(key===lastLayout)return;lastLayout=key;
     try{await bridge.setWebPanel(input);}catch{lastLayout='';$('web-state').textContent='웹 연결 실패 · 브라우저로 열 수 있습니다.';}
@@ -15,6 +15,8 @@ export function createWebPanelUI({status}) {
     $('web-panel-tabs').hidden=!available;$('chatgpt-workspace').hidden=!visible;
     for(const id of ['document','answer','answer-status'])$(id).hidden=visible;
     $('chat-panel').classList.toggle('showing-web',visible);
+    $('chat-panel').querySelector('h2').textContent=visible?'ChatGPT 대화':mode==='plan'?'AI 대화':'질문 기록';
+    if(mode==='manual')$('manual-delivery').options[0].textContent=bridge?'ChatGPT 전송 + 노트 연결':'질문 복사 + 노트 연결';
     $('web-tab').setAttribute('aria-pressed',String(visible));$('records-tab').setAttribute('aria-pressed',String(!visible));
     $('open-chatgpt').textContent=available?'복사하고 ChatGPT 보기':'복사하고 ChatGPT 열기 ↗';
     schedule();
@@ -33,5 +35,6 @@ export function createWebPanelUI({status}) {
     document.addEventListener('toggle',schedule,true);document.addEventListener('close',schedule,true);document.addEventListener('scroll',schedule,true);
     window.addEventListener('resize',schedule);
   }
-  return {available:!!bridge,setMode(value){mode=value;render();},async show(){showWeb=true;render();await sync();await command('focus');}};
+  async function show(){showWeb=true;render();await sync();await command('focus');}
+  return {available:!!bridge,canSend:typeof bridge?.sendWebQuestion==='function',setMode(value){mode=value;render();},show,async send(text,requestId){await show();try{return await bridge.sendWebQuestion({text,requestId});}catch(error){throw new Error(error.message.replace(/^Error invoking remote method '[^']+': (?:Error: )?/,''));}}};
 }

@@ -1,4 +1,8 @@
 export const CHATGPT_HOME='https://chatgpt.com/';
+export function stableChatGPTUserAgent(value){
+  // App releases must not change the browser identity of an existing web login.
+  return value.replace(/\s(?:PaperReader|paper-reader-local)\/[^\s]+/g,'');
+}
 const authHosts=new Set(['chatgpt.com','auth.openai.com','auth0.openai.com','accounts.google.com','appleid.apple.com','account.apple.com','login.live.com','login.microsoftonline.com']);
 export function allowedWebNavigation(value){
   try{const url=new URL(value);return url.protocol==='https:' && !url.username && !url.password && authHosts.has(url.hostname);}catch{return false;}

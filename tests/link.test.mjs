@@ -11,9 +11,20 @@ import {createPaperLink} from '../paper-link.mjs';
 import {createAppServer} from '../server.mjs';
 import {createBridgeClient} from '../link/bridge-client.mjs';
 import {UI_URI} from '../link/mcp-server.mjs';
+import {pageNote} from '../reading-tools.mjs';
+import {linkQuestion} from '../link-question.mjs';
 
 const base=fileURLToPath(new URL('../../../work/',import.meta.url));
 const passage={documentId:'abc123',fileName:'sample.pdf',quote:'The selected passage.',question:'한국어로 설명해줘.',context:'Surrounding source text.',allowSave:true,rotation:90,anchors:[{page:2,rects:[[.1,.2,.4,.03]]}]};
+test('a page question is saved as a page note without marking arbitrary source text',async t=>{
+  const f=await fixture(t),link=createPaperLink({...f,getOrigin:()=> 'http://127.0.0.1:12345'});
+  const shared=await link.share({...passage,...pageNote(5),context:'[페이지 5] NTK definition'});
+  assert.equal(shared.scope,'page');assert.match(linkQuestion(shared),/현재 PDF 페이지/);
+  await link.call('save_annotation',{selectionId:shared.selectionId,note:'페이지의 수식 설명'});
+  const [saved]=await f.annotations.list(passage.documentId);assert.equal(saved.anchors[0].kind,'page-note');assert.equal(saved.anchors[0].page,5);
+  const reopened=await createAnnotations(path.join(f.directory,'annotations'));assert.equal((await reopened.list(passage.documentId))[0].anchors[0].kind,'page-note');
+  await link.close();
+});
 async function fixture(t){
   await mkdir(base,{recursive:true});const directory=await mkdtemp(path.join(base,'link-test-'));
   t.after(async()=>{const relative=path.relative(base,directory);assert.ok(relative.startsWith('link-test-')&&!relative.includes(path.sep));await rm(directory,{recursive:true,force:true});});
@@ -92,6 +103,7 @@ test('full stdio MCP loop uses the scoped bridge and writes a real persisted ann
   assert.equal((await request('/link/rpc',{method:'get_selection'})).status,403);
   assert.equal((await request('/link/rpc',{method:'get_selection'},{Authorization:'Bearer '+credential.token,Origin:'https://attacker.invalid'})).status,403);
   assert.equal((await fetch(origin+'/link/bridge-client.mjs')).status,404);
+  assert.equal((await fetch(origin+'/link-question.mjs')).status,200);
   const rebound=await new Promise((resolve,reject)=>{const req=http.request(origin+'/link/rpc',{method:'POST',headers:{Host:'evil.invalid','Content-Type':'application/json',Authorization:'Bearer '+credential.token}},res=>{res.resume();res.on('end',()=>resolve(res.statusCode));});req.on('error',reject);req.end('{"method":"get_selection"}');});assert.equal(rebound,403);
   const client=new Client({name:'paper-link-test',version:'1.0.0'});
   const transport=new StdioClientTransport({command:process.execPath,args:[fileURLToPath(new URL('../plugins/paper-reader-link/server.bundle.mjs',import.meta.url)),'--connection',f.discoveryPath],stderr:'pipe'});
