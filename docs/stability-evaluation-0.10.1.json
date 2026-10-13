@@ -1,0 +1,181 @@
+{
+  "date": "2026-10-13",
+  "application": "0.10.1",
+  "link": "0.2.1",
+  "automaticTests": {
+    "passed": 90,
+    "failed": 0,
+    "skipped": 0
+  },
+  "exeSha256": "586D868F930E4022E2B67E7463602FB14B1E46DF02145CCD07C373D7EDE3EF6D",
+  "engine": {
+    "electron": "43.7.8",
+    "node": "24.21.0",
+    "result": "pass",
+    "checks": [
+      {
+        "name": "real text and cropped PNG",
+        "result": "pass",
+        "pages": [
+          8,
+          9
+        ],
+        "image": {
+          "page": 9,
+          "region": [
+            0.1,
+            0.1,
+            0.8,
+            0.3
+          ],
+          "width": 1237,
+          "height": 600,
+          "rotation": 0,
+          "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation"
+        }
+      },
+      {
+        "name": "same filename document switch, duplicate save and storage reopen",
+        "result": "pass",
+        "evidence": [
+          {
+            "page": 8,
+            "text": true,
+            "image": false,
+            "regions": []
+          },
+          {
+            "page": 9,
+            "text": true,
+            "image": true,
+            "regions": [
+              [
+                0.1,
+                0.1,
+                0.8,
+                0.3
+              ]
+            ]
+          }
+        ]
+      },
+      {
+        "name": "renderer crash recovered without resharing",
+        "result": "pass"
+      },
+      {
+        "name": "SQL hard timeout followed by successful query",
+        "result": "pass"
+      },
+      {
+        "name": "50 sequential real search/image calls",
+        "result": "pass"
+      },
+      {
+        "name": "revoke removes render windows and denies old selection",
+        "result": "pass"
+      },
+      {
+        "name": "10 PDF open/release cycles without remaining render windows",
+        "result": "pass"
+      },
+      {
+        "name": "browser evidence module available; backend auth module private",
+        "result": "pass"
+      }
+    ],
+    "timings": {
+      "query": {
+        "calls": 40,
+        "p50Ms": 0,
+        "p95Ms": 1
+      },
+      "render": {
+        "calls": 10,
+        "p50Ms": 47,
+        "p95Ms": 113
+      }
+    },
+    "memoryScope": "Electron main process only; warm local run, not total application or remote model latency"
+  },
+  "launcher": {
+    "storedKeyReused": true,
+    "secondLaunchDetected": true,
+    "duplicateResetKeyLeftProfileAndCredentialFileUnchanged": true
+  },
+  "web": {
+    "host": "Authenticated ordinary Chat in Codex in-app browser, connected to portable EXE backend",
+    "case": "NTK Figure 1 small/large width kernel changes",
+    "savedToQuestionPage": 1,
+    "successfulReadCalls": {
+      "inspect_pdf": 1,
+      "query_pdf": 1,
+      "read_pdf": 2,
+      "render_pdf_page": 4
+    },
+    "persistedEvidencePages": [
+      {
+        "page": 1,
+        "text": true,
+        "image": false,
+        "regions": []
+      },
+      {
+        "page": 2,
+        "text": true,
+        "image": false,
+        "regions": []
+      },
+      {
+        "page": 3,
+        "text": true,
+        "image": false,
+        "regions": []
+      },
+      {
+        "page": 7,
+        "text": true,
+        "image": false,
+        "regions": []
+      },
+      {
+        "page": 8,
+        "text": true,
+        "image": true,
+        "regions": [
+          [
+            0,
+            0,
+            1,
+            1
+          ]
+        ]
+      },
+      {
+        "page": 9,
+        "text": true,
+        "image": false,
+        "regions": []
+      }
+    ],
+    "sourceButtonDestination": 8,
+    "afterRestartNotesAndSourceButtonsRestored": true
+  },
+  "remaining": [
+    "OS reboot/sleep and real network interruption",
+    "EXE embedded ChatGPT native send combined with new tools",
+    "Windows display scale geometry matrix",
+    "Power loss and disk failure during save",
+    "Two-hour soak test",
+    "Scanned/multilingual/large document matrix",
+    "Exact sentence/crop navigation; current note buttons navigate pages"
+  ],
+  "restart": {
+    "method": "portable EXE process restart with different localhost port",
+    "pdfSearchRetained": true,
+    "noteSaveFalseRetained": true,
+    "noteSaveRestoredToOriginalTrueAfterTest": true,
+    "actualViewerPageRestored": 8,
+    "notesAndSourceButtonsRetained": true
+  }
+}

@@ -42,3 +42,13 @@ test('ChatGPT is the default; delivery preference survives restarts without chan
   assert.throws(()=>restored.set({mode:'manual',manualDelivery:'unknown'}));
   assert.equal(restored.get().manualDelivery,'clipboard');
 });
+
+test('PDF search consent and note-save preference survive new origins and store restarts',async()=>{
+  const directory=await mkdtemp(path.join(tmpdir(),'paper-share-preferences-'));
+  const file=path.join(directory,'settings.json');let settings=await createSettings(file);
+  await settings.set({pdfSearch:true,linkAllowSave:false});settings=await createSettings(file);
+  assert.equal(settings.get().pdfSearch,true);assert.equal(settings.get().linkAllowSave,false);
+  assert.equal(settings.get().mode,'manual');
+  await settings.set({panelWidth:500});assert.equal(settings.get().linkAllowSave,false);
+  assert.throws(()=>settings.set({pdfSearch:'true'}));assert.throws(()=>settings.set({linkAllowSave:1}));
+});

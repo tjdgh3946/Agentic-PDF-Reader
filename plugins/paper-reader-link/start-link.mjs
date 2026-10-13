@@ -1,10 +1,11 @@
 import {createInterface} from 'node:readline/promises';
 import {Writable} from 'node:stream';
-import {spawn} from 'node:child_process';
+import {spawn,execFile} from 'node:child_process';
 import {access} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 import {createCredentialStore,credentialDirectory,previousTunnelId,validTunnelId} from './credential-store.mjs';
+import {acquireLauncher} from './launcher-instance.mjs';
 
 const root=path.dirname(fileURLToPath(import.meta.url));
 const tunnelExecutable=path.join(root,'tools','tunnel-client.exe');
@@ -20,16 +21,24 @@ async function question(prompt,hidden=false){
 async function run(args,env=process.env){
   return await new Promise((resolve,reject)=>{
     const child=spawn(tunnelExecutable,args,{stdio:'inherit',env,windowsHide:true});
+    let stopping=false;
+    const stop=()=>{stopping=true;process.exitCode=130;if(child.pid){if(process.platform==='win32')execFile('taskkill',['/PID',String(child.pid),'/T','/F'],{windowsHide:true},()=>{});else child.kill('SIGTERM');}};
+    process.once('SIGINT',stop);process.once('SIGTERM',stop);
+    const cleanup=()=>{process.removeListener('SIGINT',stop);process.removeListener('SIGTERM',stop);};
+    child.once('close',cleanup);
     child.once('error',()=>reject(new Error('Could not launch the bundled official tunnel-client.')));
-    child.once('exit',(code,signal)=>code===0?resolve():reject(new Error(signal?'Tunnel stopped.':'tunnel-client exited with code '+code)));
+    child.once('exit',(code,signal)=>code===0||stopping?resolve():reject(new Error(signal?'Tunnel stopped.':'tunnel-client exited with code '+code)));
   });
 }
-try{
+let instance;
+async function main(){
   if(Number(process.versions.node.split('.')[0])<20)throw new Error('Node.js 20 or later is required.');
   await Promise.all([access(tunnelExecutable),access(serverScript),access(path.join(root,'widget.html'))]);
   if(process.argv.includes('--check')){console.log('Ready: Node.js, tunnel-client, MCP server and question card are present.');process.exit(0);}
   console.log('Paper Reader Link - Secure MCP Tunnel\nCreate a tunnel at https://platform.openai.com/settings/organization/tunnels\nAssociate your ChatGPT workspace and use a runtime key with Tunnels Read + Use.');
   const directory=credentialDirectory(),store=createCredentialStore(directory);
+  instance=await acquireLauncher(directory);
+  if(!instance.owner){console.log('Paper Reader Link is already running'+(instance.existing?' (PID '+instance.existing.pid+', version '+instance.existing.version+')':'')+'. No credentials or tunnel settings were changed. Stop the existing Link window before updating or replacing the key.');return;}
   if(process.argv.includes('--forget-key')){await store.forget();console.log('Saved runtime key removed. Tunnel profile retained.');process.exit(0);}
   const reset=process.argv.includes('--reset-key');
   const saved=reset?null:await store.load();
@@ -47,4 +56,7 @@ try{
   const environment={...process.env,CONTROL_PLANE_API_KEY:key};key='';
   try{await run(['run','--profile-dir',profileDirectory,'--profile','paper-reader-link','--open-web-ui'],environment);}
   finally{delete environment.CONTROL_PLANE_API_KEY;}
-}catch(error){console.error(error.code==='ENOENT'?'Missing package files. Extract the complete Paper Reader Link ZIP.':error.message);process.exitCode=1;}
+}
+try{await main();}
+catch(error){console.error(error.code==='ENOENT'?'Missing package files. Extract the complete Paper Reader Link ZIP.':error.message);process.exitCode=1;}
+finally{await instance?.release?.();}

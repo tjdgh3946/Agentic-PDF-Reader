@@ -32,6 +32,7 @@ export function notesMarkdown(fileName,items){
     `## p. ${item.anchors.map(a=>a.page).join(', ')}`,
     item.quote.split(/\r?\n/).map(line=>'> '+line).join('\n'),
     item.note||'_형광펜 표시_',
+    ...(item.evidence?.pages?.length?['AI가 읽은 페이지: '+item.evidence.pages.map(p=>'p. '+p.page+' ('+(p.text&&p.image?'본문·이미지':p.image?'이미지':'본문')+')').join(', ')+(item.evidence.truncated?' · 일부 기록':'')]:[]),
     '---'
   ].join('\n\n'))].join('\n\n')+'\n';
 }

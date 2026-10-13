@@ -1,6 +1,7 @@
 import {renderMarkdown} from './markdown.bundle.mjs';
 import {findNotes,notesMarkdown,notesFileName} from './reading-tools.mjs';
 import {capturePage,contentBox,resolveRects} from './annotation-geometry.mjs';
+import {evidenceLabel} from './pdf-evidence.mjs';
 const $=id=>document.getElementById(id);
 const shades={yellow:'#ffe35c',green:'#8fe4a5',pink:'#ff9cc7',blue:'#8ecbff'};
 
@@ -94,6 +95,12 @@ export function createAnnotationUI({frame,api,getViewer,getFileName}){
       if(!pageNote){const quote=document.createElement('span');quote.className='annotation-source-quote';quote.textContent=item.quote;quote.title=item.quote;jump.append(quote);}
       jump.title=pageNote?'질문한 PDF 페이지로 이동':'PDF의 원문 위치로 이동';jump.onclick=()=>{jumpTo(item);drawList();};row.append(jump);
       if(item.note){const preview=document.createElement('div');preview.className='annotation-item-note markdown-body';renderMarkdown(preview,item.note);row.append(preview);}
+      if(item.evidence?.pages?.length){
+        const evidence=document.createElement('div');evidence.className='annotation-evidence';
+        const label=document.createElement('span');label.textContent='AI가 읽은 페이지'+(item.evidence.truncated?' · 일부 기록':'');evidence.append(label);
+        for(const source of item.evidence.pages){const button=document.createElement('button');button.type='button';button.textContent=evidenceLabel(source);button.title='읽은 근거 페이지로 이동 · 각 주장과의 일치는 원문으로 확인하세요.';button.onclick=()=>{getViewer().page=source.page;status(evidenceLabel(source)+'로 이동했습니다.');};evidence.append(button);}
+        row.append(evidence);
+      }
       const actions=document.createElement('div');actions.className='annotation-actions';
       const edit=document.createElement('button');edit.type='button';edit.textContent='수정';edit.onclick=()=>openEditor(item);
       const remove=document.createElement('button');remove.type='button';remove.className='annotation-delete';remove.textContent='삭제';remove.onclick=async()=>{

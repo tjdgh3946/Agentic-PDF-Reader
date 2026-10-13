@@ -6,7 +6,7 @@ export function renderRegion(region=[0,0,1,1]){
   if(!Array.isArray(region)||region.length!==4||!region.every(Number.isFinite)||region[0]<0||region[1]<0||region[2]<.02||region[3]<.02||region[0]+region[2]>1.000001||region[1]+region[3]>1.000001)throw new UserError('영역은 [x,y,width,height] 0~1 좌표이며 폭·높이는 0.02 이상이어야 합니다.');
   return region;
 }
-export function createPdfSnapshots({renderer,now=Date.now}={}){
+export function createPdfSnapshots({renderer,now=Date.now,queryOptions}={}){
   const records=new Map();let closed=false,registration=Promise.resolve();
   function remove(record){records.delete(record.snapshotId);record.index?.close();renderer?.release(record.snapshotId);}
   function prune(){for(const record of records.values())if(!record.refs.size && now()-record.touched>300000)remove(record);}
@@ -14,6 +14,7 @@ export function createPdfSnapshots({renderer,now=Date.now}={}){
   const info=record=>({snapshotId:record.snapshotId,pageCount:record.pages?.length||0,bytes:record.bytes,emptyPages:record.pages?.flatMap((text,i)=>text.trim()?[]:[i+1])||[],state:record.state});
   return {
     available:!!renderer,
+    resources:()=>({snapshots:records.size,searchWorkers:[...records.values()].filter(r=>r.index?.resident).length,renderers:renderer?.residentCount??null}),
     register(bytes,documentId,fileName){const job=registration.then(async()=>{
       if(closed || !renderer)throw new UserError('AI 문맥 검색은 Electron 앱에서 지원합니다.',409);
       if(!Buffer.isBuffer(bytes)||!bytes.length||bytes.length>PDF_LIMITS.bytes||!bytes.subarray(0,1024).includes(Buffer.from('%PDF-')))throw new UserError('PDF 파일은 최대 64 MiB입니다. 원본 PDF 형식을 확인하세요.',413);
@@ -28,7 +29,7 @@ export function createPdfSnapshots({renderer,now=Date.now}={}){
         if(closed || records.get(snapshotId)!==record)throw new UserError('PDF 등록이 취소되었습니다.',410);
         if(!Array.isArray(result.pages)||!result.pages.length||result.pages.length>PDF_LIMITS.pages||result.pages.some(p=>typeof p!=='string')||result.pages.reduce((n,p)=>n+p.length,0)>PDF_LIMITS.text)throw new UserError('페이지/본문 추출 한도를 초과했습니다.');
         if(result.documentId!==documentId)throw new UserError('원본 PDF와 뷰어 문서가 일치하지 않습니다. 다시 열어주세요.');
-        record.pages=result.pages;record.index=createQueryIndex(record.pages);await record.index.ready();
+        record.pages=result.pages;record.index=createQueryIndex(record.pages,queryOptions);await record.index.ready();
         if(closed || records.get(snapshotId)!==record)throw new UserError('PDF 등록이 취소되었습니다.',410);
         record.state='ready';return info(record);
       }catch(error){remove(record);throw error;}

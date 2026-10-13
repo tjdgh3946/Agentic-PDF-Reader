@@ -3,6 +3,7 @@ import {mkdir,writeFile,readFile,rename,unlink} from 'node:fs/promises';
 import path from 'node:path';
 import {UserError} from './auth.mjs';
 import {validAnchor} from './annotation-geometry.mjs';
+import {recordEvidence} from './pdf-evidence.mjs';
 
 const DAY=24*60*60*1000;
 function validateSelection(value){
@@ -22,7 +23,7 @@ function validateSelection(value){
 
 // A capability bridge, not a proxy for the app's settings, OAuth tokens or files.
 // Only explicit shares can be read and each share can create one annotation.
-export function createPaperLink({annotations,discoveryPath,getOrigin,pdfs,now=Date.now}){
+export function createPaperLink({annotations,discoveryPath,getOrigin,pdfs,onSaved,now=Date.now}){
   const records=new Map();let enabled=false,token='',revision=0,lastContactAt=null,queue=Promise.resolve();
   let activeReads=0;
   const expiryTimer=setInterval(()=>{if(enabled)prune();},60000);expiryTimer.unref?.();
@@ -52,6 +53,12 @@ export function createPaperLink({annotations,discoveryPath,getOrigin,pdfs,now=Da
     if(!record)throw new UserError('공유가 만료되었거나 해제되었습니다. Paper Reader에서 문장을 다시 Link로 보내세요.',404);
     return record;
   }
+  async function syncQuestion(record){
+    try{record.historyUpdated=!!(await onSaved?.({selectionId:record.selectionId,documentId:record.documentId,annotationId:record.saved.id,note:record.saved.note}));record.historyError=false;}
+    catch{record.historyUpdated=false;record.historyError=true;}
+    revision++;
+    return record.historyUpdated;
+  }
   async function readTool(method,args){
     const record=await serial(()=>{if(!enabled)throw new UserError('Paper Reader Link 연결이 꺼져 있습니다.',409);const item=getRecord(args.selectionId);if(!item.snapshotId)throw new UserError('이 질문에는 PDF 전체가 공유되지 않았습니다. AI가 문맥 찾기를 선택해 다시 공유하세요.',409);if(activeReads>=3)throw new UserError('PDF 작업이 진행 중입니다. 잠시 후 다시 시도하세요.',429);activeReads++;lastContactAt=new Date(now()).toISOString();return item;});
     const event={tool:method,state:'running',pages:[],at:new Date(now()).toISOString()};
@@ -65,23 +72,26 @@ export function createPaperLink({annotations,discoveryPath,getOrigin,pdfs,now=Da
       if(!enabled || getRecord(record.selectionId)!==record)throw new UserError('PDF 공유가 종료되었습니다.',410);
       event.state='complete';
       event.pages=method==='query_pdf'?[...new Set(value.rows.map(row=>Number(row.page_no)).filter(n=>Number.isInteger(n)&&n>=1&&n<=pdfs.inspect(record.snapshotId).pageCount))]:method==='read_pdf'?value.pages.map(p=>p.page):method==='render_pdf_page'?[args.page]:[];
+      if(method==='read_pdf'||method==='render_pdf_page')recordEvidence(record.evidence,method,value,args);
+      if(method==='render_pdf_page')event.image={region:value.metadata.region,width:value.metadata.width,height:value.metadata.height};
       revision++;return {selectionId:record.selectionId,...value};
     }catch(error){event.state='error';revision++;throw error;}
     finally{activeReads--;}
   }
   return {
+    question(selectionId,documentId,question){const record=getRecord(selectionId);if(record.documentId!==documentId || record.question!==question)throw new UserError('질문 기록과 Link 공유 문서가 일치하지 않습니다.',409);return record.saved?{selectionId,documentId,annotationId:record.saved.id,note:record.saved.note}:null;},
     authorize(header){
       if(!enabled || typeof header!=='string')return false;
       const supplied=Buffer.from(header),expected=Buffer.from('Bearer '+token);
       return supplied.length===expected.length&&timingSafeEqual(supplied,expected);
     },
-    status(){prune();const latest=[...records.values()].at(-1);return {pdfAvailable:!!pdfs?.available,enabled,revision,sharedCount:records.size,lastContactAt,latest:latest?{selectionId:latest.selectionId,documentId:latest.documentId,fileName:latest.fileName,pages:latest.anchors.map(a=>a.page),trace:structuredClone(latest.trace),saved:!!latest.saved,annotationId:latest.saved?.id||null}:null};},
+    status(){prune();const latest=[...records.values()].at(-1);return {pdfAvailable:!!pdfs?.available,enabled,revision,sharedCount:records.size,lastContactAt,latest:latest?{selectionId:latest.selectionId,documentId:latest.documentId,fileName:latest.fileName,pages:latest.anchors.map(a=>a.page),trace:structuredClone(latest.trace),saved:!!latest.saved,annotationId:latest.saved?.id||null,historyError:!!latest.historyError}:null};},
     setEnabled:value=>serial(async()=>{if(typeof value!=='boolean')throw new UserError('연결 설정이 올바르지 않습니다.');await (value?enable():disable());return {enabled};}),
     share:value=>serial(async()=>{
       const selection=validateSelection(value);prune();
       if(records.size>=100)throw new UserError('공유 문장이 100개입니다. Link 연결을 해제한 뒤 다시 시작하세요.',409);
       await enable();
-      const timestamp=now(),selectionId=randomUUID(),record={...selection,selectionId,timestamp,createdAt:new Date(timestamp).toISOString(),expiresAt:new Date(timestamp+DAY).toISOString(),saved:null,trace:[]};
+      const timestamp=now(),selectionId=randomUUID(),record={...selection,selectionId,timestamp,createdAt:new Date(timestamp).toISOString(),expiresAt:new Date(timestamp+DAY).toISOString(),saved:null,trace:[],evidence:{snapshotId:selection.snapshotId,pages:[],truncated:false}};
       if(selection.snapshotId){if(typeof selection.snapshotId!=='string'||!/^[a-f\d]{64}$/.test(selection.snapshotId)||!pdfs)throw new UserError('PDF 고정본 ID를 확인하세요.');pdfs.pin(selection.snapshotId,selection.documentId,selectionId);}
       records.set(selectionId,record);revision++;return snapshot(record);
     }),
@@ -102,11 +112,13 @@ export function createPaperLink({annotations,discoveryPath,getOrigin,pdfs,now=Da
           const items=await (await annotations).list(record.documentId);
           const persisted=items.find(item=>item.id===record.saved.id);
           if(!persisted || persisted.note!==note)throw new UserError('저장 후 주석이 수정되거나 삭제되었습니다. 문장을 다시 공유하세요.',409);
-          return {selectionId:record.selectionId,annotationId:record.saved.id,saved:true,duplicate:true};
+          const historyUpdated=await syncQuestion(record);
+          return {selectionId:record.selectionId,annotationId:record.saved.id,saved:true,duplicate:true,historyUpdated};
         }
-        const item=await (await annotations).upsert(record.documentId,{quote:record.quote,note,color:'blue',rotation:record.rotation,anchors:record.anchors});
+        const item=await (await annotations).upsert(record.documentId,{quote:record.quote,note,color:'blue',rotation:record.rotation,anchors:record.anchors,...(record.evidence.pages.length?{evidence:record.evidence}:{})});
         record.saved=item;revision++;
-        return {selectionId:record.selectionId,annotationId:item.id,saved:true,pages:record.anchors.map(a=>a.page)};
+        const historyUpdated=await syncQuestion(record);
+        return {selectionId:record.selectionId,annotationId:item.id,saved:true,pages:record.anchors.map(a=>a.page),historyUpdated};
       }
       throw new UserError('지원하지 않는 Link 도구입니다.',404);
     }),

@@ -40,7 +40,7 @@ export function createAppServer(auth,{pdfRenderer,openBrowser=launchBrowser,getO
   const annotationsReady=annotations?Promise.resolve(annotations):createAnnotations(path.join(root,'.local','annotations'));
   const readingReady=reading?Promise.resolve(reading):createReadingState();
   const pdfs=createPdfSnapshots({renderer:pdfRenderer});
-  const link=createPaperLink({annotations:annotationsReady,discoveryPath:linkDiscoveryPath,getOrigin,pdfs});
+  const link=createPaperLink({annotations:annotationsReady,discoveryPath:linkDiscoveryPath,getOrigin,pdfs,onSaved:async value=>(await chatsReady).completeLink?.(value)});
   let uploading=false;
   let responding=false,changingSettings=false;
   const server=http.createServer(async(req,res)=>{
@@ -122,7 +122,15 @@ export function createAppServer(auth,{pdfRenderer,openBrowser=launchBrowser,getO
           if(url.pathname==='/api/chat/get') {json(res,await store.get(input.id));return;}
           if(url.pathname==='/api/chat/delete') {json(res,await store.delete(input.id));return;}
           if(url.pathname==='/api/chat/import-answer') {json(res,await store.importAnswer(input.id,input.entryId,input.answer));return;}
-          if(url.pathname==='/api/chat/export') {json(res,await store.begin(input.id,{...input.turn,exported:true}));return;}
+          if(url.pathname==='/api/chat/export') {
+            const savedChat=await store.get(input.id);
+            const linked=input.turn?.linkSelectionId;
+            const saved=linked?link.question(linked,savedChat.documentId,input.turn.question):null;
+            const entry=await store.begin(input.id,{...input.turn,exported:true});
+            // The web reply can arrive before the copy/send finishes recording.
+            if(linked){const arrived=link.question(linked,savedChat.documentId,input.turn.question)||saved;if(arrived){await store.completeLink(arrived);json(res,(await store.get(input.id)).entries.find(item=>item.id===entry.id));return;}}
+            json(res,entry);return;
+          }
         }
         if(url.pathname==='/api/usage' && req.method==='POST') {
           await bodyJSON(req);
@@ -210,7 +218,7 @@ export function createAppServer(auth,{pdfRenderer,openBrowser=launchBrowser,getO
       if(!['GET','HEAD'].includes(req.method)) {res.writeHead(405).end();return;}
       const urlPath=decodeURIComponent(url.pathname);
       const relativePath=urlPath==='/'?'index.html':urlPath.slice(1);
-      if(!['pdf-renderer.html','pdf-renderer.mjs','index.html','app.css','app.mjs','link-ui.mjs','link-question.mjs','web-panel-ui.mjs','annotation-ui.mjs','annotation-geometry.mjs','reading-tools.mjs','annotation-overlay.css','auto-context.mjs','context.mjs','help.mjs','ui.css','notes.css','auth-page.css','markdown.bundle.mjs'].includes(relativePath) && !relativePath.startsWith('pdfjs/') && !relativePath.startsWith('vendor/katex/')) throw new UserError('Not found',404);
+      if(!['pdf-renderer.html','pdf-renderer.mjs','index.html','app.css','app.mjs','link-ui.mjs','link-question.mjs','web-panel-ui.mjs','annotation-ui.mjs','annotation-geometry.mjs','pdf-evidence.mjs','reading-tools.mjs','reading-restore.mjs','annotation-overlay.css','auto-context.mjs','context.mjs','help.mjs','ui.css','notes.css','auth-page.css','markdown.bundle.mjs'].includes(relativePath) && !relativePath.startsWith('pdfjs/') && !relativePath.startsWith('vendor/katex/')) throw new UserError('Not found',404);
       let file=path.resolve(root,relativePath);
       const relative=path.relative(root,file);
       if(relative.startsWith('..') || path.isAbsolute(relative) || (relativePath.startsWith('pdfjs/') && !relative.replaceAll('\\','/').startsWith('pdfjs/')) || (relativePath.startsWith('vendor/katex/') && !relative.replaceAll('\\','/').startsWith('vendor/katex/'))) throw new UserError('Not found',404);

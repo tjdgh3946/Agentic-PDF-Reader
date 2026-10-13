@@ -9,7 +9,7 @@ export function createLinkUI({api,prepare,onAnnotations,status,updateSend,getDoc
   function render(){
     const current=getDocumentId(),shared=latest?.documentId===current?latest:null;
     const message=notice?.documentId===current && notice.state==='error'?notice.message:shared?.saved?'답변이 p. '+shared.pages.join(', ')+'의 논문 노트에 도착했습니다.':notice?.documentId===current?notice.message:shared?'p. '+shared.pages.join(', ')+' 공유됨 · ChatGPT에 복사한 질문을 붙여넣으세요.':'';
-    $('link-activity').hidden=!message;$('link-activity-text').textContent=message;
+    $('link-activity').hidden=!message;$('link-activity-text').textContent=message+(shared?.historyError?' 노트는 저장됐지만 질문 기록 갱신에 실패했습니다. 같은 저장 요청으로 재시도할 수 있습니다.':'');
     $('link-activity').dataset.state=notice?.state==='error'?'error':shared?.saved?'saved':'pending';
     $('link-open-note').hidden=!shared?.annotationId;
     $('link-copy').hidden=!sendToChatGPT || lastRequest?.input.documentId!==current;
@@ -60,7 +60,7 @@ export function createLinkUI({api,prepare,onAnnotations,status,updateSend,getDoc
         await writeClipboard(linkQuestion(result));
         notice={documentId:input.documentId,message:'질문 복사 완료 · ChatGPT 입력창에 Ctrl+V로 붙여넣어 전송하세요.'};render();status(notice.message);
       }
-      try{await recordQuestion?.();}catch{status(notice.message+' 질문 기록 저장에 실패했습니다.');}
+      try{await recordQuestion?.(result,input);}catch{status(notice.message+' 질문 기록 저장에 실패했습니다.');}
       await refresh();
     }catch(error){$('link-share-status').textContent=error.message;notice={documentId:notice?.documentId||getDocumentId(),message:error.message,state:'error'};render();status(error.message);}
     finally{busy=false;$('link-share').textContent=buttonLabel;updateSend();}

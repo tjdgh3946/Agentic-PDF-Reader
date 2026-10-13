@@ -5,6 +5,7 @@ import {createAnnotationUI} from './annotation-ui.mjs';
 import {createWebPanelUI} from './web-panel-ui.mjs';
 import {createLinkUI} from './link-ui.mjs';
 import {questionContext,readingQuestion,pageNote} from './reading-tools.mjs';
+import {waitForPdfLayout} from './reading-restore.mjs';
 const $ = id => document.getElementById(id);
 const frame = $('viewer');
 const annotationUI=createAnnotationUI({frame,api,getViewer:()=>viewer,getFileName:()=>fileName});
@@ -17,7 +18,7 @@ let selectedEndPage='',promptRevision=0,prepared=null,pdfWindow='near1',historyT
 let chat=null,chatList=[],chatRevision=0,chatBusy=false,documentId='',tokenTimer,autoController=null,autoBudget=8000,answerRenderTimer=null;
 let readingTimer,readingRestoring=false,openingPdf=false;
 let lastReadingQuestion='';
-let pdfSearch=localStorage.getItem('paper-pdf-search')==='true';
+let pdfSearch=false,linkAllowSave=true;
 let pdfSearchAvailable=false;
 const searchingPDF=()=>pdfSearch && pdfSearchAvailable && requestMode==='manual' && manualDelivery==='link';
 const status = message => { $('status').textContent = message; };
@@ -119,7 +120,7 @@ async function documentReady() {
   readingRestoring=true;
   $('empty').hidden = true;
   try{
-    const [saved]=await Promise.all([api('/api/reading?documentId='+encodeURIComponent(documentId)),restoreDocumentChat()]);
+    const [saved]=await Promise.all([api('/api/reading?documentId='+encodeURIComponent(documentId)),restoreDocumentChat(),waitForPdfLayout(viewer)]);
     if(generation!==docGeneration)return;
     if(saved){viewer.pdfViewer.pagesRotation=saved.rotation;viewer.pdfViewer.currentScaleValue=saved.zoom;viewer.page=Math.min(saved.page,viewer.pdfDocument.numPages);$('question').value=saved.question;updateQuestionPreview();}
     updateReadingContext();invalidatePrompt();
@@ -148,14 +149,14 @@ async function initializeViewer() {
     await viewer.initializedPromise;
     if(frame.contentDocument!==doc)return;
     annotationUI.frameLoaded();
-    viewer.eventBus.on('documentloaded', documentReady);
+    viewer.eventBus.on('documentinit', documentReady);
     viewer.eventBus.on('pagerendered',()=>annotationUI.redraw());
     viewer.eventBus.on('textlayerrendered',()=>annotationUI.redraw());
     viewer.eventBus.on('rotationchanging',()=>{scheduleReading();setTimeout(()=>annotationUI.redraw(),100);});
     viewer.eventBus.on('scalechanging',scheduleReading);
     viewer.eventBus.on('pagechanging',()=>{scheduleReading();if(!selected)invalidatePrompt();else updateReadingContext();});
     doc.getElementById('pageNumber').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();const page=Number(event.target.value);if(Number.isInteger(page) && page>=1 && page<=viewer.pagesCount)viewer.page=page;}});
-    if (viewer.pdfDocument) documentReady();
+    if (viewer.pdfDocument && viewer.isInitialViewSet) documentReady();
     doc.addEventListener('contextmenu', event => {
       if (!captureSelection()) return;
       event.preventDefault();
@@ -299,7 +300,7 @@ function renderChat() {
   const nodes=(chat?.entries || []).map(entry=>{
     const article=document.createElement('article');article.className='chat-turn';article.dataset.entry=entry.id;
     const title=document.createElement('div');title.className='chat-question markdown-body';renderMarkdown(title,entry.test?'연결 테스트':entry.question);
-    const meta=document.createElement('p');meta.className='chat-meta';meta.textContent=entry.pageLabel+' · '+({complete:'완료',pending:'응답 중',interrupted:'중단된 응답',exported:'질문 기록 · 웹 답변 미등록'}[entry.status] || entry.status);
+    const meta=document.createElement('p');meta.className='chat-meta';meta.textContent=entry.pageLabel+' · '+(entry.source==='chatgpt-link'?'완료 · 논문 노트 저장':({complete:'완료',pending:'응답 중',interrupted:'중단된 응답',exported:entry.linkSelectionId?'질문 기록 · Link 답변 대기':'질문 기록 · 웹 답변 미등록'}[entry.status] || entry.status));
     const quote=document.createElement('details'),summary=document.createElement('summary'),text=document.createElement('p');summary.textContent='당시 선택 문장 · 문맥';text.textContent=entry.selection+'\nPDF 페이지: '+(entry.pages?.join(', ') || '선택 문장만')+' · 이전 대화 '+(entry.historyCount || 0)+'회';quote.append(summary,text);
     const answer=document.createElement('div');answer.className='chat-answer markdown-body';renderMarkdown(answer,entry.answer || (entry.status==='exported'?'ChatGPT에서 답변을 확인하세요.':''));
     if(entry.autoContext){text.textContent+='\nAuto: '+entry.autoContext.reason+' · '+entry.autoContext.source;if(entry.autoContext.agentUsage?.inputTokens!=null)text.textContent+=' · 선택용 실제 입력 '+entry.autoContext.agentUsage.inputTokens+' tokens';}
@@ -313,7 +314,11 @@ function renderChat() {
       importButton.onclick=()=>openAnswerImport(entry);article.append(importButton);
     }
     if(entry.source==='chatgpt-web'){const source=document.createElement('p');source.className='chat-token-usage';source.textContent='ChatGPT 웹에서 가져온 답변';article.append(source);}
-    if(entry.status==='complete' && entry.source!=='chatgpt-web'){const usage=document.createElement('p');usage.className='chat-token-usage';usage.textContent=entry.usage?.inputTokens!=null?'실제 입력 '+entry.usage.inputTokens.toLocaleString()+' tokens'+(entry.usage.cachedTokens!=null?' · 캐시 '+entry.usage.cachedTokens.toLocaleString():''):'실제 입력 토큰 · 서버 미제공';article.append(usage);}
+    if(entry.source==='chatgpt-link'){
+      const source=document.createElement('p');source.className='chat-token-usage';source.textContent='ChatGPT에서 Link로 저장한 답변';
+      if(chat?.documentId===documentId){const note=document.createElement('button');note.type='button';note.textContent='논문 노트 보기 ↗';note.onclick=()=>{if(!annotationUI.open(entry.annotationId))status('이 노트는 수정되거나 삭제되었습니다. 질문 기록의 답변은 보관됩니다.');};source.append(' · ',note);}article.append(source);
+    }
+    if(entry.status==='complete' && !['chatgpt-web','chatgpt-link'].includes(entry.source)){const usage=document.createElement('p');usage.className='chat-token-usage';usage.textContent=entry.usage?.inputTokens!=null?'실제 입력 '+entry.usage.inputTokens.toLocaleString()+' tokens'+(entry.usage.cachedTokens!=null?' · 캐시 '+entry.usage.cachedTokens.toLocaleString():''):'실제 입력 토큰 · 서버 미제공';article.append(usage);}
     return article;
   });
   clearTimeout(answerRenderTimer);answerRenderTimer=null;
@@ -366,14 +371,38 @@ async function ensureChat() {
   if(revision===chatRevision){chat=created;await refreshChats();renderChat();}
   return created;
 }
-async function saveExport() {
+async function refreshLinkChat(){
+  if(!chat || chatBusy || answerController)return;
+  const current=chat,revision=chatRevision;
+  const saved=await api('/api/chat/get',{id:current.id});
+  if(chat!==current || revision!==chatRevision || chatBusy || answerController)return;
+  if(JSON.stringify(current.entries)!==JSON.stringify(saved.entries)){chat=saved;renderChat();await refreshChats();}
+}
+async function saveLinkExport(linked,input){
+  const revision=chatRevision;
+  let current=chat?.documentId===input.documentId?chat:null;
+  if(!current){
+    const records=await api('/api/chats'),match=records.find(item=>item.documentId===input.documentId);
+    current=match?await api('/api/chat/get',{id:match.id}):await api('/api/chat/new',{documentId:input.documentId,fileName:input.fileName});
+  }
+  const turn={question:input.question,selection:linked.scope==='page'?'':input.quote,pageLabel:'p. '+linked.pages.join(', '),pages:linked.pages,pdfWindow:'page',historyCount:0,linkSelectionId:linked.selectionId};
+  await api('/api/chat/export',{id:current.id,turn});
+  current=await api('/api/chat/get',{id:current.id});
+  // Recording belongs to the immutable share, even if the visible PDF changed
+  // while ChatGPT's composer was receiving the question.
+  if(revision===chatRevision && documentId===input.documentId && (!chat||chat.id===current.id)){
+    chat=current;renderChat();await refreshChats();
+  }
+}
+async function saveExport(linked,input) {
+  if(linked?.selectionId&&input)return saveLinkExport(linked,input);
   const snapshot=prepared,revision=chatRevision;
   if(!snapshot || snapshot.exported)return;
   chatBusy=true;updateSend();
   try {
     const current=await ensureChat();if(revision!==chatRevision)return;
-    const entry=await api('/api/chat/export',{id:current.id,turn:turnMetadata(snapshot)});
-    snapshot.exported=true;if(revision===chatRevision){current.entries.push(entry);renderChat();await refreshChats();}
+    const entry=await api('/api/chat/export',{id:current.id,turn:{...turnMetadata(snapshot),...(linked?.selectionId?{linkSelectionId:linked.selectionId}:{})}});
+    snapshot.exported=true;if(revision===chatRevision){if(!current.entries.some(item=>item.id===entry.id))current.entries.push(entry);renderChat();await refreshChats();}
   }finally{if(revision===chatRevision){chatBusy=false;updateSend();}}
 }
 $('chat-choice').onchange=()=>loadChat($('chat-choice').value);
@@ -484,6 +513,7 @@ function updateSend() {
   $('copy-manual').hidden=manualDelivery==='link';$('open-chatgpt').hidden=manualDelivery==='link';
   $('manual-delivery').disabled=savingSettings || openingChatGPT || !!answerController || !!linkUI?.busy;
   $('pdf-search').disabled=!pdfSearchAvailable || savingSettings || busy || !!linkUI?.busy;
+  $('link-save-answer').disabled=savingSettings || busy || !!linkUI?.busy;
   $('pdf-search-option').hidden=requestMode!=='manual' || manualDelivery!=='link';
   $('context-options-manual').hidden=searchingPDF();$('preview').hidden=searchingPDF();$('history-status').hidden=searchingPDF();
   const anchor=annotationUI.selectionSnapshot();
@@ -552,7 +582,7 @@ async function exportToChatGPT(openBrowser) {
 }
 $('open-chatgpt').onclick=()=>exportToChatGPT(true);
 $('copy-manual').onclick=()=>exportToChatGPT(false);
-linkUI=createLinkUI({api,status,updateSend,writeClipboard,onPdfAvailability:available=>{pdfSearchAvailable=available;updateReadingContext();updateSend();},onPage:page=>{viewer.page=page;frame.focus();},recordQuestion:saveExport,getDocumentId:()=>documentId,openNote:id=>annotationUI.open(id),onAnnotations:()=>annotationUI.refresh(),sendToChatGPT:webPanelUI.canSend?async(text,id)=>{annotationUI.close();setReadingFocus(false);return webPanelUI.send(text,id);}:null,prepare:async()=>{
+linkUI=createLinkUI({api,status,updateSend,writeClipboard,onPdfAvailability:available=>{pdfSearchAvailable=available;updateReadingContext();updateSend();},onPage:page=>{viewer.page=page;frame.focus();},recordQuestion:saveExport,getDocumentId:()=>documentId,openNote:id=>annotationUI.open(id),onAnnotations:async()=>{const refreshed=await annotationUI.refresh();if(refreshed!==false)await refreshLinkChat();return refreshed;},sendToChatGPT:webPanelUI.canSend?async(text,id)=>{annotationUI.close();setReadingFocus(false);return webPanelUI.send(text,id);}:null,prepare:async()=>{
   if(busy || answerController || autoController || chatBusy)throw new Error('문맥 준비 또는 진행 중인 요청이 끝나면 다시 보내세요.');
   const generation=docGeneration,page=viewer.page,question=$('question').value.trim(),selection=selected,location=selected?annotationUI.selectionSnapshot():pageNote(viewer.page,viewer.pdfViewer.pagesRotation);
   if(!documentId || !location || (selected && (location.quote!==selected || location.anchors[0].page!==Number(selectedPage))))throw new Error('PDF에서 주석을 연결할 문장을 다시 선택하세요.');
@@ -574,7 +604,15 @@ linkUI=createLinkUI({api,status,updateSend,writeClipboard,onPdfAvailability:avai
   return {documentId,fileName,...location,question:prepared.question,context:prepared.prompt};
 }});
 $('pdf-search').checked=pdfSearch;
-$('pdf-search').onchange=()=>{pdfSearch=$('pdf-search').checked;localStorage.setItem('paper-pdf-search',String(pdfSearch));invalidatePrompt();};
+async function saveSharePreference(key,control){
+  const previous=key==='pdfSearch'?pdfSearch:linkAllowSave,next=control.checked;
+  savingSettings=true;updateSend();
+  try{const saved=await api('/api/settings',{[key]:next});if(key==='pdfSearch')pdfSearch=saved.pdfSearch;else linkAllowSave=saved.linkAllowSave;invalidatePrompt();}
+  catch(error){control.checked=previous;status('공유 설정을 저장하지 못했습니다: '+error.message);}
+  finally{savingSettings=false;updateReadingContext();updateSend();}
+}
+$('pdf-search').onchange=()=>saveSharePreference('pdfSearch',$('pdf-search'));
+$('link-save-answer').onchange=()=>saveSharePreference('linkAllowSave',$('link-save-answer'));
 let importTarget=null,importSaving=false;
 function openAnswerImport(entry) {
   if(chatBusy || answerController || !chat)return;
@@ -710,7 +748,7 @@ divider.addEventListener('lostpointercapture',finishResize);
 divider.addEventListener('keydown',event=>{let width=Number(divider.getAttribute('aria-valuenow'));if(event.key==='ArrowLeft')width+=24;else if(event.key==='ArrowRight')width-=24;else if(event.key==='Home')width=360;else if(event.key==='End')width=1200;else return;event.preventDefault();desiredPanelWidth=resizePanel(width);savePanelWidth();});
 divider.addEventListener('dblclick',()=>{desiredPanelWidth=resizePanel(Math.min(640,workspace.clientWidth*.44));savePanelWidth();});
 new ResizeObserver(()=>resizePanel()).observe(workspace);resizePanel();
-try {const saved=await api('/api/settings');if(saved.panelWidth){desiredPanelWidth=saved.panelWidth;resizePanel();}manualDelivery=saved.manualDelivery||'link';$('manual-delivery').value=manualDelivery;applyMode(saved.mode);pdfWindow=saved.pdfWindow || 'near1';historyTurns=saved.historyTurns ?? 3;autoBudget=saved.autoBudget || 8000;$('auto-budget').value=String(autoBudget);$('pdf-window').value=pdfWindow;$('history-window').value=String(historyTurns);updateReadingContext();}
+try {const saved=await api('/api/settings');if(saved.panelWidth){desiredPanelWidth=saved.panelWidth;resizePanel();}manualDelivery=saved.manualDelivery||'link';$('manual-delivery').value=manualDelivery;pdfSearch=saved.pdfSearch===true;linkAllowSave=saved.linkAllowSave!==false;$('pdf-search').checked=pdfSearch;$('link-save-answer').checked=linkAllowSave;applyMode(saved.mode);pdfWindow=saved.pdfWindow || 'near1';historyTurns=saved.historyTurns ?? 3;autoBudget=saved.autoBudget || 8000;$('auto-budget').value=String(autoBudget);$('pdf-window').value=pdfWindow;$('history-window').value=String(historyTurns);updateReadingContext();}
 catch(error) {$('mode-title').textContent='설정을 불러오지 못했습니다';$('mode-description').textContent='환경 설정에서 모드를 선택해 저장하세요. '+error.message;}
 await refreshAuth();
 if(requestMode==='plan')$('refresh-usage').click();

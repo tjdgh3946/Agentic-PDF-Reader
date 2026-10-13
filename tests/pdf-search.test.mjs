@@ -12,6 +12,7 @@ import {linkQuestion} from '../link-question.mjs';
 import {createLinkMcpServer} from '../link/mcp-server.mjs';
 import {Client} from '@modelcontextprotocol/sdk/client/index.js';
 import {InMemoryTransport} from '@modelcontextprotocol/sdk/inMemory.js';
+import {setTimeout as wait} from 'node:timers/promises';
 
 const texts=['Theorem 2: neural tangent kernel initialization.', 'Figure 3: ﬂow and soft\u00adhyphen.'];
 test('FTS5 preserves raw text, normalizes ligatures and supports parameterized CTE evidence',async t=>{
@@ -49,6 +50,13 @@ test('hard worker timeout recovers without blocking later reads',async t=>{
   await assert.rejects(index.query('WITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM n) SELECT sum(x) FROM n'),/제한 시간/);
   assert.equal((await index.query('SELECT count(*) AS count FROM pages')).rows[0].count,2);
 });
+test('idle SQL workers stop and rebuild the same search without invalidating queued queries',async t=>{
+  const index=createQueryIndex(texts,{idleTimeout:20});t.after(()=>index.close());
+  const sql='SELECT page_no FROM page_fts WHERE page_fts MATCH ?';
+  assert.equal((await index.query(sql,['Theorem'])).rows[0].page_no,1);await wait(60);assert.equal(index.resident,false);
+  const results=await Promise.all([index.query(sql,['Theorem']),index.query(sql,['Figure'])]);assert.deepEqual(results.map(r=>r.rows[0].page_no),[1,2]);
+  await wait(60);assert.equal(index.resident,false);index.close();await assert.rejects(index.query(sql,['Theorem']),/종료/);
+});
 
 async function fixture(t){
   const base=fileURLToPath(new URL('../../../work/',import.meta.url));await mkdir(base,{recursive:true});
@@ -56,11 +64,12 @@ async function fixture(t){
   t.after(async()=>{assert.ok(path.relative(base,directory).startsWith('pdf-test-'));await rm(directory,{recursive:true,force:true});});
   const renderer={load:async()=>({documentId:'abc123',pages:texts}),render:async(_id,page,region)=>({image:{data:'aGVsbG8=',mimeType:'image/png'},metadata:{page,region,width:100,height:100}}),release(){},close(){}};
   const pdfs=createPdfSnapshots({renderer});t.after(()=>pdfs.close());
-  const link=createPaperLink({pdfs,annotations:{upsert:async(documentId,item)=>({id:'note-id',documentId,...item})},getOrigin:()=> 'http://127.0.0.1:12345',discoveryPath:path.join(directory,'connection.json')});
+  const savedItems=[];
+  const link=createPaperLink({pdfs,annotations:{upsert:async(documentId,item)=>{const saved={id:'note-id',documentId,...structuredClone(item)};savedItems.push(saved);return saved;},list:async()=>savedItems},getOrigin:()=> 'http://127.0.0.1:12345',discoveryPath:path.join(directory,'connection.json')});
   t.after(()=>link.close());
   const registered=await pdfs.register(Buffer.from('%PDF-1.7\nfixture'),'abc123','ntk.pdf');
   const shared=await link.share({snapshotId:registered.snapshotId,documentId:'abc123',fileName:'ntk.pdf',...pageNote(1),question:'Explain Figure 3',context:'',allowSave:true});
-  return {pdfs,link,shared,renderer,directory};
+  return {pdfs,link,shared,renderer,directory,savedItems};
 }
 test('PDF snapshot stays fixed across document changes and is erased on revoke',async t=>{
   const {link,pdfs,shared}=await fixture(t);
@@ -90,6 +99,18 @@ test('MCP image is actual image content; structured output contains metadata onl
   const search=await client.callTool({name:'query_pdf',arguments:{selectionId:shared.selectionId,sql:'SELECT page_no FROM pages WHERE raw_text LIKE ?',params:['%Figure%']}});
   assert.equal(search.structuredContent.rows[0].page_no,2);
   assert.equal(link.status().latest.trace.at(-1).pages[0],2);
+});
+
+test('saved evidence includes only successful reads/images and survives rolling trace overflow',async t=>{
+  const {link,shared,savedItems}=await fixture(t);
+  await link.call('query_pdf',{selectionId:shared.selectionId,sql:'SELECT page_no FROM pages',params:[]});
+  await assert.rejects(link.call('read_pdf',{selectionId:shared.selectionId,pages:[99]}));
+  await link.call('read_pdf',{selectionId:shared.selectionId,pages:[2]});
+  await link.call('render_pdf_page',{selectionId:shared.selectionId,page:2,region:[0,.1,1,.8]});
+  for(let i=0;i<15;i++)await link.call('inspect_pdf',{selectionId:shared.selectionId});
+  assert.equal(link.status().latest.trace.length,12);
+  await link.call('save_annotation',{selectionId:shared.selectionId,note:'answer with source'});
+  assert.deepEqual(savedItems[0].evidence,{snapshotId:shared.snapshotId,truncated:false,pages:[{page:2,text:true,image:true,regions:[[0,.1,1,.8]]}]});
 });
 test('binary registration requires same-origin app request and separates PDF size from JSON cap',async t=>{
   let origin;

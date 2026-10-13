@@ -3,6 +3,7 @@ import path from 'node:path';
 import {createHash,randomUUID} from 'node:crypto';
 import {UserError} from './auth.mjs';
 import {validAnchor} from './annotation-geometry.mjs';
+import {validateEvidence} from './pdf-evidence.mjs';
 
 const COLORS=new Set(['yellow','green','pink','blue']);
 const validId=value=>typeof value==='string' && value.length>0 && value.length<=200 && /^[\da-f-]+$/i.test(value);
@@ -31,7 +32,9 @@ export async function createAnnotations(directory) {
       });
       const items=await read(id),index=items.findIndex(item=>item.id===input.id);
       if(input.id && index<0)throw new UserError('수정할 주석을 찾을 수 없습니다.',404);
-      const now=new Date().toISOString(),item={id:input.id || randomUUID(),quote:input.quote.trim(),note:input.note,color:input.color,rotation:input.rotation,anchors,createdAt:index>=0?items[index].createdAt:now,updatedAt:now};
+      const sourceEvidence=input.evidence===undefined?(index>=0?items[index].evidence:undefined):input.evidence;
+      const evidence=sourceEvidence?validateEvidence(sourceEvidence):undefined;
+      const now=new Date().toISOString(),item={id:input.id || randomUUID(),quote:input.quote.trim(),note:input.note,color:input.color,rotation:input.rotation,anchors,...(evidence?{evidence}:{}),createdAt:index>=0?items[index].createdAt:now,updatedAt:now};
       if(index>=0)items[index]=item;else items.push(item);
       await save(id,items);return item;
     }),

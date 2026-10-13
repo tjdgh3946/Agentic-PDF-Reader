@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "paper-reader-link",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Connect explicitly shared PDF passages to a ChatGPT conversation and save answers as anchored PDF notes.",
   "extensions": {
     "com.openai": {

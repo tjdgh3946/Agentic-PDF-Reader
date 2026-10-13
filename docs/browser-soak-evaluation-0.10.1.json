@@ -1,0 +1,117 @@
+{
+  "date": "2026-10-14",
+  "application": "0.10.1",
+  "link": "0.2.1",
+  "uiControl": "ChatGPT/Codex app built-in Computer Use (cua_repl), not Windows computer-use skill",
+  "scope": "Packaged EXE loopback server displayed in the in-app browser plus logged-in ChatGPT web conversation. Native embedded panel direct-send is outside this result.",
+  "browserChecks": [
+    {
+      "case": "NTK Figure 2 roundtrip after the two-hour soak",
+      "result": "pass",
+      "conversation": "follow-up in existing NTK test conversation using a new immutable share",
+      "tools": {"inspect_pdf": 1, "query_pdf": 1, "read_pdf": 1, "render_pdf_page": 1},
+      "sourcePages": [7, 8],
+      "imagePage": 8,
+      "imageDimensions": [1546, 2000],
+      "savedAtQuestionPage": 9,
+      "savedEvidenceNavigation": "p.8 button opened Figure 2",
+      "ntkNotesBefore": 4,
+      "ntkNotesAfter": 5,
+      "chatgptDisplayedProcessingSeconds": 40,
+      "authenticationReentryRequired": false,
+      "answerAssessment": "Correctly identified function-output distribution rather than errors; widths 50/1000, 10 initializations, 1000 steps and theoretical 10th/50th/90th percentiles matched section 6.2 and the image."
+    },
+    {
+      "case": "NTK Figure 3 roundtrip",
+      "result": "pass",
+      "conversation": "follow-up in existing NTK test conversation",
+      "tools": {"inspect_pdf": 1, "query_pdf": 1, "read_pdf": 1, "render_pdf_page": 1},
+      "sourcePages": [7, 8, 9],
+      "imagePage": 9,
+      "imageDimensions": [1546, 2000],
+      "savedAtQuestionPage": 8,
+      "savedEvidenceNavigation": "p.9 button opened Figure 3",
+      "answerAssessment": "Explained panels a/b/c and correctly warned that the three panels do not each measure a different eigenvalue. Eigenvalues matched source."
+    },
+    {
+      "case": "NTK answer arrives while another PDF and latest share are Hermes",
+      "result": "pass",
+      "question": "Theorem 2 activation assumptions versus ReLU experiments",
+      "ntkNotesBefore": 3,
+      "ntkNotesAfter": 4,
+      "hermesNotesBefore": 0,
+      "hermesNotesAfter": 0,
+      "savedAtQuestionPage": 9,
+      "readEvidencePages": [2, 5, 6, 7, 13],
+      "imagePage": 6,
+      "answerAssessment": "Distinguished twice differentiable activation assumption from non-differentiable ReLU at zero; source pages and footnote caveat matched the paper."
+    },
+    {
+      "case": "10 UI PDF replacements across three public documents",
+      "result": "pass",
+      "documents": ["NTK (19 pages)", "TraceMonkey (14 pages)", "Hermes public report (12 pages)"],
+      "scope": "Opening a new file replaces the prior viewer. This is not 10 native application shutdowns.",
+      "finalNtkNotes": 4
+    },
+    {
+      "case": "Panel keyboard resizing and focus reading",
+      "result": "pass",
+      "widthBefore": 725,
+      "widthAfterArrowLeft": 749,
+      "widthRestored": 725,
+      "focusModeRestored": true
+    },
+    {
+      "case": "Existing enough-network source annotation under rotation and zoom",
+      "result": "pass within tested scope",
+      "rotationsVisuallyChecked": [90, 180, 270],
+      "zoomPercent": 150,
+      "actualHighlightTop": 1439.84375,
+      "actualTextLineTop": 1439.84375,
+      "highlightInsideTextLine": true,
+      "rotationRestored": 0,
+      "zoomRestored": "auto",
+      "limitation": "One existing single-line English anchor; multi-column/multi-page selections and Windows scaling remain unverified."
+    }
+  ],
+  "findings": [
+    {
+      "severity": "UX",
+      "description": "After Link saves a reply into PDF notes, the question-history card still says web answer unregistered. Notes and reading evidence are correct, but the two areas give inconsistent completion feedback.",
+      "next": "Connect a saved Link note to its question-history card, while keeping explicit pasted answers distinct."
+    },
+    {
+      "severity": "performance follow-up",
+      "description": "Private bytes of the Paper Reader processes and portable wrapper reached 829.2 MiB with three pinned snapshots; 825.6 MiB near the end. Selected app/tunnel process-tree private bytes were 1041.4 MiB near the end. Last 30-minute totals were stable, but the footprint merits reduction.",
+      "next": "Measure renderer and per-snapshot search-worker costs separately; evaluate idle resource release while retaining immutable shares and reliable lazy recovery. This test does not establish a memory leak or rule one out in other workloads."
+    }
+  ],
+  "longRun": {
+    "status": "pass within recorded scope",
+    "startedAt": "2026-10-13T14:14:00.619Z",
+    "finishedAt": "2026-10-13T16:14:05.692Z",
+    "requestedSeconds": 7200,
+    "elapsedSeconds": 7205,
+    "localCalls": 50,
+    "queryCalls": 40,
+    "pngCalls": 10,
+    "failedCalls": 0,
+    "healthSamples": 237,
+    "failedHealthSamples": 0,
+    "sampleIntervalSeconds": 30,
+    "maximumObservedSampleGapSeconds": 30.838,
+    "queryMilliseconds": {"p50": 4, "p95": 17, "max": 39},
+    "pngMilliseconds": {"p50": 74, "p95": 154, "max": 154},
+    "measurementScope": "Read-only local MCP over the packaged EXE, already indexed snapshots; queries use a bounded parameterized LIKE search. These are not cold-indexing, remote-network, FTS relevance or ChatGPT generation latency measurements.",
+    "selectedProcessCount": {"first": 13, "afterInitialDocumentPreparation": 17, "last": 17},
+    "selectedProcessCountAfterFirstTenMinutes": {"min": 17, "max": 17},
+    "selectedProcessPrivateMiB": {"first": 759.4, "last": 1041.4, "max": 1046.6},
+    "lastThirtyMinutesPrivateMiB": {"min": 1039.8, "max": 1046.6, "first": 1041.2, "last": 1041.4},
+    "memoryScope": "Aggregate private bytes of explicit Paper Reader/portable wrapper/Link launcher/tunnel roots and their descendants, including an existing Codex child. IAB process memory is excluded. Working-set sums can double-count shared pages and are not physical RAM attribution.",
+    "collectorExited": true,
+    "applicationShutdownTested": false,
+    "unverified": ["Native embedded ChatGPT direct-send", "OS reboot/sleep/network outage recovery", "Application-exit resource release", "Multi-column and multi-page highlight geometry", "Windows display scaling", "Large or scanned PDFs"],
+    "reportArtifact": "outputs/pdf-soak-0.10.1.json",
+    "privacy": "Local reports contain only selected process metrics and tool metadata; no credentials, cookies, prompt body, SQL excerpts or PNG base64 are copied into this repository report."
+  }
+}

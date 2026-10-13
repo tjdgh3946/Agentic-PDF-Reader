@@ -40,8 +40,14 @@ export async function createChats(directory) {
     begin:(id,input)=>serial(()=>{
       const chat=copy(get(id));
       for(const key of ['question','selection','pageLabel'])if(typeof input?.[key]!=='string')throw new UserError('대화 정보가 올바르지 않습니다.');
+      if(input.linkSelectionId!==undefined){
+        if(!input.exported || typeof input.linkSelectionId!=='string' || !/^[a-f\d-]{36}$/i.test(input.linkSelectionId))throw new UserError('Link 질문 ID를 확인하세요.');
+        const existing=chat.entries.find(entry=>entry.linkSelectionId===input.linkSelectionId);
+        if(existing)return copy(existing);
+      }
       const entry={id:randomUUID(),question:input.question,selection:input.selection,pageLabel:input.pageLabel,pdfWindow:String(input.pdfWindow||''),pages:Array.isArray(input.pages)?input.pages.filter(Number.isInteger):[],historyCount:Number(input.historyCount)||0,model:String(input.model||''),test:input.test===true,answer:'',status:input.exported?'exported':'pending',createdAt:new Date().toISOString()};
       if(input.autoContext && typeof input.autoContext.reason==='string')entry.autoContext={source:input.autoContext.source==='agent'?'agent':'local',reason:input.autoContext.reason.slice(0,1000),budget:Number(input.autoContext.budget)||8000,agentUsage:input.autoContext.agentUsage || null,selectorEstimate:input.autoContext.selectorEstimate || null};
+      if(input.linkSelectionId)entry.linkSelectionId=input.linkSelectionId;
       chat.entries.push(entry);return save(chat).then(()=>copy(entry));
     }),
     update:(id,entryId,answer,status,usage=null)=>serial(async()=>{
@@ -57,6 +63,21 @@ export async function createChats(directory) {
       if(!entry || (entry.status!=='exported' && entry.source!=='chatgpt-web'))throw new UserError('ChatGPT로 복사한 질문에만 답변을 저장할 수 있습니다.',409);
       entry.answer=answer.trim();entry.status='complete';entry.source='chatgpt-web';
       await save(chat);return copy(entry);
+    }),
+    completeLink:({selectionId,documentId,annotationId,note})=>serial(async()=>{
+      let matched=0;
+      for(const record of records.values()){
+        if(record.documentId!==documentId)continue;
+        const chat=copy(record);let changed=false;
+        for(const entry of chat.entries){
+          if(entry.linkSelectionId!==selectionId || !['exported','complete'].includes(entry.status) || (entry.status==='complete' && entry.source!=='chatgpt-link'))continue;
+          matched++;
+          if(entry.source==='chatgpt-link' && entry.annotationId===annotationId && entry.answer===note)continue;
+          entry.status='complete';entry.source='chatgpt-link';entry.answer=note;entry.annotationId=annotationId;changed=true;
+        }
+        if(changed)await save(chat);
+      }
+      return matched>0;
     }),
     delete:id=>serial(async()=>{
       get(id);

@@ -1,0 +1,54 @@
+{
+  "date": "2026-10-14",
+  "application": "0.10.2",
+  "linkPackage": "0.2.1 (unchanged protocol)",
+  "tests": {"passed": 98, "failed": 0, "skipped": 0},
+  "exeSha256": "A38A895391E13450E411FD4581BA6BF8BC8F3BD4746A27FF9B846E028A4AB090",
+  "history": {
+    "result": "pass",
+    "binding": "Exact share UUID plus document identity and question; never text-only annotation matching",
+    "tested": ["Reply after recording", "Reply before recording", "Other document open", "Wrong document/question rejection", "Duplicate copy and save", "Manual pasted answer preserved", "Deleted chat not recreated", "Note survives history write failure; same-save retry repairs history", "Persisted answer/source/annotation ID", "Actual EXE restart"],
+    "realChatgpt": {
+      "control": "App built-in Computer Use, localhost reader plus logged-in ChatGPT web",
+      "question": "Figure 1 width 10000 NTK stability",
+      "tools": {"inspect_pdf": 1, "query_pdf": 1, "read_pdf": 1, "render_pdf_page": 1},
+      "imagePage": 8,
+      "savedAtPage": 8,
+      "historyUpdated": true,
+      "visibleState": "완료 · 논문 노트 저장",
+      "noteNavigation": "논문 노트 보기 opened the saved note",
+      "matchingHistoryCardsAfterRepeatedCopy": 1,
+      "notesBefore": 5,
+      "notesAfter": 6,
+      "reenteredCredentials": false
+    },
+    "legacy": "Entries created before share UUID storage remain separate; ambiguous historical notes are not guessed or overwritten."
+  },
+  "resourcePolicy": {
+    "queryWorkerIdleSeconds": 30,
+    "rendererIdleSeconds": 30,
+    "idleRendererResidentLimit": 1,
+    "concurrency": "In-flight/queued work is protected; active operations may temporarily require more than one renderer",
+    "initialTextExtractionWindow": "Released immediately after registration",
+    "imageRecovery": "Same immutable bytes and PDF identity/page count; no full text re-extraction",
+    "rendererSession": "One reusable in-memory partition isolated from account/login sessions; no partition-per-recovery growth"
+  },
+  "resourceComparison": {
+    "result": "pass",
+    "runtime": "Electron 43.7.8, old/new packaged ASAR modules in fresh isolated profiles",
+    "workload": "Same public NTK, TraceMonkey, Hermes PDFs; FTS queries and page PNGs before/after 35-second idle",
+    "scope": "Electron app/SQLite worker descendants private bytes only; measurement PowerShell/conhost, native UI, IAB, ChatGPT and Link processes excluded. One PC/run, not a product memory guarantee.",
+    "baseline0101": {"idlePrivateMiB": 629.2, "idleProcesses": 9, "idleHiddenWindows": 3},
+    "packaged0102": {"idlePrivateMiB": 337.2, "idleProcesses": 3, "idleHiddenWindows": 0, "idleSearchWorkers": 0, "retainedSnapshots": 3},
+    "idleReductionPercent": 46.4,
+    "sameShareResume": "All three FTS searches and real PNG images succeeded after eviction",
+    "coldResumeQueryMs": [47, 49, 49],
+    "coldResumePngMs": [252, 251, 219],
+    "sessionReusedAfterIdle": true,
+    "revoked": {"retainedSnapshots": 0, "searchWorkers": 0, "renderers": 0},
+    "reproduction": "electron scripts/pdf-resource-check.mjs <NTK.pdf> <Hermes.pdf> <report.json> [packaged-app.asar]"
+  },
+  "regression": "Real Electron stability script passed text/crop PNG, duplicate save, document identity, crash recovery, SQL timeout recovery, 50 requests, 10 open/release cycles and revocation. Final packaged renderer/session behavior separately verified by resource comparison.",
+  "unverified": ["New 0.10.2 two-hour soak", "Native embedded ChatGPT direct-send", "OS reboot/sleep/network failure", "Large/scanned documents", "Multi-page/column highlights at Windows display scales"],
+  "privacy": "No credentials, cookies, raw process telemetry, user conversation archives or PDF files are included in this repository report."
+}

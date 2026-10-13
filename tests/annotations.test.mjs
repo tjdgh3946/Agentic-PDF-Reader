@@ -4,6 +4,7 @@ import {mkdtemp,readFile,readdir} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {createAnnotations} from '../annotations.mjs';
+import {notesMarkdown} from '../reading-tools.mjs';
 
 test('PDF highlights and Markdown notes persist independently of conversations',async()=>{
   const directory=await mkdtemp(path.join(tmpdir(),'paper-reader-annotations-'));
@@ -30,4 +31,18 @@ test('rejects malformed geometry and edits of missing highlights',async()=>{
   await assert.rejects(store.upsert('abc',{...item,anchors:[{page:1,rects:[[.9,.1,.3,.03]]}]}));
   await assert.rejects(store.upsert('abc',{...item,rotation:45}));
   await assert.rejects(store.upsert('abc',{...item,id:'not-found'}));
+});
+
+test('read evidence persists across restart and edits and is included in Markdown export',async()=>{
+  const directory=await mkdtemp(path.join(tmpdir(),'paper-reader-evidence-'));
+  const evidence={snapshotId:'a'.repeat(64),truncated:false,pages:[{page:6,text:true,image:true,regions:[[0,0,1,1]]}]};
+  let store=await createAnnotations(directory);
+  const saved=await store.upsert('abc',{quote:'question',note:'answer',color:'blue',rotation:0,anchors:[{page:1,rects:[[.1,.1,.2,.03]]}],evidence});
+  evidence.pages[0].page=999;
+  store=await createAnnotations(directory);
+  const reopened=(await store.list('abc'))[0];assert.equal(reopened.evidence.pages[0].page,6);
+  const {evidence:ignored,...withoutEvidence}=reopened;
+  const changed=await store.upsert('abc',{...withoutEvidence,note:'edited'});assert.deepEqual(changed.evidence,reopened.evidence);
+  assert.match(notesMarkdown('test.pdf',[changed]),/p\. 6 \(본문·이미지\)/);
+  await assert.rejects(store.upsert('abc',{...saved,evidence:{...reopened.evidence,pages:[{...reopened.evidence.pages[0],page:-1}]}}),/근거/);
 });
