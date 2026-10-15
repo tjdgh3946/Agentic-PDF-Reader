@@ -1,0 +1,70 @@
+{
+  "package": {
+    "version": "0.11.1",
+    "result": "pass",
+    "runtimeFilesMatched": 52,
+    "privateProfileFiles": [],
+    "tunnelVersion": "v0.0.16",
+    "tunnelSha256": "4226bb74a72388147882881f29f79801b95e285d731a138071812e3aa6766571",
+    "installerSha256": "117eafc497e764645294b8072aef92bb825f76c71a93650e06688592f027d2ae"
+  },
+  "launch": {
+    "title": "Agentic PDF Reader · 인증 설정",
+    "version": "0.11.1",
+    "visible": true,
+    "scope": "Final packaged EXE entry with isolated profile; installed user app untouched",
+    "normalClose": true
+  },
+  "version": "0.11.1",
+  "nativeCases": [
+    {
+      "name": "Welcome offers now/later; empty masked key; no saved credentials",
+      "result": "pass"
+    },
+    {
+      "name": "Now opens setup; absent runtime key gives local actionable error",
+      "result": "pass"
+    },
+    {
+      "name": "Field-adjacent help opens the requested instructions and preserves typed values",
+      "result": "pass"
+    },
+    {
+      "name": "Later reaches reader, persists deferral and opens NTK PDF without authentication",
+      "result": "pass"
+    },
+    {
+      "name": "Actual saved NTK answer and question render Markdown and recovered formulas in history",
+      "result": "pass"
+    },
+    {
+      "name": "Manual screenshots show actual reader composer and notes without account information",
+      "result": "pass"
+    },
+    {
+      "name": "Reader settings reopens setup through the real preload IPC",
+      "result": "pass"
+    },
+    {
+      "name": "Login action attaches persistent native ChatGPT web panel",
+      "result": "pass"
+    },
+    {
+      "name": "Help overlays native ChatGPT safely and Escape restores the web panel",
+      "result": "pass"
+    },
+    {
+      "name": "Finish returns to reading and persists completion",
+      "result": "pass"
+    }
+  ],
+  "limitations": [
+    "Existing user installation and authentication untouched",
+    "NSIS installation option/uninstall checks reuse the separately recorded 0.11.0 results"
+  ],
+  "result": "pass",
+  "officialReferences": [
+    "https://developers.openai.com/api/docs/guides/secure-mcp-tunnels",
+    "https://developers.openai.com/api/docs/guides/custom-mcp-server"
+  ]
+}

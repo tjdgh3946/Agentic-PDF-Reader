@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Paper Reader · 논문 읽기</title>
+  <title>Agentic PDF Reader · 논문 읽기</title>
   <link rel="stylesheet" href="app.css">
   <link rel="stylesheet" href="ui.css">
   <link rel="stylesheet" href="vendor/katex/katex.min.css">
@@ -10,7 +10,7 @@
 </head>
 <body>
   <header>
-    <div class="app-brand"><strong>Paper Reader<span>0.10.2</span></strong><small>읽던 자리에서, 문맥과 함께 질문하기</small></div>
+    <div class="app-brand"><strong>Agentic PDF Reader<span>0.11.2</span></strong><small>읽던 자리에서, 문맥과 함께 질문하기</small></div>
     <section class="header-usage" aria-label="계정 사용량">
       <button class="usage-trigger" type="button" popovertarget="usage-popover" aria-label="계정 및 사용량 상세 보기">
         <span id="header-avatar" class="account-avatar" aria-hidden="true">P</span>
@@ -34,8 +34,8 @@
         <div class="selection-bar"><details class="selection-context"><summary><span id="selection-label">현재 페이지</span><span id="selection-hint">PDF를 열어주세요</span></summary><div class="selection-head"><label for="selection">질문에 포함할 문장</label><span id="page"></span></div><blockquote id="selection">문장 선택 없이도 현재 페이지를 기준으로 질문할 수 있습니다.</blockquote></details><button id="selection-clear" type="button" hidden title="선택을 비우고 현재 페이지로 질문하기">선택 해제</button></div>
         <div class="reading-actions" aria-label="읽기 도구"><button type="button" data-reading-action="explain" disabled>설명 질문</button><button type="button" data-reading-action="translate" disabled>번역 질문</button><button type="button" data-reading-action="math" disabled>수식 질문</button><span class="action-divider"></span><button id="selection-highlight" type="button" disabled>하이라이트 저장</button><button id="selection-note" type="button" disabled>노트 추가</button></div>
 
-        <p id="reading-tools-hint" class="reading-tools-hint"></p><label for="question" class="sr-only">논문에 질문하기</label><textarea id="question" rows="3" maxlength="10000" aria-describedby="reading-tools-hint" placeholder="궁금한 점을 물어보세요. 후속 질문도 이어서 할 수 있습니다."></textarea>
-<p id="visual-context-hint" class="context-hint" hidden>현재 요청에는 추출한 텍스트만 포함됩니다. 수식·그림은 위의 ‘페이지 PNG’로 저장해 ChatGPT에 함께 첨부하세요.</p><div class="composer-toolbar"><div class="composer-tools"><button id="context-button" type="button" popovertarget="context-popover">문맥 설정</button><button id="link-indicator" type="button" popovertarget="link-popover">Link 설정</button></div><div class="composer-send">
+        <label for="question" class="sr-only">논문에 질문하기</label><textarea id="question" rows="2" maxlength="10000" aria-describedby="reading-tools-hint" placeholder="궁금한 점을 물어보세요. 후속 질문도 이어서 할 수 있습니다."></textarea>
+<div class="composer-toolbar"><div class="composer-tools"><button id="context-button" type="button" popovertarget="context-popover">문맥 설정</button><button id="link-indicator" type="button" popovertarget="link-popover">Link 설정</button></div><div class="composer-send">
         <section id="plan-controls" aria-label="앱에서 직접 요청" hidden><button id="send" class="primary wide" disabled>질문 보내기</button></section>
         <section id="manual-controls" aria-label="ChatGPT에서 직접 질문" hidden><button id="link-share" type="button" class="primary" disabled title="선택 문장과 질문을 준비 · Ctrl+Enter">질문 복사</button><button id="link-copy" type="button" hidden>질문 복사</button><button id="copy-manual" type="button" disabled hidden title="열려 있는 ChatGPT 대화에 이어서 붙여넣기 · Ctrl+Shift+Enter">질문 복사</button><button id="open-chatgpt" class="primary" disabled hidden>복사하고 ChatGPT 열기 ↗</button><a id="chatgpt-fallback" href="https://chatgpt.com/" target="_blank" rel="noreferrer" hidden>ChatGPT 직접 열기 ↗</a></section>
         <button id="cancel-answer" class="wide" hidden>응답 중지</button></div></div><div id="link-activity" class="link-activity" hidden><span id="link-activity-text" role="status"></span><button id="link-open-note" type="button" hidden>노트에서 답변 보기 ↗</button></div><div id="link-evidence" class="link-evidence" hidden><span id="link-trace" role="status"></span><div id="link-evidence-pages" aria-label="AI가 확인한 PDF 페이지"></div></div><p id="token-estimate" role="status">질문을 입력하면 문맥을 준비합니다.</p><p id="status" role="status" aria-live="polite">PDF를 열고 질문 도구를 선택하거나 궁금한 점을 입력하세요.</p>
@@ -54,7 +54,7 @@
 
     </aside>
   </main>
-  <section id="context-popover" class="workspace-popover" popover><h2>질문 문맥</h2><label for="manual-delivery">ChatGPT 전달 방식</label><select id="manual-delivery" aria-label="ChatGPT 전달 방식"><option value="link">ChatGPT Link</option><option value="clipboard">복사 후 붙여넣기</option></select>      <div class="mode-line"><strong id="mode-title">설정 확인 중</strong><span>· 자동 저장</span></div>        <details class="question-preview"><summary>질문 마크다운 미리보기</summary><div id="question-markdown-preview" class="markdown-body"></div></details>
+  <section id="context-popover" class="workspace-popover" popover><h2>질문 문맥</h2><details class="composer-help"><summary>질문 도구·전송 도움말</summary><p id="reading-tools-hint" class="reading-tools-hint"></p><p id="visual-context-hint" class="context-hint" hidden>현재 요청에는 추출한 텍스트만 포함됩니다. 수식·그림은 위의 ‘페이지 PNG’로 저장해 ChatGPT에 함께 첨부하세요.</p></details><label for="manual-delivery">ChatGPT 전달 방식</label><select id="manual-delivery" aria-label="ChatGPT 전달 방식"><option value="link">ChatGPT Link</option><option value="clipboard">복사 후 붙여넣기</option></select>      <div class="mode-line"><strong id="mode-title">설정 확인 중</strong><span>· 자동 저장</span></div>        <details class="question-preview"><summary>질문 마크다운 미리보기</summary><div id="question-markdown-preview" class="markdown-body"></div></details>
       <section id="pdf-search-option"><label class="link-save-option"><input id="pdf-search" type="checkbox"> AI가 문맥 찾기 · PDF 전체/이미지</label><p id="pdf-search-description" class="context-hint">질문 당시 PDF를 공유해 검색과 이미지 읽기를 허용합니다.</p></section><div id="context-options-manual"><div class="context-options">
         <div><label for="pdf-window">PDF 문맥 범위 (window)</label><select id="pdf-window"><option value="auto">Auto · 질문에 맞게</option><option value="selection">선택 문장만</option><option value="page">선택 / 현재 페이지</option><option value="near1" selected>앞뒤 1페이지 포함</option><option value="near2">앞뒤 2페이지 포함</option><option value="all">전체 문서</option></select>
 </div><div><label for="history-window">이전 대화 포함</label><select id="history-window"><option value="0">포함하지 않음</option><option value="3" selected>최근 3회</option><option value="6">최근 6회</option><option value="12">최근 12회</option><option value="all">전체 대화</option></select>
@@ -81,6 +81,7 @@
   <dialog id="settings-dialog" aria-labelledby="settings-title">
     <form id="settings-form">
       <h2 id="settings-title">환경 설정</h2>
+      <section id="desktop-setup-settings" hidden><p class="settings-note">ChatGPT 로그인과 논문 검색용 Link 연결을 지금 설정하거나 나중에 연결할 수 있습니다.</p><button id="desktop-setup-open" type="button">인증·Link 설정 열기</button></section>
       <fieldset><legend>질문을 보내는 방식</legend>
         <label class="mode-option"><input type="radio" name="request-mode" value="manual" required><span><strong>ChatGPT · 기본 모드</strong><small>ChatGPT Link로 선택 문장과 질문을 준비하면 답변을 PDF 노트로 받을 수 있습니다. 복사 후 붙여넣기도 선택할 수 있습니다. PC 앱은 PDF 옆에 ChatGPT 웹을 유지합니다. 평소 논문 읽기에 권장합니다.</small></span></label>
         <label class="mode-option"><input type="radio" name="request-mode" value="plan" required><span><strong>앱에서 직접 요청 · 보조 모드</strong><small>ChatGPT에서 진행하기 어려울 때 사용할 보조 방식입니다. 별도 계정을 연결하고 앱 안에서 답변받습니다. 공식 안내상 Codex / ChatGPT Work 공유 사용량을 쓰며, 한도 이후 허용한 크레딧을 사용할 수 있습니다. 개별 요청의 실제 차감 내역은 앱에서 확인하지 못합니다.</small></span></label>

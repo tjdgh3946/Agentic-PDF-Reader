@@ -16,13 +16,15 @@ let usageState=null,loadingUsage=false;
 let pageImageTask=null,pageImageBusy=false;
 let selectedEndPage='',promptRevision=0,prepared=null,pdfWindow='near1',historyTurns=3;
 let chat=null,chatList=[],chatRevision=0,chatBusy=false,documentId='',tokenTimer,autoController=null,autoBudget=8000,answerRenderTimer=null;
-let readingTimer,readingRestoring=false,openingPdf=false;
+let readingTimer,readingRestoring=false,openingPdf=false,questionInputRevision=0;
 let lastReadingQuestion='';
 let pdfSearch=false,linkAllowSave=true;
 let pdfSearchAvailable=false;
 const searchingPDF=()=>pdfSearch && pdfSearchAvailable && requestMode==='manual' && manualDelivery==='link';
 const status = message => { $('status').textContent = message; };
 const webPanelUI=createWebPanelUI({status});
+$('desktop-setup-settings').hidden=!window.paperDesktop?.openSetup;
+$('desktop-setup-open').onclick=()=>window.paperDesktop?.openSetup().catch(error=>status('인증 설정을 열지 못했습니다. '+error.message));
 function currentContext(){return questionContext({selection:selected,startPage:selectedPage,endPage:selectedEndPage,currentPage:viewer?.page,total:viewer?.pdfDocument?.numPages,window:pdfWindow});}
 function updateReadingContext(){
   const loaded=!!viewer?.pdfDocument,context=currentContext();
@@ -82,6 +84,7 @@ document.querySelectorAll('[data-reading-action]').forEach(button=>{button.oncli
   const question=readingQuestion(button.dataset.readingAction,!!selected);
   if($('question').value.trim() && $('question').value.trim()!==lastReadingQuestion && $('question').value.trim()!==question && !confirm('작성 중인 질문을 이 읽기 도구의 질문으로 바꿀까요?'))return;
   lastReadingQuestion=question;
+  questionInputRevision++;
   $('question').value=question;updateQuestionPreview();invalidatePrompt();scheduleReading();$('question').focus();
   status('질문을 준비했습니다. 내용을 확인하고 Ctrl+Enter를 누르세요.');
 };});
@@ -117,16 +120,18 @@ async function documentReady() {
   annotationUI.ready(documentId);
   updateReadingContext();
   const generation=docGeneration;
+  const questionRevisionAtRestore=questionInputRevision;
   readingRestoring=true;
   $('empty').hidden = true;
   try{
     const [saved]=await Promise.all([api('/api/reading?documentId='+encodeURIComponent(documentId)),restoreDocumentChat(),waitForPdfLayout(viewer)]);
     if(generation!==docGeneration)return;
-    if(saved){viewer.pdfViewer.pagesRotation=saved.rotation;viewer.pdfViewer.currentScaleValue=saved.zoom;viewer.page=Math.min(saved.page,viewer.pdfDocument.numPages);$('question').value=saved.question;updateQuestionPreview();}
+    const questionEdited=questionInputRevision!==questionRevisionAtRestore;
+    if(saved){viewer.pdfViewer.pagesRotation=saved.rotation;viewer.pdfViewer.currentScaleValue=saved.zoom;viewer.page=Math.min(saved.page,viewer.pdfDocument.numPages);if(!questionEdited)$('question').value=saved.question;updateQuestionPreview();}
     updateReadingContext();invalidatePrompt();
-    status(saved?`읽던 p. ${viewer.page}와 배율·질문 초안을 복원했습니다.`:'문장을 선택하거나 현재 페이지에 질문하세요. 노트는 이 PC에 자동 저장됩니다.');
+    status(saved?(questionEdited?`읽던 p. ${viewer.page}와 배율을 복원했습니다. 입력 중인 질문은 유지했습니다.`:`읽던 p. ${viewer.page}와 배율·질문 초안을 복원했습니다.`):'문장을 선택하거나 현재 페이지에 질문하세요. 노트는 이 PC에 자동 저장됩니다.');
   }catch(error){if(generation===docGeneration)status('읽던 위치 복원 실패: '+error.message);}
-  finally{if(generation===docGeneration){readingRestoring=false;updateSend();}}
+  finally{if(generation===docGeneration){readingRestoring=false;if(questionInputRevision!==questionRevisionAtRestore)scheduleReading();updateSend();}}
 }
 function readingSnapshot(){
   if(!documentId || !viewer?.pdfDocument || readingRestoring)return null;
@@ -220,7 +225,7 @@ document.addEventListener('pointerdown', event => { if (!$('context').contains(e
 document.addEventListener('keydown', event => { if (event.key === 'Escape') $('context').hidden = true; });
 $('ask').onclick = () => { $('context').hidden = true; $('question').focus(); $('question').scrollIntoView({block:'nearest', behavior:'smooth'}); };
 function updateQuestionPreview(){renderMarkdown($('question-markdown-preview'),$('question').value);}
-$('question').oninput = ()=>{updateQuestionPreview();invalidatePrompt();scheduleReading();};
+$('question').oninput = ()=>{questionInputRevision++;updateQuestionPreview();invalidatePrompt();scheduleReading();};
 updateQuestionPreview();
 $('prepare').onclick = async automatic => {
   if(searchingPDF()){status('AI가 문맥 찾기는 질문을 보낼 때 PDF를 등록합니다. 본문을 미리 질문에 붙이지 않습니다.');return;}

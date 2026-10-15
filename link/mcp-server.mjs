@@ -19,7 +19,7 @@ export function createLinkMcpServer({call,htmlPath}){
   },safe(args=>call('get_selection',args)));
   server.registerTool('save_annotation',{
     title:'답변을 PDF 주석으로 저장',description:'Save the answer as a blue PDF highlight and Markdown note at the exact original selection. Requires the selectionId in the user’s question and their request to save. One answer per selection; retrying the same answer is safe. A new answer requires a new share.',
-    inputSchema:{selectionId:z.string().uuid(),note:z.string().min(1).max(30000).describe('The substantive answer in Markdown, not a storage confirmation.')},
+    inputSchema:{selectionId:z.string().uuid(),note:z.string().min(1).max(30000).describe('The substantive answer in Markdown, not a storage confirmation. Use dollar-delimited LaTeX for math and preserve command backslashes; never flatten formulas into plain parentheses.')},
     annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:true,openWorldHint:false}
   },safe(args=>call('save_annotation',args)));
   const selectionId=z.string().uuid().describe('Immutable share ID from the user’s question; required even after another PDF is opened.');

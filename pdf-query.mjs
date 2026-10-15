@@ -33,6 +33,7 @@ export function createQueryIndex(pages,{timeout=1500,idleTimeout=30000}={}){
       const boot=setTimeout(()=>{reject(new UserError('PDF 색인 시간이 초과되었습니다.'));stop();},15000);
       active.on('message',message=>{
         if(message.ready){clearTimeout(boot);resolve();idle();return;}
+        if(message.error && message.id===undefined){clearTimeout(boot);reject(new UserError(message.error));if(worker===active)stop();return;}
         const item=pending.get(message.id);if(!item)return;pending.delete(message.id);clearTimeout(item.timer);
         message.error?item.reject(new UserError(message.error)):item.resolve(message.value);
       });

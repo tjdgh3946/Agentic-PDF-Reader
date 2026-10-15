@@ -4,6 +4,7 @@ server.pid
 *.log
 dist/
 release/
+build/link-payload/
 coverage/
 .env
 .env.*

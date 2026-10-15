@@ -1,0 +1,64 @@
+{
+  "version": "0.11.2",
+  "result": "pass",
+  "gif": "Agentic-PDF-Reader-실제-ChatGPT-PDF검색-Figure-demo.gif",
+  "dimensions": [
+    1240,
+    854
+  ],
+  "durationMs": 36200,
+  "frames": 10,
+  "bytes": 1088963,
+  "newModelAnswer": true,
+  "scope": "Actual separate localhost and ChatGPT browser tabs; copied question and explicit ChatGPT Send, not native embedded auto-send.",
+  "modelDisplayedDuration": "3m 59s",
+  "noteSaved": "답변이 p. 9의 논문 노트에 도착했습니다.\n노트에서 답변 보기 ↗",
+  "noteMath": 19,
+  "noteMathErrors": 0,
+  "evidencePages": {
+    "text": [
+      7,
+      8,
+      9
+    ],
+    "image": [
+      8,
+      9
+    ]
+  },
+  "limitations": [
+    "Native Electron capture script rejected by automatic approval review; this demo shows actual separate browser tabs and explicit ChatGPT Send, not embedded automatic send.",
+    "Model reported one transient connection error and successfully retried.",
+    "Some bold markup from model output remains literal; stored math renders without KaTeX errors."
+  ],
+  "twoLineChecks": [
+    {
+      "clientHeight": 39,
+      "height": 40,
+      "lineHeight": "18px",
+      "paddingBottom": "1px",
+      "paddingTop": "1px",
+      "scrollHeight": 39,
+      "twoLinesFit": true,
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "clientHeight": 43,
+      "height": 44,
+      "lineHeight": "18px",
+      "paddingBottom": "3px",
+      "paddingTop": "3px",
+      "scrollHeight": 43,
+      "twoLinesFit": true,
+      "viewport": [
+        1366,
+        768
+      ]
+    }
+  ],
+  "installerSha256": "f20a8bd2c4ecac085ff16fa6e46b96238a0fe919f54ed5d0ca0fd76a2d593edb",
+  "installerRuntimeFilesMatched": 52
+}

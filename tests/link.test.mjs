@@ -106,8 +106,8 @@ test('full stdio MCP loop uses the scoped bridge and writes a real persisted ann
   assert.equal((await fetch(origin+'/link-question.mjs')).status,200);
   const rebound=await new Promise((resolve,reject)=>{const req=http.request(origin+'/link/rpc',{method:'POST',headers:{Host:'evil.invalid','Content-Type':'application/json',Authorization:'Bearer '+credential.token}},res=>{res.resume();res.on('end',()=>resolve(res.statusCode));});req.on('error',reject);req.end('{"method":"get_selection"}');});assert.equal(rebound,403);
   const client=new Client({name:'paper-link-test',version:'1.0.0'});
-  const transport=new StdioClientTransport({command:process.execPath,args:[fileURLToPath(new URL('../plugins/paper-reader-link/server.bundle.mjs',import.meta.url)),'--connection',f.discoveryPath],stderr:'pipe'});
-  await client.connect(transport);t.after(()=>client.close());
+  const transport=new StdioClientTransport({command:process.execPath,args:[fileURLToPath(new URL('../plugins/paper-reader-link/server.bundle.mjs',import.meta.url)),'--connection',f.discoveryPath],env:process.versions.electron?{ELECTRON_RUN_AS_NODE:'1'}:{},stderr:'pipe'});
+  t.after(()=>client.close());await client.connect(transport);
   const catalog=await client.listTools();assert.deepEqual(catalog.tools.map(tool=>tool.name),['open_paper_reader','get_selection','save_annotation','inspect_pdf','query_pdf','read_pdf','render_pdf_page']);
   // ChatGPT tool import needs homogeneous array items, not JSON Schema tuples.
   const cropSchema=catalog.tools.find(tool=>tool.name==='render_pdf_page').inputSchema.properties.region;

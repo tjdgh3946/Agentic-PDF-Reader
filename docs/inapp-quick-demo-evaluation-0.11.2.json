@@ -1,0 +1,29 @@
+{
+  "mode": "In-application browser computer-use (cua_repl), recorded browser content at 20 fps",
+  "gifFrames": 583,
+  "durationSeconds": 29.15,
+  "fps": 20,
+  "promptTransferMs": 1063,
+  "modelProcessingDisplayed": "1m 2s",
+  "reasoning": "Medium (previous demo Pro)",
+  "question": "Figure 1 NTK width; SQL and actual Figure image required; 3 Korean sentences and note save",
+  "searchComplete": true,
+  "images": [
+    8
+  ],
+  "readPages": [
+    7,
+    8,
+    9
+  ],
+  "saved": true,
+  "notesBefore": 4,
+  "notesAfter": 5,
+  "followupRequired": false,
+  "limitations": [
+    "Browser mode uses question copy/paste, not EXE automatic send.",
+    "Prompt simplified and reasoning lowered; timing is not an application performance benchmark.",
+    "An initial stale-clipboard attempt was aborted and corrected; that failed attempt is excluded from the short demo.",
+    "Idle intervals removed, 1.5x/2x labeled, short PDF context shot placed at start."
+  ]
+}

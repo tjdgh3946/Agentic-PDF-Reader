@@ -1,0 +1,58 @@
+{
+  "Agentic-PDF-Reader-EXE-demo-20fps.mp4": {
+    "frames": 2083,
+    "durationSeconds": 104.15,
+    "averageFps": 20.0,
+    "bytes": 3753036
+  },
+  "Agentic-PDF-Reader-EXE-full-recording.mp4": {
+    "frames": 9960,
+    "durationSeconds": 508.8,
+    "averageFps": 19.575,
+    "bytes": 23811830
+  },
+  "Agentic-PDF-Reader-EXE-demo-20fps.gif": {
+    "frames": 2083,
+    "durationSeconds": 104.15,
+    "frameDurationMs": [
+      50
+    ],
+    "dimensions": [
+      1400,
+      788
+    ],
+    "bytes": 12207606,
+    "changedAdjacentFramesAt350px": 1860
+  },
+  "source": "Continuous native Windows capture of final packaged 0.11.2 EXE. No still-image slideshow, staged replies, or motion interpolation. Output normalized to 20 fps.",
+  "validation": {
+    "autoSend": true,
+    "tools": [
+      "inspect_pdf",
+      "query_pdf",
+      "read_pdf",
+      "render_pdf_page"
+    ],
+    "readPages": [
+      7,
+      8,
+      9
+    ],
+    "imagePages": [
+      8,
+      9
+    ],
+    "notesBefore": 3,
+    "notesAfter": 4,
+    "saved": true,
+    "saveRequiredFollowup": true,
+    "historyError": false,
+    "reloginRequired": false
+  },
+  "editing": "Idle intervals omitted; 1.5x/2x passages labeled on-screen. Full recording retained. Source average cadence may be below target 20 fps.",
+  "knownLimitations": [
+    "ChatGPT web rendered some math and bold delimiters literally; saved notes render math.",
+    "Model skipped save_annotation on first answer; explicit follow-up succeeded.",
+    "Transient connection-error text appeared before successful PDF tool calls."
+  ]
+}

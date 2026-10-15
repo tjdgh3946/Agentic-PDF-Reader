@@ -1,6 +1,6 @@
 {
   "name": "paper-reader-local",
-  "version": "0.10.2",
+  "version": "0.11.2",
   "private": true,
   "type": "module",
   "engines": {
@@ -11,9 +11,10 @@
     "start": "node server.mjs",
     "build:link": "node scripts/build-link.mjs",
     "link": "node plugins/paper-reader-link/server.bundle.mjs",
-    "test": "npm run build:markdown && npm run build:link && node --test tests/*.test.mjs",
+    "test": "npm run build:markdown && npm run build:link && node scripts/run-tests.mjs",
     "desktop": "electron .",
-    "build": "npm run build:markdown && electron-builder --config electron-builder.json --win portable --x64"
+    "build": "npm run build:markdown && npm run build:link && node scripts/prepare-desktop-runtime.mjs && electron-builder --config electron-builder.json --win portable --x64",
+    "build:installer": "npm run build:markdown && npm run build:link && node scripts/prepare-desktop-runtime.mjs && electron-builder --config electron-installer.json --win nsis --x64"
   },
   "dependencies": {
     "@mdit/plugin-katex": "^1.1.3",

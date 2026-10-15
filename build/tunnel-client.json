@@ -1,0 +1,9 @@
+{
+  "version":"v0.0.16",
+  "baseUrl":"https://github.com/openai/tunnel-client/releases/download/v0.0.16/",
+  "archive":"tunnel-client-v0.0.16-windows-amd64.zip",
+  "archiveSha256":"edef7241b0c647fcb30f1a80ff376b6b25c51927960f257a3f01e21b17c2aba6",
+  "executableSha256":"4226bb74a72388147882881f29f79801b95e285d731a138071812e3aa6766571",
+  "licenses":"tunnel-client-v0.0.16-windows-amd64-licenses.txt",
+  "licensesSha256":"9399ced2b36f82fa18e5fe1e6df5712015680c48b8de51a4bd983e9a58de6b4c"
+}

@@ -1,4 +1,9 @@
-Windows EXE: 상위 outputs 폴더의 Paper-Reader-0.10.2-Windows-x64.exe를 더블클릭하세요.
+Windows 설치: Agentic-PDF-Reader-0.11.2-install.exe 실행.
+설치 중 지금 인증 설정 / 나중에 설정을 선택합니다. 인증 없이도 PDF와 노트를 사용할 수 있습니다.
+환경 설정의 인증·Link 설정 열기에서 다시 연결할 수 있습니다.
+Node.js 또는 별도 터널 실행기 설치는 필요하지 않습니다.
+
+Windows EXE: 상위 outputs 폴더의 Paper-Reader-0.10.3-Windows-x64.exe를 더블클릭하세요.
 EXE는 Node.js 설치가 필요 없습니다. 창을 닫으면 내부 서버도 종료됩니다.
 EXE의 등록 정보는 Windows 앱 데이터의 Paper Reader 폴더에 저장됩니다.
 개발/브라우저 실행 방식은 아래를 참고하세요.

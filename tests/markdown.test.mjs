@@ -20,3 +20,13 @@ test('does not execute raw HTML or load remote Markdown images', () => {
   assert.match(html, /href="https:\/\/example\.com"/);
   assert.match(html, /rel="noopener noreferrer"/);
 });
+
+test('renders legacy Link formulas without modifying source or ordinary prose/code',()=>{
+  const source='## 왜 속도가 달라지는가?\n\n오차 (e^{-lambda_i t}), (|g_t|_{p_{mathrm{in}}}=0.5e^{-lambda_2 t}), (Theta^{(4)}(x_0,x)), (0.5e^{-alambda_2t}), (n=infty).';
+  const html=markdownHtml(source);
+  assert.equal((html.match(/class="katex"/g)||[]).length,5);
+  assert.match(html,/\\lambda/);assert.match(html,/\\mathrm\{in\}/);assert.match(html,/\\Theta/);
+  assert.match(source,/e\^\{-lambda_i t\}/);
+  const plain=markdownHtml('일반 문장 (for example), (PDF p. 8), (ChatGPT), (a), ` (e^{-lambda_i t}) `\n\n```text\n(e^{-lambda_i t})\n```');
+  assert.doesNotMatch(plain,/class="katex"/);assert.match(plain,/\(for example\)/);assert.match(plain,/<code>\(e\^\{-lambda_i t\}\)<\/code>/);
+});

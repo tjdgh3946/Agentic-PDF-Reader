@@ -2,7 +2,30 @@
 
 PDF.js 기반 Windows PDF 리더입니다. ChatGPT 대화를 기본 흐름으로 삼아, PDF 선택 → 질문 → 원문 노트 저장을 한 화면에서 이어갑니다. 앱에서 직접 요청하는 방식은 환경 설정의 보조 옵션입니다.
 
-현재 개발 버전은 **0.10.2**입니다. [개발 인수인계](docs/DEVELOPMENT-HANDOFF.md)에 실행·빌드·터널 설정과 NTK 검증 결과를 정리했습니다. ChatGPT Link에서 PDF 전체 검색과 MCP 페이지 이미지를 사용할 수 있습니다. Link로 저장한 답변은 질문 기록에도 완료로 반영되며, 유휴 검색·렌더링 자원은 30초 후 회수하고 다음 요청에서 같은 고정본으로 복구합니다.
+현재 개발 버전은 **0.11.2**입니다. [개발 인수인계](docs/DEVELOPMENT-HANDOFF.md)에 실행·빌드·터널 설정과 NTK 검증 결과를 정리했습니다. ChatGPT Link에서 PDF 전체 검색과 MCP 페이지 이미지를 사용할 수 있습니다. Link로 저장한 답변은 질문 기록에도 완료로 반영되며, 유휴 검색·렌더링 자원은 30초 후 회수하고 다음 요청에서 같은 고정본으로 복구합니다. 읽기 상태 복원 중 새로 입력한 질문을 유지하며, 연결 오류 시 다른 온라인 PDF로 대신 답하지 않도록 요청합니다.
+
+## Windows 설치
+
+실제 화면을 포함한 [설치·사용설명서 PDF](output/pdf/Agentic-PDF-Reader-0.11.1-설치-사용설명서.pdf)에서 설치, 인증, 질문, 노트, 질문 기록과 오류 복구 순서를 확인할 수 있습니다.
+
+`Agentic-PDF-Reader-0.11.2-install.exe`를 실행합니다. Node.js, npm, 별도 터널 실행기는 필요하지 않습니다. 설치 프로그램은 사용자 계정 범위에 설치하고 바탕 화면·시작 메뉴 바로가기를 만듭니다.
+
+- **지금 인증 설정:** 설치 후 앱의 연결 화면을 엽니다. ChatGPT 로그인은 오른쪽 웹 화면에서 직접 진행합니다. 논문 전체 검색·이미지 확인·노트 저장을 쓰려면 터널 ID와 실행 키 및 ChatGPT 플러그인 연결도 설정합니다.
+- **나중에 설정:** 인증 입력 없이 설치를 마치고 PDF와 노트를 사용합니다. **환경 설정 → 인증·Link 설정 열기**에서 다시 연결할 수 있습니다.
+
+설정한 실행 키는 이 Windows 계정의 DPAPI로 암호화합니다. 기존 ChatGPT 프로필 `%APPDATA%\Paper Reader`와 Link 인증 `%LOCALAPPDATA%\PaperReaderLink`를 재사용하며, 계정 정보·키·개인 PDF를 설치 파일에 넣지 않습니다. 업데이트나 제거 시 사용자 데이터를 삭제하지 않습니다. 터널 프로세스가 실행됐다는 표시와 실제 ChatGPT 플러그인 연결은 구별합니다. 상세 내용은 [설치와 인증 안내](docs/WINDOWS-INSTALLER.md)를 참고하세요.
+
+## 실제 질문 데모
+
+[PDF + ChatGPT 나란히 표시 GIF](docs/demos/pdf-chatgpt-side-by-side.gif) · **22.65초 / 20fps / 1600×754**. 내장 브라우저의 실제 녹화를 좌우로 편집해, 왼쪽 PDF와 오른쪽 ChatGPT가 영상 내내 보이게 했다. 대기 생략·배속을 표시했으며 두 탭을 실제 하나의 EXE 창으로 촬영한 것은 아니다.
+
+[내장 computer-use 빠른 데모 GIF](docs/demos/inapp-quick-demo.gif) · [MP4](docs/demos/inapp-quick-demo.mp4) · **29초 / 20fps**. 앱 내장 브라우저에서 localhost Reader의 질문을 ChatGPT에 복사·전송하고 SQL 검색, Figure 1 확인, 실제 답변과 노트 저장을 수행했다. EXE 자동 전송과는 다른 브라우저 흐름이다. 대기 구간을 생략했으며, 이 데모만 Medium·3문장 질문을 사용하고 기존 Pro 설정을 복원했다. [검증 범위](docs/inapp-quick-demo-evaluation-0.11.2.json).
+
+[실제 EXE 데모 GIF · 20fps](docs/demos/chatgpt-pdf-figure-live.gif) · [MP4](docs/demos/chatgpt-pdf-figure-native-20fps.mp4) · 약 1분 44초.
+
+최종 0.11.2 EXE에서 왼쪽 질문 버튼 → 내장 ChatGPT 자동 전송 → SQL 검색 → 본문과 Figure 이미지 확인 → 실제 답변 → 논문 노트 저장을 연속 녹화했다. 대기 생략과 1.5·2배속 구간은 영상에 표시했다. 모델이 첫 답변에서 저장을 빠뜨려 같은 대화에서 저장을 추가 요청한 과정도 포함한다. [녹화·검증 범위](docs/native-demo-evaluation-0.11.2.json). 이전 별도 브라우저 탭의 정지 캡처 데모를 교체했다.
+
+0.11.2에서는 질문 입력창을 기본 2줄(40–44px)로 줄이고 반복 도움말을 문맥 설정 안으로 옮겨 PDF의 세로 공간을 늘렸다. 긴 질문은 입력창을 늘려 작성할 수 있다. 위 PDF 설명서는 0.11.1 화면 기준이다.
 
 ## 기능
 
@@ -48,6 +71,8 @@ ChatGPT를 기본 흐름으로 유지합니다. 앱 내 요청은 Plan B로 두�
 
 Node.js 22 이상이 필요합니다.
 
+`npm test`는 데스크톱 앱과 같은 Electron 내장 Node/SQLite 런타임으로 실행합니다. 일반 Node 22에 없는 FTS5/authorizer 기능도 이 경로에서 검증합니다.
+
 ```powershell
 npm ci
 npm start
@@ -58,9 +83,10 @@ npm start
 ```powershell
 npm test
 npm run build
+npm run build:installer
 ```
 
-Windows x64 portable EXE를 빌드합니다. 현재 빌드 출력 경로는 `electron-builder.json`의 `directories.output`에 지정된 `../../work/electron-build`입니다. EXE 배포 파일은 소스 Git 저장소에 포함하지 않습니다.
+`npm run build`는 Windows x64 portable EXE, `npm run build:installer`는 NSIS 설치 EXE를 빌드합니다. 설치 파일은 `release/installer/Agentic-PDF-Reader-<version>-install.exe`에 생성됩니다. 빌드는 공식 OpenAI tunnel-client v0.0.16과 해시를 확인하고 MCP SDK 번들을 포함합니다. 개발자 PC에 검증된 바이너리가 없으면 공식 배포에서 다운로드합니다. EXE 배포 파일은 소스 Git 저장소에 포함하지 않습니다.
 
 ## 데이터와 설정
 

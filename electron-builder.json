@@ -7,6 +7,14 @@
   },
   "files": [
     "desktop.mjs",
+    "desktop-setup.mjs",
+    "onboarding.mjs",
+    "managed-link.mjs",
+    "plugins/paper-reader-link/credential-store.mjs",
+    "plugins/paper-reader-link/launcher-instance.mjs",
+    "setup.html",
+    "setup.css",
+    "setup.mjs",
     "desktop-profile.mjs",
     "desktop-preload.cjs",
     "chatgpt-panel.mjs",
@@ -66,6 +74,8 @@
     ],
     "signAndEditExecutable": false
   },
+  "extraResources": [{"from":"build/link-payload","to":"paper-reader-link","filter":["**/*","!tools/tunnel-client.exe"]}],
+  "afterPack": "./scripts/copy-desktop-tunnel.mjs",
   "portable": {
     "artifactName": "Paper-Reader-${version}-Windows-x64.exe"
   }

@@ -1,0 +1,166 @@
+{
+  "version": "0.11.0",
+  "nativeUI": {
+    "version": "0.11.0",
+    "scope": "Owned native Electron IPC harness, using the actual installed ASAR/preload/resources and isolated empty profile; NSIS visible radio page is not automated",
+    "cases": [
+      {
+        "name": "Welcome offers now/later; empty masked key; no saved credentials",
+        "result": "pass"
+      },
+      {
+        "name": "Now opens setup; absent runtime key gives local actionable error",
+        "result": "pass"
+      },
+      {
+        "name": "Later reaches reader, persists deferral and opens NTK PDF without authentication",
+        "result": "pass"
+      },
+      {
+        "name": "Actual saved NTK answer and question render Markdown and recovered formulas in history",
+        "result": "pass"
+      },
+      {
+        "name": "Manual screenshots show actual reader composer and notes without account information",
+        "result": "pass"
+      },
+      {
+        "name": "Reader settings reopens setup through the real preload IPC",
+        "result": "pass"
+      },
+      {
+        "name": "Login action attaches persistent native ChatGPT web panel",
+        "result": "pass"
+      },
+      {
+        "name": "Finish returns to reading and persists completion",
+        "result": "pass"
+      }
+    ],
+    "startedAt": "2026-10-15T11:21:09.714Z",
+    "origin": "http://127.0.0.1:56813",
+    "historyRendering": {
+      "math": 16,
+      "headings": 3,
+      "lists": 1,
+      "question": true,
+      "errors": 0
+    },
+    "result": "pass",
+    "completedAt": "2026-10-15T11:21:23.43Z"
+  },
+  "earlyCloseRegression": {
+    "script": "scripts/desktop-close-check.mjs",
+    "result": "pass",
+    "delaysMs": [
+      0,
+      100,
+      500
+    ]
+  },
+  "limitations": [
+    "NSIS visual radio page was not clicked with native computer-use; both choices were exercised through silent installer arguments",
+    "0.11.0 has not completed a new one-hour soak",
+    "Actual OS reboot was not tested",
+    "Installer is unsigned"
+  ],
+  "package": {
+    "version": "0.11.0",
+    "result": "pass",
+    "runtimeFilesMatched": 52,
+    "privateProfileFiles": [],
+    "tunnelVersion": "v0.0.16",
+    "tunnelSha256": "4226bb74a72388147882881f29f79801b95e285d731a138071812e3aa6766571",
+    "installerSha256": "0e815e28431f7f6d38e6b31df49fcd9f563ac37efeba7644acaf570a732f7227"
+  },
+  "result": "pass",
+  "previousVersionSoak": {
+    "version": "0.10.3",
+    "result": "pass",
+    "maxSampleGapSeconds": 32,
+    "failedCalls": 0,
+    "calls": 50,
+    "seconds": 3605,
+    "failedHealthSamples": 0,
+    "healthSamples": 118
+  },
+  "date": "2026-10-15",
+  "installedEntry": {
+    "result": "pass",
+    "cases": [
+      {
+        "result": "pass",
+        "name": "Installer AUTH=now opens visible setup on first launch",
+        "state": {
+          "visible": true,
+          "title": "Agentic PDF Reader · 인증 설정",
+          "installationVersion": "0.11.0",
+          "pid": 26264,
+          "decision": "pending"
+        }
+      },
+      {
+        "result": "pass",
+        "name": "Second-instance defer opens reader in the same process without credentials",
+        "state": {
+          "visible": true,
+          "title": "Agentic PDF Reader · 논문 읽기",
+          "installationVersion": "0.11.0",
+          "pid": 26264,
+          "decision": "deferred"
+        }
+      },
+      {
+        "result": "pass",
+        "name": "Normal restart preserves deferral and avoids repeated setup",
+        "state": {
+          "visible": true,
+          "title": "Agentic PDF Reader · 논문 읽기",
+          "installationVersion": "0.11.0",
+          "pid": 14116,
+          "decision": "deferred"
+        }
+      },
+      {
+        "result": "pass",
+        "name": "Installer AUTH=later opens visible reader on empty profile without key",
+        "state": {
+          "visible": true,
+          "title": "Agentic PDF Reader · 논문 읽기",
+          "installationVersion": "0.11.0",
+          "pid": 31784,
+          "decision": "deferred"
+        }
+      }
+    ],
+    "scope": "Actual installed EXE entry, isolated profiles, process window and persisted settings; visible NSIS radio page not automated",
+    "version": "0.11.0"
+  },
+  "automatedTests": {
+    "passed": 104,
+    "failed": 0,
+    "source": "npm test; Electron embedded Node/SQLite runtime"
+  },
+  "userGuide": {
+    "pages": 8,
+    "bytes": 970835,
+    "textChecks": {
+      "지금 인증": true,
+      "나중에 설정": true,
+      "ChatGPT": true,
+      "질문 기록": true,
+      "노트 내보내기": true,
+      "lambda_i": true
+    },
+    "encrypted": false
+  },
+  "uninstall": {
+    "exitCode": 0,
+    "userProfileExistsAfter": true,
+    "userProfileExistedBefore": true,
+    "scope": "Uninstall only the explicitly verified workspace test installation",
+    "testExecutableRemoved": true,
+    "uninstallEntryRemoved": true,
+    "originalReaderRunning": true
+  }
+}
