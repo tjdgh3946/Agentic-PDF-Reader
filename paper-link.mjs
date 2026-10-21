@@ -1,4 +1,4 @@
-import {randomBytes,randomUUID,timingSafeEqual} from 'node:crypto';
+import {createHash,randomBytes,randomUUID,timingSafeEqual} from 'node:crypto';
 import {mkdir,writeFile,readFile,rename,unlink} from 'node:fs/promises';
 import path from 'node:path';
 import {UserError} from './auth.mjs';
@@ -6,6 +6,43 @@ import {validAnchor} from './annotation-geometry.mjs';
 import {recordEvidence} from './pdf-evidence.mjs';
 
 const DAY=24*60*60*1000;
+const notePages=item=>[...new Set(item.anchors.map(anchor=>anchor.page))].sort((a,b)=>a-b);
+const preview=(text,length)=>Array.from(text).slice(0,length).join('');
+const searchText=text=>text.normalize('NFKC').replace(/\s+/gu,' ').trim().toLowerCase();
+function annotationInteger(value,fallback,max,label){
+  if(value===undefined)return fallback;
+  if(!Number.isSafeInteger(value)||value<0||value>max)throw new UserError(label+' 값을 확인하세요.');
+  return value;
+}
+function annotationResult(items,method,args){
+  if(method==='list_annotations'){
+    if(args.query!==undefined&&(typeof args.query!=='string'||args.query.length>500))throw new UserError('노트 검색어는 500자 이내로 입력하세요.');
+    if(args.pages!==undefined&&(!Array.isArray(args.pages)||!args.pages.length||args.pages.length>20||!args.pages.every(page=>Number.isSafeInteger(page)&&page>0)))throw new UserError('노트 페이지 필터를 확인하세요.');
+    const offset=annotationInteger(args.offset,0,1000000,'목록 위치'),limit=annotationInteger(args.limit,20,20,'노트 개수');
+    if(!limit)throw new UserError('노트 개수는 1~20개입니다.');
+    const revision=createHash('sha256').update(JSON.stringify(items)).digest('hex');
+    if(args.revision!==undefined&&args.revision!==revision)throw new UserError('노트가 변경되었습니다. 목록을 처음부터 다시 조회하세요.',409);
+    const query=searchText(args.query||'');
+    const matches=items.filter(item=>(!args.pages||notePages(item).some(page=>args.pages.includes(page)))&&(!query||searchText(item.quote+'\n'+item.note).includes(query)))
+      .sort((a,b)=>notePages(a)[0]-notePages(b)[0]||a.createdAt.localeCompare(b.createdAt)||a.id.localeCompare(b.id));
+    const entries=[];let characters=0;
+    for(const item of matches.slice(offset,offset+limit)){
+      const entry={annotationId:item.id,pages:notePages(item),kind:item.anchors.every(anchor=>anchor.kind==='page-note')?'page-note':'highlight',color:item.color,quotePreview:preview(item.quote,160),notePreview:preview(item.note,240),noteCharacters:Array.from(item.note).length,createdAt:item.createdAt,updatedAt:item.updatedAt};
+      const size=JSON.stringify(entry).length;if(entries.length&&characters+size>12000)break;
+      entries.push(entry);characters+=size;
+    }
+    return {revision,total:items.length,matched:matches.length,offset,entries,nextOffset:offset+entries.length<matches.length?offset+entries.length:null};
+  }
+  if(typeof args.annotationId!=='string'||!/^[a-f\d-]{1,200}$/i.test(args.annotationId))throw new UserError('읽을 노트 ID를 확인하세요.');
+  const item=items.find(item=>item.id===args.annotationId);
+  if(!item)throw new UserError('이 PDF에서 해당 노트를 찾지 못했습니다. 목록을 다시 조회하세요.',404);
+  const field=args.field??'note';if(!['note','quote'].includes(field))throw new UserError('노트 또는 원문 발췌를 선택하세요.');
+  const offset=annotationInteger(args.offset,0,1000000,'본문 위치'),maxCharacters=annotationInteger(args.maxCharacters,8000,8000,'본문 길이');
+  if(!maxCharacters)throw new UserError('본문 길이는 1~8,000자입니다.');
+  const characters=Array.from(item[field]);if(offset>characters.length)throw new UserError('노트 본문 위치가 범위를 벗어났습니다.');
+  const text=characters.slice(offset,offset+maxCharacters).join('');
+  return {annotationId:item.id,pages:notePages(item),color:item.color,kind:item.anchors.every(anchor=>anchor.kind==='page-note')?'page-note':'highlight',createdAt:item.createdAt,updatedAt:item.updatedAt,quotePreview:preview(item.quote,200),field,text,offset,totalCharacters:characters.length,nextOffset:offset+maxCharacters<characters.length?offset+maxCharacters:null};
+}
 function validateSelection(value){
   if(!value || typeof value.documentId!=='string' || !/^[a-f\d-]{1,200}$/i.test(value.documentId)
     || typeof value.fileName!=='string' || !value.fileName.trim() || value.fileName.length>500
@@ -32,7 +69,7 @@ export function createPaperLink({annotations,discoveryPath,getOrigin,pdfs,onSave
   function snapshot(record){
     if(!record)return null;
     const {selectionId,fileName,quote,question,context,allowSave,createdAt,expiresAt,saved}=record;
-    return {selectionId,fileName,quote,question,context,allowSave,createdAt,expiresAt,...(record.snapshotId?{snapshotId:record.snapshotId,pdfAvailable:true}:{}),scope:record.anchors[0].kind==='page-note'?'page':'selection',pages:record.anchors.map(a=>a.page),saved:saved?{annotationId:saved.id,note:saved.note}:null};
+    return {selectionId,fileName,quote,question,context,allowSave,annotationsAvailable:true,createdAt,expiresAt,...(record.snapshotId?{snapshotId:record.snapshotId,pdfAvailable:true}:{}),scope:record.anchors[0].kind==='page-note'?'page':'selection',pages:record.anchors.map(a=>a.page),saved:saved?{annotationId:saved.id,note:saved.note}:null};
   }
   async function enable(){
     if(enabled)return;
@@ -78,6 +115,28 @@ export function createPaperLink({annotations,discoveryPath,getOrigin,pdfs,onSave
     }catch(error){event.state='error';revision++;throw error;}
     finally{activeReads--;}
   }
+  async function readAnnotations(method,args){
+    const record=await serial(()=>{
+      if(!enabled)throw new UserError('Paper Reader Link 연결이 꺼져 있습니다.',409);
+      const item=getRecord(args.selectionId);
+      if(activeReads>=3)throw new UserError('PDF 작업이 진행 중입니다. 잠시 후 다시 시도하세요.',429);
+      activeReads++;lastContactAt=new Date(now()).toISOString();return item;
+    });
+    const event={tool:method,state:'running',pages:[],at:new Date(now()).toISOString()};
+    record.trace.push(event);if(record.trace.length>12)record.trace.shift();revision++;
+    try{
+      // Resolve the document from the share, never from a caller's document ID.
+      // Notes are live: include both manual notes and persisted ChatGPT answers.
+      const items=await (await annotations).list(record.documentId);
+      if(!enabled||getRecord(record.selectionId)!==record)throw new UserError('PDF 공유가 종료되었습니다.',410);
+      const value=annotationResult(items,method,args);
+    event.annotationPages=method==='list_annotations'?[...new Set(value.entries.flatMap(item=>item.pages))].sort((a,b)=>a-b):value.pages;
+      event.state='complete';revision++;
+      // Reading a note is not evidence that the original PDF page was read.
+      return {selectionId:record.selectionId,fileName:record.fileName,contentSource:'reader_annotations',authorship:'not_recorded',...value};
+    }catch(error){event.state='error';revision++;throw error;}
+    finally{activeReads--;}
+  }
   return {
     question(selectionId,documentId,question){const record=getRecord(selectionId);if(record.documentId!==documentId || record.question!==question)throw new UserError('질문 기록과 Link 공유 문서가 일치하지 않습니다.',409);return record.saved?{selectionId,documentId,annotationId:record.saved.id,note:record.saved.note}:null;},
     authorize(header){
@@ -95,7 +154,7 @@ export function createPaperLink({annotations,discoveryPath,getOrigin,pdfs,onSave
       if(selection.snapshotId){if(typeof selection.snapshotId!=='string'||!/^[a-f\d]{64}$/.test(selection.snapshotId)||!pdfs)throw new UserError('PDF 고정본 ID를 확인하세요.');pdfs.pin(selection.snapshotId,selection.documentId,selectionId);}
       records.set(selectionId,record);revision++;return snapshot(record);
     }),
-    call:(method,args={})=>['inspect_pdf','query_pdf','read_pdf','render_pdf_page'].includes(method)?readTool(method,args):serial(async()=>{
+    call:(method,args={})=>['inspect_pdf','query_pdf','read_pdf','render_pdf_page'].includes(method)?readTool(method,args):['list_annotations','read_annotation'].includes(method)?readAnnotations(method,args):serial(async()=>{
       if(!enabled)throw new UserError('Paper Reader Link 연결이 꺼져 있습니다.',409);
       lastContactAt=new Date(now()).toISOString();
       if(method==='get_selection'){

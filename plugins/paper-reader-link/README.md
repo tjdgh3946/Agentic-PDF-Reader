@@ -1,4 +1,4 @@
-# Paper Reader Link · 0.2.1 시제품
+# Paper Reader Link · 0.2.2 시제품
 
 Paper Reader에서 선택한 문장을 ChatGPT 대화로 가져오고, 답변을 원래 PDF 위치의 주석으로 저장하는 MCP 플러그인입니다. 모델 호출은 ChatGPT 대화에서 이루어집니다. Link 서버는 모델 API나 Codex 추론 API를 호출하지 않습니다.
 
@@ -28,6 +28,8 @@ Windows가 파일 실행을 차단하는 경우 보안 정책을 끄지 말고, 
 
 ## 기본 사용 흐름
 
+**기존 노트 참고:** 공유한 PDF의 AI 답변, 사용자 노트, 하이라이트를 `list_annotations`로 검색하고 `read_annotation`으로 읽습니다. 질문에 “기존 논문 노트도 참고해줘”를 넣으세요. 저장 허용이 꺼져 있어도 조회할 수 있습니다. 다른 PDF를 열어도 선택 ID가 가리키는 원래 PDF의 노트만 제공합니다. PDF 고정본과 달리 노트는 현재 저장 내용이므로 수정·삭제가 바로 반영됩니다. 작성자 정보가 기록되지 않은 기존 노트는 AI/사용자를 자동으로 구분하지 않습니다. PDF 내부에 삽입된 외부 주석은 대상이 아닙니다.
+
 ChatGPT를 기본 모드로 사용합니다. 앱에서 직접 요청하는 방식은 환경 설정의 보조 모드입니다. **문맥 설정 → AI가 문맥 찾기 · PDF 전체/이미지**를 켜면 질문 당시 PDF를 로컬에서 고정하고 ChatGPT가 MCP 도구로 페이지를 검색·읽고 수식·그림 PNG를 요청할 수 있습니다. 끄면 기존 발췌 텍스트 전달 방식입니다. 브라우저 전용 서버에서는 전체 PDF 검색을 지원하지 않습니다.
 
 ## 매번 사용하는 순서
@@ -50,7 +52,9 @@ ChatGPT를 기본 모드로 사용합니다. 앱에서 직접 요청하는 방�
 
 ## 개발 및 검증
 
-저장소에서 `npm install`, `npm run build:link`, `npm test`로 빌드·검증합니다. `server.bundle.mjs`와 `widget.html`은 빌드 산출물입니다. MCP 도구는 `open_paper_reader`, `get_selection`, `save_annotation`, `inspect_pdf`, `query_pdf`, `read_pdf`, `render_pdf_page` 일곱 개입니다. 번들에는 MCP SDK를 포함하므로 배포 폴더에서 npm 설치는 필요하지 않습니다.
+저장소에서 `npm install`, `npm run build:link`, `npm test`로 빌드·검증합니다. `server.bundle.mjs`와 `widget.html`은 빌드 산출물입니다. MCP 도구는 `open_paper_reader`, `get_selection`, `save_annotation`, `inspect_pdf`, `query_pdf`, `read_pdf`, `render_pdf_page`, `list_annotations`, `read_annotation` 아홉 개입니다. 번들에는 MCP SDK를 포함하므로 배포 폴더에서 npm 설치는 필요하지 않습니다.
+
+노트 목록은 한 번에 최대 20개이며 `query`는 원문·노트의 대소문자 무시 부분 문자열 검색입니다. 페이지 필터와 `nextOffset`을 지원합니다. 목록의 `revision`을 다음 페이지 요청에 전달하면 편집 중 목록 변경을 감지합니다. 개별 본문은 Markdown/LaTeX를 보존하며 최대 8,000 Unicode code point씩 `nextOffset`으로 이어 읽습니다. `field: "quote"`로 연결된 원문 발췌도 읽을 수 있습니다. 노트만 읽은 기록은 원본 PDF를 확인한 근거 페이지로 저장하지 않습니다.
 
 개발용 `npm start` 서버를 사용할 때는 stdio 실행 인자에 `--connection <저장소>/.local/link-connection.json`을 추가합니다. 기본 EXE는 `%APPDATA%/Paper Reader/link-connection.json`을 사용합니다. 이 파일은 연결 키를 포함하므로 공유하거나 커밋하지 마세요.
 
@@ -62,4 +66,4 @@ ChatGPT를 기본 모드로 사용합니다. 앱에서 직접 요청하는 방�
 
 2026-10-13 실제 로그인된 ChatGPT 일반 Chat에서 7개 도구 갱신 후 NTK 논문을 검증했습니다. 모델이 질문에 맞춰 SQL 검색 → 원문 읽기 → 실제 PNG 확인을 수행했습니다. Theorem 2/ReLU 가정 대조와 Figure 3(c)/Figure 1 비교를 근거 페이지와 함께 답했고, Paper Reader에서도 도구 처리 상태와 근거 페이지를 확인했습니다. 이 테스트는 별도 인앱 브라우저의 ChatGPT에서 실행했으며, EXE 내장 패널의 직접 전송은 기존 검증과 구별합니다.
 
-기존 0.1.0 터널을 사용 중이라면 실행 중인 Link를 종료하고 0.2.1 패키지의 `Start-Link.cmd`로 다시 연결하세요. ChatGPT의 플러그인 도구 목록에서 `inspect_pdf`, `query_pdf`, `read_pdf`, `render_pdf_page`가 보이는지 확인합니다. 예전 3개만 보이면 ChatGPT의 해당 플러그인 **관리 → 도구 새로 고침**으로 갱신하세요. API 키는 채팅에 공유하지 마세요.
+기존 터널을 사용 중이라면 앱을 0.11.5로 업데이트하거나 실행 중인 Link를 종료하고 0.2.2 패키지의 `Start-Link.cmd`로 다시 연결하세요. ChatGPT의 해당 플러그인 **관리 → 도구 새로 고침**으로 갱신하여 `list_annotations`, `read_annotation`을 포함한 9개 도구가 보이는지 확인합니다. API 키는 채팅에 공유하지 마세요.

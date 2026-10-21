@@ -108,7 +108,7 @@ test('full stdio MCP loop uses the scoped bridge and writes a real persisted ann
   const client=new Client({name:'paper-link-test',version:'1.0.0'});
   const transport=new StdioClientTransport({command:process.execPath,args:[fileURLToPath(new URL('../plugins/paper-reader-link/server.bundle.mjs',import.meta.url)),'--connection',f.discoveryPath],env:process.versions.electron?{ELECTRON_RUN_AS_NODE:'1'}:{},stderr:'pipe'});
   t.after(()=>client.close());await client.connect(transport);
-  const catalog=await client.listTools();assert.deepEqual(catalog.tools.map(tool=>tool.name),['open_paper_reader','get_selection','save_annotation','inspect_pdf','query_pdf','read_pdf','render_pdf_page']);
+  const catalog=await client.listTools();assert.deepEqual(catalog.tools.map(tool=>tool.name),['open_paper_reader','get_selection','save_annotation','inspect_pdf','query_pdf','read_pdf','render_pdf_page','list_annotations','read_annotation']);
   // ChatGPT tool import needs homogeneous array items, not JSON Schema tuples.
   const cropSchema=catalog.tools.find(tool=>tool.name==='render_pdf_page').inputSchema.properties.region;
   assert.equal(cropSchema.items.type,'number');assert.equal(cropSchema.minItems,4);assert.equal(cropSchema.maxItems,4);
@@ -117,6 +117,12 @@ test('full stdio MCP loop uses the scoped bridge and writes a real persisted ann
   const resource=await client.readResource({uri:UI_URI});assert.equal(resource.contents[0].mimeType,'text/html;profile=mcp-app');assert.ok(resource.contents[0].text.includes('Paper Reader Link'));
   const answer='**로컬 왕복 검증**\n선택한 문장의 해설입니다.';
   const saved=await client.callTool({name:'save_annotation',arguments:{selectionId:shared.selectionId,note:answer}});assert.equal(saved.structuredContent.saved,true);
+  for(const name of ['list_annotations','read_annotation'])assert.equal(catalog.tools.find(tool=>tool.name===name).annotations.readOnlyHint,true);
+  const listed=await client.callTool({name:'list_annotations',arguments:{selectionId:shared.selectionId,query:'왕복'}});
+  assert.equal(listed.structuredContent.entries[0].annotationId,saved.structuredContent.annotationId);
+  const read=await client.callTool({name:'read_annotation',arguments:{selectionId:shared.selectionId,annotationId:saved.structuredContent.annotationId}});
+  assert.equal(read.structuredContent.text,answer);
+  const invalidLimit=await client.callTool({name:'list_annotations',arguments:{selectionId:shared.selectionId,limit:21}});assert.equal(invalidLimit.isError,true);
   const response=await fetch(origin+'/api/annotations?documentId=abc123',{headers:{'X-Paper-Reader':'1'}});
   assert.equal((await response.json())[0].note,answer);
   const invalid=await client.callTool({name:'save_annotation',arguments:{selectionId:shared.selectionId,note:''}});assert.equal(invalid.isError,true);

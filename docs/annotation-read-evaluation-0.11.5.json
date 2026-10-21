@@ -1,0 +1,151 @@
+{
+  "version": "0.11.5",
+  "mcpVersion": "0.2.2",
+  "date": "2026-10-21",
+  "automatedTests": {
+    "passed": 111,
+    "failed": 0,
+    "skipped": 0
+  },
+  "actualChatGPT": {
+    "browser": "ChatGPT in-app browser",
+    "conversation": "https://chatgpt.com/c/6ad85ee4-307c-83ec-8dc3-f13981064591",
+    "pdf": "1806.07572v4.pdf",
+    "selectionId": "0838cecb-d519-4a9c-8c21-b97eaf4e54db",
+    "readOnlyShare": true,
+    "manualNoteId": "9e364cc9-ded7-45cf-8927-d34a775e8494",
+    "existingAIAnswerId": "45f42af5-d632-4492-a3d6-5cb0ea8b6c49",
+    "trace": [
+      {
+        "tool": "inspect_pdf",
+        "state": "complete",
+        "pages": [],
+        "at": "2026-10-21T06:43:08.715Z"
+      },
+      {
+        "tool": "query_pdf",
+        "state": "complete",
+        "pages": [
+          8
+        ],
+        "at": "2026-10-21T06:43:16.407Z"
+      },
+      {
+        "tool": "list_annotations",
+        "state": "complete",
+        "pages": [
+          9
+        ],
+        "at": "2026-10-21T06:43:16.827Z"
+      },
+      {
+        "tool": "list_annotations",
+        "state": "complete",
+        "pages": [
+          7,
+          8,
+          9
+        ],
+        "at": "2026-10-21T06:43:17.178Z"
+      },
+      {
+        "tool": "read_annotation",
+        "state": "complete",
+        "pages": [
+          9
+        ],
+        "at": "2026-10-21T06:43:24.748Z"
+      },
+      {
+        "tool": "read_annotation",
+        "state": "complete",
+        "pages": [
+          9
+        ],
+        "at": "2026-10-21T06:43:25.074Z"
+      },
+      {
+        "tool": "read_pdf",
+        "state": "complete",
+        "pages": [
+          8,
+          9
+        ],
+        "at": "2026-10-21T06:43:25.484Z"
+      },
+      {
+        "tool": "render_pdf_page",
+        "state": "complete",
+        "pages": [
+          8
+        ],
+        "at": "2026-10-21T06:43:31.831Z",
+        "image": {
+          "region": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "width": 1546,
+          "height": 2000
+        }
+      },
+      {
+        "tool": "list_annotations",
+        "state": "complete",
+        "pages": [
+          9
+        ],
+        "at": "2026-10-21T06:45:22.352Z"
+      }
+    ],
+    "storedNotesBefore": 8,
+    "storedNotesAfter": 8,
+    "newAnswerSaved": false,
+    "result": "The model searched and read both notes, quoted their IDs and pages, and compared their content. Initial final answer was truncated; a short follow-up completed the comparison without creating a note.",
+    "scope": "Browser copy/paste flow against the installed EXE server. Not a new EXE IPC auto-send validation."
+  },
+  "limits": [
+    "Historical note authorship is not recorded. Both types share the same store.",
+    "External annotations embedded directly into PDF bytes are not extracted.",
+    "A labelled manual note fixture remains in the local NTK document; personal profiles and notes are not in the repository or installer.",
+    "Actual ChatGPT test used the first 0.11.5 build. Final build additionally separates note anchor trace pages from primary PDF evidence; this trace change is covered by tests."
+  ],
+  "installer": {
+    "file": "Agentic-PDF-Reader-0.11.5-install.exe",
+    "sha256": "bc956c124169050e803c13061c9e2a7efb6b287f86ac44b050853295f5262c34",
+    "installedExitCode": 0,
+    "installedVersion": "0.11.5",
+    "packagedSourcesMatch": true,
+    "mcpBundleMatches": true,
+    "noPackagedCredentials": true,
+    "managedTunnelAutoStarted": true
+  },
+  "finalInstalledPluginTest": {
+    "selectionId": "40ce1174-3d1d-4a52-82dc-9363a8e68ca6",
+    "listAnnotations": "success: 8 total, 1 marker match",
+    "readAnnotation": "success: exact LaTeX preserved",
+    "trace": [
+      {
+        "tool": "list_annotations",
+        "state": "complete",
+        "pages": [],
+        "at": "2026-10-21T06:47:57.955Z",
+        "annotationPages": [
+          9
+        ]
+      },
+      {
+        "tool": "read_annotation",
+        "state": "complete",
+        "pages": [],
+        "at": "2026-10-21T06:47:59.087Z",
+        "annotationPages": [
+          9
+        ]
+      }
+    ],
+    "noteReadsMarkedAsPdfEvidence": false
+  }
+}

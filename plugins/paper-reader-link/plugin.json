@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "paper-reader-link",
-  "version": "0.2.1",
-  "description": "Connect explicitly shared PDF passages to a ChatGPT conversation and save answers as anchored PDF notes.",
+  "version": "0.2.2",
+  "description": "Read explicitly shared PDFs and their existing Reader notes in ChatGPT, and optionally save answers as anchored notes.",
   "extensions": {
     "com.openai": {
       "interface": {
@@ -11,7 +11,7 @@
         "category": "Productivity",
         "capabilities": ["Read", "Write"],
         "brandColor": "#426342",
-        "defaultPrompt": ["Paper Reader Link를 열어줘. 공유한 문장을 설명하고 PDF 주석으로 저장해줘."]
+        "defaultPrompt": ["Paper Reader Link를 열어줘. 공유한 PDF와 필요한 기존 논문 노트를 읽고 질문에 답해줘."]
       }
     }
   }
