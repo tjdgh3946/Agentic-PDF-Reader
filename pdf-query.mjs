@@ -19,7 +19,7 @@ export function validateQuery(sql,params=[]){
   return {sql,params};
 }
 
-export function createQueryIndex(pages,{timeout=1500,idleTimeout=30000}={}){
+export function createQueryIndex(pages,{timeout=1500,idleTimeout=30000,passages=[]}={}){
   let worker=null,ready=null,closed=false,serial=Promise.resolve(),id=0,idleTimer,queued=0;
   const pending=new Map();
   function idle(){clearTimeout(idleTimer);if(closed||queued||pending.size||!worker)return;idleTimer=setTimeout(()=>{if(!queued&&!pending.size)stop();},idleTimeout);idleTimer.unref?.();}
@@ -40,7 +40,7 @@ export function createQueryIndex(pages,{timeout=1500,idleTimeout=30000}={}){
       active.on('error',error=>{clearTimeout(boot);reject(new UserError('PDF 검색 런타임을 확인하세요: '+error.message));if(worker===active)stop();});
       active.on('exit',code=>{clearTimeout(boot);reject(new UserError('PDF 검색 프로세스가 종료되었습니다.'));if(worker===active)stop();});
     });
-    worker.send({pages});
+    worker.send({pages,passages});
     return ready;
   }
   function stop(){clearTimeout(idleTimer);const old=worker;worker=null;ready=null;old?.kill();for(const item of pending.values()){clearTimeout(item.timer);item.reject(new UserError('SQL 작업이 중단되었습니다. 다시 검색하세요.',408));}pending.clear();}

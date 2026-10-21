@@ -1,4 +1,5 @@
 import {getDocument,GlobalWorkerOptions} from './pdfjs/build/pdf.mjs';
+import {extractPdfText} from './pdf-text.mjs';
 GlobalWorkerOptions.workerSrc=new URL('./pdfjs/build/pdf.worker.mjs',import.meta.url).href;
 let pdf;
 window.pdfProcessing.onRequest(async({id,method,bytes,limits,page,region,extractText=true})=>{
@@ -7,13 +8,13 @@ window.pdfProcessing.onRequest(async({id,method,bytes,limits,page,region,extract
     if(method==='load'){
       pdf=await getDocument({data:new Uint8Array(bytes),isEvalSupported:false,cMapUrl:new URL('./pdfjs/web/cmaps/',import.meta.url).href,cMapPacked:true,standardFontDataUrl:new URL('./pdfjs/web/standard_fonts/',import.meta.url).href,wasmUrl:new URL('./pdfjs/web/wasm/',import.meta.url).href}).promise;
       if(pdf.numPages>limits.pages)throw Error('PDF는 최대 1,000페이지까지 지원합니다.');
-      const pages=[];let length=0;
+      const pages=[],paragraphBreaks=[];let length=0;
       for(let number=1;extractText&&number<=pdf.numPages;number++){
         const target=await pdf.getPage(number),content=await target.getTextContent();
-        const text=content.items.map(item=>'str' in item?item.str+(item.hasEOL?'\n':' '):'').join('').trim();
-        length+=text.length;if(length>limits.text)throw Error('PDF 본문이 12M자 추출 한도를 넘었습니다.');pages.push(text);
+        const {text,breaks}=extractPdfText(content.items);
+        length+=text.length;if(length>limits.text)throw Error('PDF 본문이 12M자 추출 한도를 넘었습니다.');pages.push(text);paragraphBreaks.push(breaks);
       }
-      value={...(extractText?{pages}:{}),pageCount:pdf.numPages,documentId:pdf.fingerprints[0]};
+      value={...(extractText?{pages,paragraphBreaks}:{}),pageCount:pdf.numPages,documentId:pdf.fingerprints[0]};
     }else if(method==='render'){
       const target=await pdf.getPage(page),base=target.getViewport({scale:1}),viewport=target.getViewport({scale:2000/Math.max(base.width,base.height)});
       const canvas=document.createElement('canvas');canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);

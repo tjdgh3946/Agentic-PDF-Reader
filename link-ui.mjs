@@ -15,7 +15,7 @@ export function createLinkUI({api,prepare,onAnnotations,status,updateSend,getDoc
     $('link-copy').hidden=!sendToChatGPT || lastRequest?.input.documentId!==current || lastRequest.result.allowSave!==$('link-save-answer').checked;
     const trace=shared?.trace||[];
     $('link-evidence').hidden=!trace.length;
-    const labels={inspect_pdf:'문서 확인',query_pdf:'본문 검색',read_pdf:'페이지 읽기',render_pdf_page:'이미지 확인',list_annotations:'논문 노트 검색',read_annotation:'논문 노트 읽기'};
+    const labels={inspect_pdf:'문서 확인',query_pdf:'SQL 검색',search_pdf:'문단 검색',read_pdf:'문단 읽기',expand_pdf:'앞뒤 문맥 확장',render_pdf_page:'이미지 확인',list_annotations:'논문 노트 검색',read_annotation:'논문 노트 읽기'};
     $('link-trace').textContent=trace.slice(-4).map(event=>`${labels[event.tool]} ${event.state==='running'?'중…':event.state==='error'?'실패':'완료'}`).join(' → ');
     const pages=[...new Set(trace.flatMap(event=>event.pages))].sort((a,b)=>a-b);
     $('link-evidence-pages').replaceChildren(...pages.map(page=>{const button=document.createElement('button');button.type='button';button.textContent='p. '+page;button.title='근거 페이지로 이동';button.onclick=()=>onPage?.(page);return button;}));
@@ -25,7 +25,7 @@ export function createLinkUI({api,prepare,onAnnotations,status,updateSend,getDoc
     try{
       const value=await api('/api/link/status');
       onPdfAvailability?.(value.pdfAvailable);
-      $('pdf-search-description').textContent=value.pdfAvailable?'질문 당시 PDF 전체를 공유합니다. ChatGPT가 SQL로 검색하고 수식·도표를 이미지로 확인합니다. Link 플러그인 연결이 필요합니다.':'PDF 전체 검색은 Windows 앱을 실행한 뒤 사용할 수 있습니다.';
+      $('pdf-search-description').textContent=value.pdfAvailable?'질문 당시 PDF 전체를 공유합니다. ChatGPT가 필요한 문단을 검색·읽고 부족한 앞뒤 문맥만 확장합니다. 수식·도표는 이미지로 확인합니다. Link 플러그인 연결이 필요합니다.':'PDF 전체 검색은 Windows 앱을 실행한 뒤 사용할 수 있습니다.';
       const connected=value.enabled && !!value.lastContactAt;
       $('link-indicator').classList.toggle('is-connected',connected);
       $('link-indicator').textContent=connected?'Link 요청 수신':value.enabled?'Link 요청 대기':'Link 설정';

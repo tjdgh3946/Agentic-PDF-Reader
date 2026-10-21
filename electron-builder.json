@@ -56,7 +56,7 @@
     "link-ui.mjs",
     "pdf-query-worker.mjs",
     "pdf-query.mjs",
-    "pdf-snapshots.mjs",
+    "pdf-text.mjs","pdf-passages.mjs","pdf-snapshots.mjs",
     "pdf-render-service.mjs",
     "pdf-render-recovery.mjs",
     "pdf-renderer.html",

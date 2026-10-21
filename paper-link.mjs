@@ -104,12 +104,15 @@ export function createPaperLink({annotations,discoveryPath,getOrigin,pdfs,onSave
       let value;
       if(method==='inspect_pdf')value=pdfs.inspect(record.snapshotId);
       if(method==='query_pdf')value=await pdfs.query(record.snapshotId,args.sql,args.params);
-      if(method==='read_pdf')value=pdfs.read(record.snapshotId,args.pages);
+      if(method==='search_pdf')value=await pdfs.search(record.snapshotId,args);
+      if(method==='read_pdf')value=pdfs.read(record.snapshotId,args);
+      if(method==='expand_pdf')value=pdfs.expand(record.snapshotId,args);
       if(method==='render_pdf_page')value=await pdfs.render(record.snapshotId,args.page,args.region);
       if(!enabled || getRecord(record.selectionId)!==record)throw new UserError('PDF 공유가 종료되었습니다.',410);
       event.state='complete';
-      event.pages=method==='query_pdf'?[...new Set(value.rows.map(row=>Number(row.page_no)).filter(n=>Number.isInteger(n)&&n>=1&&n<=pdfs.inspect(record.snapshotId).pageCount))]:method==='read_pdf'?value.pages.map(p=>p.page):method==='render_pdf_page'?[args.page]:[];
-      if(method==='read_pdf'||method==='render_pdf_page')recordEvidence(record.evidence,method,value,args);
+      event.pages=method==='query_pdf'?[...new Set(value.rows.map(row=>Number(row.page_no)).filter(n=>Number.isInteger(n)&&n>=1&&n<=pdfs.inspect(record.snapshotId).pageCount))]:method==='search_pdf'?[...new Set(value.matches.map(p=>p.page))]:['read_pdf','expand_pdf'].includes(method)?[...new Set(value.pages.map(p=>p.page))]:method==='render_pdf_page'?[args.page]:[];
+      if(['read_pdf','expand_pdf','render_pdf_page'].includes(method))recordEvidence(record.evidence,method,value,args);
+      if(['read_pdf','expand_pdf'].includes(method)){event.characters=value.characters;event.passages=value.pages.map(p=>({passageId:p.passageId,start:p.start,end:p.end}));if(args.reason)event.reason=args.reason;}
       if(method==='render_pdf_page')event.image={region:value.metadata.region,width:value.metadata.width,height:value.metadata.height};
       revision++;return {selectionId:record.selectionId,...value};
     }catch(error){event.state='error';revision++;throw error;}
@@ -130,7 +133,7 @@ export function createPaperLink({annotations,discoveryPath,getOrigin,pdfs,onSave
       const items=await (await annotations).list(record.documentId);
       if(!enabled||getRecord(record.selectionId)!==record)throw new UserError('PDF 공유가 종료되었습니다.',410);
       const value=annotationResult(items,method,args);
-    event.annotationPages=method==='list_annotations'?[...new Set(value.entries.flatMap(item=>item.pages))].sort((a,b)=>a-b):value.pages;
+      event.annotationPages=method==='list_annotations'?[...new Set(value.entries.flatMap(item=>item.pages))].sort((a,b)=>a-b):value.pages;
       event.state='complete';revision++;
       // Reading a note is not evidence that the original PDF page was read.
       return {selectionId:record.selectionId,fileName:record.fileName,contentSource:'reader_annotations',authorship:'not_recorded',...value};
@@ -154,7 +157,7 @@ export function createPaperLink({annotations,discoveryPath,getOrigin,pdfs,onSave
       if(selection.snapshotId){if(typeof selection.snapshotId!=='string'||!/^[a-f\d]{64}$/.test(selection.snapshotId)||!pdfs)throw new UserError('PDF 고정본 ID를 확인하세요.');pdfs.pin(selection.snapshotId,selection.documentId,selectionId);}
       records.set(selectionId,record);revision++;return snapshot(record);
     }),
-    call:(method,args={})=>['inspect_pdf','query_pdf','read_pdf','render_pdf_page'].includes(method)?readTool(method,args):['list_annotations','read_annotation'].includes(method)?readAnnotations(method,args):serial(async()=>{
+    call:(method,args={})=>['inspect_pdf','query_pdf','search_pdf','read_pdf','expand_pdf','render_pdf_page'].includes(method)?readTool(method,args):['list_annotations','read_annotation'].includes(method)?readAnnotations(method,args):serial(async()=>{
       if(!enabled)throw new UserError('Paper Reader Link 연결이 꺼져 있습니다.',409);
       lastContactAt=new Date(now()).toISOString();
       if(method==='get_selection'){

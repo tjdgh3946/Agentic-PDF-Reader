@@ -9,7 +9,7 @@ export function createPdfRenderer(getOrigin,options={}){
   const windows=new Map();let requestId=0,closed=false,isolated;
   // A single in-memory partition stays separate from login profiles. Reusing it
   // avoids accumulating partition caches on every idle recovery.
-  const allowed=url=>{try{const parsed=new URL(url);return parsed.origin===getOrigin() && (parsed.pathname.startsWith('/pdfjs/')||['/pdf-renderer.html','/pdf-renderer.mjs'].includes(parsed.pathname));}catch{return false;}};
+  const allowed=url=>{try{const parsed=new URL(url);return parsed.origin===getOrigin() && (parsed.pathname.startsWith('/pdfjs/')||['/pdf-renderer.html','/pdf-renderer.mjs','/pdf-text.mjs'].includes(parsed.pathname));}catch{return false;}};
   function release(id){const record=windows.get(id);if(!record)return;windows.delete(id);record.abort();if(!record.window.isDestroyed())record.window.destroy();}
   return withRendererRecovery({
     has:id=>windows.has(id),

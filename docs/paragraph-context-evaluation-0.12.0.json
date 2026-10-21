@@ -1,0 +1,251 @@
+{
+  "version": "0.12.0",
+  "mcpVersion": "0.3.0",
+  "date": "2026-10-21",
+  "automatedTests": {
+    "passed": 117,
+    "failed": 0,
+    "skipped": 0
+  },
+  "realPdfIntegration": "paragraph-context-local-0.12.0.json",
+  "installer": {
+    "file": "Agentic-PDF-Reader-0.12.0-install.exe",
+    "sha256": "a23ccdb478f9556b0274e4bbd179c077e20c6f3d2364e3a82f24f1c707966872",
+    "installExitCode": 0,
+    "packagedRuntimeFilesMatch": 13,
+    "mcpBundleMatches": true,
+    "managedTunnelAutoStarted": true
+  },
+  "actualChatGPT": {
+    "conversation": "https://chatgpt.com/c/6ad8688d-6f9c-83ec-a5f2-3f019c9d25c6",
+    "flow": "In-app browser copy/paste against installed EXE server; not a new native IPC send test.",
+    "selectionId": "e122ff81-9d8e-4fee-b67a-557294aaee8a",
+    "trace": [
+      {
+        "tool": "search_pdf",
+        "state": "complete",
+        "pages": [
+          15,
+          14,
+          13,
+          6
+        ],
+        "at": "2026-10-21T07:24:12.688Z"
+      },
+      {
+        "tool": "read_pdf",
+        "state": "complete",
+        "pages": [
+          6
+        ],
+        "at": "2026-10-21T07:24:17.849Z",
+        "characters": 256,
+        "passages": [
+          {
+            "passageId": "p6.5",
+            "start": 698,
+            "end": 954
+          }
+        ]
+      },
+      {
+        "tool": "expand_pdf",
+        "state": "complete",
+        "pages": [
+          6
+        ],
+        "at": "2026-10-21T07:24:24.626Z",
+        "characters": 263,
+        "passages": [
+          {
+            "passageId": "p6.5",
+            "start": 954,
+            "end": 1217
+          }
+        ],
+        "reason": "256자 제한으로 정리의 가정과 결론이 문장 중간에서 잘려 나머지를 확인해야 함"
+      },
+      {
+        "tool": "expand_pdf",
+        "state": "complete",
+        "pages": [
+          6
+        ],
+        "at": "2026-10-21T07:25:49.298Z",
+        "characters": 395,
+        "passages": [
+          {
+            "passageId": "p6.4",
+            "start": 301,
+            "end": 696
+          }
+        ],
+        "reason": "Theorem 2 이전 문맥에서 d_t가 일반적 학습 방향인지와 gradient descent의 특수 정의를 확인하기 위함"
+      },
+      {
+        "tool": "search_pdf",
+        "state": "complete",
+        "pages": [
+          9
+        ],
+        "at": "2026-10-21T07:26:56.367Z"
+      },
+      {
+        "tool": "render_pdf_page",
+        "state": "complete",
+        "pages": [
+          9
+        ],
+        "at": "2026-10-21T07:27:05.809Z",
+        "image": {
+          "region": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "width": 1546,
+          "height": 2000
+        }
+      },
+      {
+        "tool": "read_pdf",
+        "state": "complete",
+        "pages": [
+          9
+        ],
+        "at": "2026-10-21T07:27:06.422Z",
+        "characters": 257,
+        "passages": [
+          {
+            "passageId": "p9.13",
+            "start": 553,
+            "end": 810
+          }
+        ]
+      },
+      {
+        "tool": "read_pdf",
+        "state": "complete",
+        "pages": [
+          9
+        ],
+        "at": "2026-10-21T07:27:07.875Z",
+        "characters": 8,
+        "passages": [
+          {
+            "passageId": "p9.12",
+            "start": 544,
+            "end": 552
+          }
+        ]
+      },
+      {
+        "tool": "render_pdf_page",
+        "state": "complete",
+        "pages": [
+          9
+        ],
+        "at": "2026-10-21T07:27:14.866Z",
+        "image": {
+          "region": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "width": 1546,
+          "height": 2000
+        }
+      },
+      {
+        "tool": "render_pdf_page",
+        "state": "complete",
+        "pages": [
+          9
+        ],
+        "at": "2026-10-21T07:27:23.821Z",
+        "image": {
+          "region": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "width": 1546,
+          "height": 2000
+        }
+      },
+      {
+        "tool": "search_pdf",
+        "state": "complete",
+        "pages": [
+          9
+        ],
+        "at": "2026-10-21T07:27:31.205Z"
+      },
+      {
+        "tool": "read_pdf",
+        "state": "complete",
+        "pages": [
+          9
+        ],
+        "at": "2026-10-21T07:27:38.523Z",
+        "characters": 638,
+        "passages": [
+          {
+            "passageId": "p9.17",
+            "start": 2090,
+            "end": 2728
+          }
+        ]
+      }
+    ],
+    "forward": {
+      "anchorCharacters": 256,
+      "extensionCharacters": 263,
+      "adjacentOffsets": [
+        698,
+        954,
+        1217
+      ],
+      "expansionCalls": 1,
+      "stoppedAfterCompleteEvidence": true
+    },
+    "backward": {
+      "characters": 395,
+      "offsets": [
+        301,
+        696
+      ],
+      "reason": "Check general training direction versus gradient descent special case.",
+      "result": "First answer incorrectly narrowed d_t to loss derivative; after backward context read the model corrected it to a general training direction."
+    },
+    "newNotesSaved": false,
+    "figureFollowup": {
+      "topic": "Figure 3(c) small-network convergence",
+      "result": "The model searched again for a distant topic, read p9.13 (257 chars), p9.12 (8 chars), p9.17 (638 chars), fetched the page image and answered in 3 sentences without further paragraph expansion.",
+      "sourceCharacters": 903,
+      "imageCalls": 3,
+      "uniqueImageRegions": 1,
+      "limitation": "The model repeated the same full-page image request three times. Image result deduplication is not implemented; the new hard budget applies to text source responses, not image tokens."
+    },
+    "storedNotesBefore": 8,
+    "storedNotesAfter": 8,
+    "refresh": "First refresh during startup failed; retry after successful tunnel/bridge probe imported new tools and real ChatGPT calls succeeded."
+  },
+  "limits": [
+    "These are returned source-character counts, not host context token measurements.",
+    "Each response is capped, but repeated calls can still accumulate; no old ChatGPT messages are removed.",
+    "Paragraph segmentation is heuristic; images may be needed for math and complex layouts.",
+    "Existing note tool limits remain separate."
+  ],
+  "metrics": {
+    "textReadCalls": 6,
+    "largestSourceCharacters": 638,
+    "wholePageRawRead": false,
+    "forwardSourceCharacters": 519,
+    "baselineWholePageCharacters": 3865,
+    "note": "Source character comparison only. Search snippets, tool metadata, other turns, and image tokens are additional."
+  }
+}

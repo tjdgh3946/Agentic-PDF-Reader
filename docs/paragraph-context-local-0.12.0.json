@@ -1,0 +1,237 @@
+{
+  "date": "2026-10-21T07:19:00.885Z",
+  "checks": [
+    {
+      "name": "real NTK paragraph search and bounded anchor",
+      "result": "pass",
+      "search": {
+        "selectionId": "4a0086ed-16cb-4d02-b339-cbfc5530f155",
+        "matches": [
+          {
+            "passageId": "p6.5",
+            "page": 6,
+            "excerpt": "[Theorem 2].   Assume that   σ   is a Lipschitz, twice differentiable nonlinearity function, with bounded\nsecond derivative. For any   T   such that the integral   ∫   T…"
+          }
+        ],
+        "moreMatches": false,
+        "limits": {
+          "hits": 3,
+          "excerptCharacters": 220
+        },
+        "advice": "Search excerpts are discovery only. Read the passageId for exact text. Short or empty results: source-language synonyms, broader keywords, or SQL metadata lookup. Expand nearby text only after reading; do not equate a snippet with complete evidence."
+      },
+      "anchor": {
+        "page": 6,
+        "passageId": "p6.5",
+        "start": 698,
+        "end": 954,
+        "text": "Theorem 2.   Assume that   σ   is a Lipschitz, twice differentiable nonlinearity function, with bounded\nsecond derivative. For any   T   such that the integral   ∫   T \n0   ‖ d t ‖ p in   dt   stays stochastically bounded, as \nn 1 , ..., n L − 1   → ∞ , we",
+        "paragraphComplete": false,
+        "continuesBefore": false,
+        "continuesAfter": true,
+        "before": "e052eb972f646747:p6.5:0:before",
+        "after": "e052eb972f646747:p6.5:256:after"
+      }
+    },
+    {
+      "name": "forward and backward extension preserves exact raw text",
+      "result": "pass",
+      "expanded": [
+        {
+          "page": 6,
+          "passageId": "p6.5",
+          "start": 954,
+          "end": 1217,
+          "text": " have, uniformly for   t   ∈   [0 , T   ] , \nΘ ( L ) ( t )   →   Θ ( L ) \n∞   ⊗   Id n L   . \nAs a consequence, in this limit, the dynamics of   f θ   is described by the differential equation \n∂ t f θ ( t )   = Φ Θ ( L ) \n∞   ⊗ Id n L \n( \n〈 d t ,   ·〉 p in \n) \n.",
+          "paragraphComplete": false,
+          "continuesBefore": true,
+          "continuesAfter": false,
+          "before": "e052eb972f646747:p6.5:256:before",
+          "after": "e052eb972f646747:p6.5:519:after"
+        },
+        {
+          "page": 6,
+          "passageId": "p6.6",
+          "start": 1219,
+          "end": 1550,
+          "text": "Remark 4.   As the proof of the theorem (in the appendix) shows, the variation during training of the\nindividual activations in the hidden layers shrinks as their width grows. However their collective\nvariation is significant, which allows the parameters of the lower layers to learn: in the formula of\nthe limiting NTK   Θ ( L +1)",
+          "paragraphComplete": true,
+          "continuesBefore": false,
+          "continuesAfter": false,
+          "before": "e052eb972f646747:p6.6:0:before",
+          "after": "e052eb972f646747:p6.6:331:after"
+        }
+      ],
+      "before": {
+        "selectionId": "4a0086ed-16cb-4d02-b339-cbfc5530f155",
+        "pages": [
+          {
+            "page": 6,
+            "passageId": "p6.4",
+            "start": 301,
+            "end": 696,
+            "text": "p in   . \nIn the case of gradient descent,   d t   =   − d | f θ ( t )   (see Section 3), but the direction may depend on\nanother network, as is the case for e.g. Generative Adversarial Networks (10). We only assume that\nthe integral   ∫   T \n0   ‖ d t ‖ p in   dt   stays stochastically bounded as the width tends to infinity, which is verified\nfor e.g. least-squares regression, see Section 5.",
+            "paragraphComplete": true,
+            "continuesBefore": false,
+            "continuesAfter": false,
+            "before": "e052eb972f646747:p6.4:0:before",
+            "after": "e052eb972f646747:p6.4:395:after"
+          }
+        ],
+        "characters": 395,
+        "maxCharacters": 512,
+        "omittedRequestedPages": [],
+        "readingUnit": "heuristic-paragraph"
+      }
+    },
+    {
+      "name": "Figure 3 paragraph search",
+      "result": "pass",
+      "matches": [
+        {
+          "passageId": "p9.12",
+          "page": 9,
+          "excerpt": "[Figure 3]"
+        }
+      ]
+    },
+    {
+      "name": "SQL result cap",
+      "result": "pass",
+      "characters": 3064,
+      "truncated": true
+    }
+  ],
+  "info": {
+    "selectionId": "4a0086ed-16cb-4d02-b339-cbfc5530f155",
+    "snapshotId": "e052eb972f646747ac4554a294eb62874077e59a5f585f459e2dbd5cb2a0975d",
+    "pageCount": 19,
+    "bytes": 519056,
+    "emptyPages": [],
+    "state": "ready",
+    "paragraphCount": 429,
+    "schema": {
+      "pages": "pages(page_no,raw_text)",
+      "page_fts": "page_fts(page_no,text)",
+      "paragraphs": "paragraphs(passage_id,page_no,start,end,raw_text)",
+      "paragraph_fts": "paragraph_fts(passage_id,page_no,text) FTS5"
+    },
+    "limits": {
+      "readCharacters": 1600,
+      "maxReadCharacters": 4000,
+      "searchHits": 3,
+      "maxSearchHits": 5,
+      "searchExcerptCharacters": 220,
+      "queryCharacters": 4000
+    },
+    "example": {
+      "tool": "search_pdf",
+      "query": "\"Theorem 2\""
+    },
+    "pageNumbers": "1-based PDF viewer pages; not printed page numbers",
+    "searchAdvice": "Prefer search_pdf -> read_pdf(passageId). Expand only missing nearby evidence via before/after cursor and a reason; search again for distant definitions or assumptions. Zero lexical results do not prove absence. read_pdf(pages) returns only the first paragraph of each page. No tool removes older ChatGPT context."
+  },
+  "trace": [
+    {
+      "tool": "search_pdf",
+      "state": "complete",
+      "pages": [
+        6
+      ],
+      "at": "2026-10-21T07:19:02.062Z"
+    },
+    {
+      "tool": "read_pdf",
+      "state": "complete",
+      "pages": [
+        6
+      ],
+      "at": "2026-10-21T07:19:02.064Z",
+      "characters": 256,
+      "passages": [
+        {
+          "passageId": "p6.5",
+          "start": 698,
+          "end": 954
+        }
+      ]
+    },
+    {
+      "tool": "expand_pdf",
+      "state": "complete",
+      "pages": [
+        6
+      ],
+      "at": "2026-10-21T07:19:02.065Z",
+      "characters": 263,
+      "passages": [
+        {
+          "passageId": "p6.5",
+          "start": 954,
+          "end": 1217
+        }
+      ],
+      "reason": "정리의 가정과 결론을 잘리지 않게 확인"
+    },
+    {
+      "tool": "expand_pdf",
+      "state": "complete",
+      "pages": [
+        6
+      ],
+      "at": "2026-10-21T07:19:02.066Z",
+      "characters": 331,
+      "passages": [
+        {
+          "passageId": "p6.6",
+          "start": 1219,
+          "end": 1550
+        }
+      ],
+      "reason": "정리의 가정과 결론을 잘리지 않게 확인"
+    },
+    {
+      "tool": "expand_pdf",
+      "state": "complete",
+      "pages": [
+        6
+      ],
+      "at": "2026-10-21T07:19:02.066Z",
+      "characters": 395,
+      "passages": [
+        {
+          "passageId": "p6.4",
+          "start": 301,
+          "end": 696
+        }
+      ],
+      "reason": "정리 앞의 추가 가정 확인"
+    },
+    {
+      "tool": "search_pdf",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-21T07:19:02.066Z"
+    },
+    {
+      "tool": "query_pdf",
+      "state": "complete",
+      "pages": [],
+      "at": "2026-10-21T07:19:02.066Z"
+    },
+    {
+      "tool": "inspect_pdf",
+      "state": "complete",
+      "pages": [],
+      "at": "2026-10-21T07:19:02.067Z"
+    }
+  ],
+  "measurement": {
+    "fullPageCharacters": 3865,
+    "anchorCharacters": 256,
+    "expandedCharacters": 594,
+    "note": "Character counts of source text, not actual ChatGPT context tokens. Explicit expansions add new context; they do not remove old results."
+  }
+}

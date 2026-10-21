@@ -1,6 +1,7 @@
 import {createHash} from 'node:crypto';
 import {UserError} from './auth.mjs';
 import {createQueryIndex} from './pdf-query.mjs';
+import {createPassageReader,CONTEXT_LIMITS} from './pdf-passages.mjs';
 export const PDF_LIMITS={bytes:64*1024*1024,pages:1000,text:12_000_000,snapshots:3,totalBytes:192*1024*1024};
 export function renderRegion(region=[0,0,1,1]){
   if(!Array.isArray(region)||region.length!==4||!region.every(Number.isFinite)||region[0]<0||region[1]<0||region[2]<.02||region[3]<.02||region[0]+region[2]>1.000001||region[1]+region[3]>1.000001)throw new UserError('영역은 [x,y,width,height] 0~1 좌표이며 폭·높이는 0.02 이상이어야 합니다.');
@@ -29,16 +30,27 @@ export function createPdfSnapshots({renderer,now=Date.now,queryOptions}={}){
         if(closed || records.get(snapshotId)!==record)throw new UserError('PDF 등록이 취소되었습니다.',410);
         if(!Array.isArray(result.pages)||!result.pages.length||result.pages.length>PDF_LIMITS.pages||result.pages.some(p=>typeof p!=='string')||result.pages.reduce((n,p)=>n+p.length,0)>PDF_LIMITS.text)throw new UserError('페이지/본문 추출 한도를 초과했습니다.');
         if(result.documentId!==documentId)throw new UserError('원본 PDF와 뷰어 문서가 일치하지 않습니다. 다시 열어주세요.');
-        record.pages=result.pages;record.index=createQueryIndex(record.pages,queryOptions);await record.index.ready();
+        record.pages=result.pages;record.reader=createPassageReader(snapshotId,record.pages,result.paragraphBreaks);record.index=createQueryIndex(record.pages,{...queryOptions,passages:record.reader.passages});await record.index.ready();
         if(closed || records.get(snapshotId)!==record)throw new UserError('PDF 등록이 취소되었습니다.',410);
         record.state='ready';return info(record);
       }catch(error){remove(record);throw error;}
     });registration=job.catch(()=>{});return job;},
     pin(id,documentId,selectionId){const record=get(id);if(record.documentId!==documentId||record.state!=='ready')throw new UserError('질문과 PDF 고정본이 일치하지 않습니다.');record.refs.add(selectionId);},
     unpin(id,selectionId){const record=records.get(id);if(!record)return;record.refs.delete(selectionId);if(!record.refs.size)remove(record);},
-    inspect(id){const record=get(id);return {...info(record),schema:{pages:'pages(page_no INTEGER PRIMARY KEY, raw_text TEXT)',page_fts:'page_fts(page_no UNINDEXED, text) USING FTS5 · NFKC normalized'},limits:{queryRows:20,queryCharacters:12000,queryMilliseconds:1500,readPages:3},example:{sql:"SELECT CAST(page_no AS INTEGER) AS page_no, snippet(page_fts,1,'[',']','…',35) AS excerpt FROM page_fts WHERE page_fts MATCH ? ORDER BY bm25(page_fts) LIMIT 10",params:['"Theorem 2"']},pageNumbers:'1-based PDF viewer pages; not printed page numbers',searchAdvice:'Search in the original language. Zero matches do not prove absence. Read raw_text for exact evidence; request images for plots/formulas.'};},
+    inspect(id){const record=get(id);return {...info(record),paragraphCount:record.reader.passages.length,schema:{pages:'pages(page_no,raw_text)',page_fts:'page_fts(page_no,text)',paragraphs:'paragraphs(passage_id,page_no,start,end,raw_text)',paragraph_fts:'paragraph_fts(passage_id,page_no,text) FTS5'},limits:CONTEXT_LIMITS,example:{tool:'search_pdf',query:'"Theorem 2"'},pageNumbers:'1-based PDF viewer pages; not printed page numbers',searchAdvice:'Prefer search_pdf -> read_pdf(passageId). Expand only missing nearby evidence via before/after cursor and a reason; search again for distant definitions or assumptions. Zero lexical results do not prove absence. read_pdf(pages) returns only the first paragraph of each page. No tool removes older ChatGPT context.'};},
     async query(id,sql,params){const record=get(id),value=await record.index.query(sql,params);if(get(id)!==record)throw new UserError('PDF 공유가 종료되었습니다.',410);return value;},
-    read(id,pages){const record=get(id);if(!Array.isArray(pages)||pages.length<1||pages.length>3||pages.some(p=>!Number.isInteger(p)||p<1||p>record.pages.length))throw new UserError('유효한 PDF 페이지를 한 번에 최대 3개 지정하세요.');return {pages:[...new Set(pages)].map(page=>({page,text:record.pages[page-1].slice(0,18000),truncated:record.pages[page-1].length>18000})),emptyTextAdvice:'텍스트가 없는 스캔 페이지는 render_pdf_page로 확인하세요.'};},
+    async search(id,args){
+      const record=get(id),limit=args.limit??CONTEXT_LIMITS.searchHits;
+      if(typeof args.query!=='string'||!args.query.trim()||args.query.length>500||!Number.isInteger(limit)||limit<1||limit>5)throw new UserError('검색어는 1~500자, 결과 수는 1~5개입니다.');
+      if(args.pages!==undefined&&(!Array.isArray(args.pages)||!args.pages.length||args.pages.length>20||args.pages.some(p=>!Number.isInteger(p)||p<1||p>record.pages.length)))throw new UserError('검색할 PDF 페이지를 확인하세요.');
+      const filter=args.pages?' AND CAST(page_no AS INTEGER) IN ('+args.pages.map(()=>'?').join(',')+')':'';
+      const sql="SELECT passage_id, CAST(page_no AS INTEGER) AS page_no, snippet(paragraph_fts,2,'[',']','…',24) AS excerpt FROM paragraph_fts WHERE paragraph_fts MATCH ?"+filter+' ORDER BY bm25(paragraph_fts) LIMIT ?';
+      const result=await record.index.query(sql,[args.query,...(args.pages||[]),limit+1]);
+      if(get(id)!==record)throw new UserError('PDF 공유가 종료되었습니다.',410);
+      return {matches:result.rows.slice(0,limit).map(row=>({passageId:row.passage_id,page:row.page_no,excerpt:row.excerpt.slice(0,CONTEXT_LIMITS.searchExcerptCharacters)})),moreMatches:result.rows.length>limit||result.truncated,limits:{hits:limit,excerptCharacters:CONTEXT_LIMITS.searchExcerptCharacters},advice:'Search excerpts are discovery only. Read the passageId for exact text. Short or empty results: source-language synonyms, broader keywords, or SQL metadata lookup. Expand nearby text only after reading; do not equate a snippet with complete evidence.'};
+    },
+    read(id,pagesOrArgs){const record=get(id);return record.reader.read(Array.isArray(pagesOrArgs)?{pages:pagesOrArgs}:pagesOrArgs);},
+    expand(id,args){return get(id).reader.expand(args);},
     async render(id,page,region){const record=get(id);if(!Number.isInteger(page)||page<1||page>record.pages.length)throw new UserError('PDF 페이지 범위를 확인하세요.');region=renderRegion(region);const value=await renderer.render(id,page,region);if(get(id)!==record)throw new UserError('PDF 공유가 종료되었습니다.',410);return value;},
     reset(){for(const record of [...records.values()])remove(record);},
     close(){closed=true;this.reset();renderer?.close();}

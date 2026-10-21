@@ -7,11 +7,11 @@ export function validateEvidence(value){
   return {snapshotId:value.snapshotId,truncated:value.truncated,pages:value.pages.map(p=>({page:p.page,text:p.text,image:p.image,regions:p.regions.map(r=>[...r])}))};
 }
 export function recordEvidence(evidence,method,value,args){
-  const pages=method==='read_pdf'?value.pages.map(p=>p.page):method==='render_pdf_page'?[args.page]:[];
+  const pages=['read_pdf','expand_pdf'].includes(method)?value.pages.map(p=>p.page):method==='render_pdf_page'?[args.page]:[];
   for(const page of pages){
     let entry=evidence.pages.find(p=>p.page===page);
     if(!entry){if(evidence.pages.length>=60){evidence.truncated=true;continue;}entry={page,text:false,image:false,regions:[]};evidence.pages.push(entry);}
-    if(method==='read_pdf')entry.text=true;
+    if(['read_pdf','expand_pdf'].includes(method))entry.text=true;
     if(method==='render_pdf_page'){
       entry.image=true;const region=value.metadata.region;
       if(!entry.regions.some(r=>JSON.stringify(r)===JSON.stringify(region))){if(entry.regions.length<5)entry.regions.push([...region]);else evidence.truncated=true;}
