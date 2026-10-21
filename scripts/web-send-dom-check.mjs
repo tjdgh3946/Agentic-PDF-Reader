@@ -27,7 +27,7 @@ try{
   const send=createWebSender({getContents:()=>({
     getURL:()=> 'https://chatgpt.com/c/local-fixture',isDestroyed:()=>contents.isDestroyed(),isLoading:()=>false,
     focus:()=>{},insertText:text=>contents.executeJavaScript(`document.execCommand('insertText',false,${JSON.stringify(text)})`,true),executeJavaScript:script=>contents.executeJavaScript(script,true)
-  }),isAttached:()=>true});
+  }),isAttached:()=>true,wait:async()=>{},attempts:2});
   for(const [index,text] of ['첫 질문: Figure 1을 설명하세요.\n두 번째 줄입니다.','후속 질문: Paper Reader Link라는 이름도 본문에 있습니다.'].entries()){
     assert.equal((await send({text,requestId:'plugin-question-'+index})).sent,true);
     assert.equal((await inspect('inspect')).hasDraft,false,'The retained plugin after a response is not a draft');
@@ -52,7 +52,15 @@ try{
   assert.equal(await contents.executeJavaScript('document.querySelectorAll("[data-message-author-role=user]").length'),3);
   assert.equal(await contents.executeJavaScript('document.querySelectorAll("form [data-prompt-link-href]").length'),1);
   assert.ok((await contents.executeJavaScript('document.querySelector("#messages").innerText')).includes('content_items'));
-  console.log(JSON.stringify({result:'pass',consecutiveSends:3,pluginPreserved:true,multilineAcknowledged:true,realDraftProtected:true,recoveryAttachmentProtected:true,sameConversationRecovery:true,recoveryDuplicateSuppressed:true}));
+  await contents.executeJavaScript('document.querySelector("form button").disabled=true');
+  const retry={text:'전송 버튼 복구 후 같은 질문을 보내세요.',requestId:'retry-owned-draft'};
+  await assert.rejects(send(retry),/비활성화/);
+  assert.equal((await inspect('inspect',retry.text,retry.requestId)).draftMatches,true);
+  await contents.executeJavaScript('document.querySelector("form button").disabled=false');
+  assert.equal((await send(retry)).sent,true);
+  assert.equal((await send(retry)).duplicate,true);
+  assert.equal(await contents.executeJavaScript('document.querySelectorAll("[data-message-author-role=user]").length'),4);
+  console.log(JSON.stringify({result:'pass',consecutiveSends:4,pluginPreserved:true,multilineAcknowledged:true,realDraftProtected:true,recoveryAttachmentProtected:true,sameConversationRecovery:true,recoveryDuplicateSuppressed:true,disabledButtonRecovery:true,ownedDraftNotReinserted:true}));
 }catch(error){console.error(error);process.exitCode=1;}
 finally{window.destroy();app.quit();}
 }

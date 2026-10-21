@@ -1,0 +1,325 @@
+{
+  "version": "0.12.4",
+  "mcpVersion": "0.3.4",
+  "date": "2026-10-21T09:34:40.916Z",
+  "automatedTests": {
+    "passed": 126,
+    "failed": 0,
+    "skipped": 0
+  },
+  "installer": {
+    "installedVersion": "0.12.4",
+    "runtimeSourcesMatched": 54,
+    "mcpBundleMatched": true,
+    "notificationShimInInstalledSource": true,
+    "installExitCode": 0,
+    "sha256": "0643451e598015ecf01fa3cf3b287ac7828499f9c9a4eb57082162a62992403b"
+  },
+  "controlledReproduction": {
+    "date": "2026-10-21T09:27:32.142Z",
+    "appVersion": "0.12.4",
+    "tunnelVersion": "v0.0.16",
+    "scope": "Offline real tunnel-client dev proxy + real Reader MCP; no hosted credentials or user data",
+    "scenarios": [
+      {
+        "shim": false,
+        "initialWithoutInitialize": 409,
+        "missingNotification": 409,
+        "reinitializedSearch": 409,
+        "reinitializedImage": 409,
+        "imageBlocks": 0,
+        "initializeCount": 2,
+        "downstreamInitializedNotifications": 2,
+        "lateDuplicatesSuppressed": false
+      },
+      {
+        "shim": true,
+        "initialWithoutInitialize": 409,
+        "missingNotification": 200,
+        "reinitializedSearch": 200,
+        "reinitializedImage": 200,
+        "imageBlocks": 1,
+        "initializeCount": 2,
+        "downstreamInitializedNotifications": 2,
+        "lateDuplicatesSuppressed": true
+      }
+    ],
+    "result": "pass"
+  },
+  "diagnosis": {
+    "origin": "tunnel-client v0.0.16 stdio guard, upstream of Reader tool handlers",
+    "code": -32002,
+    "httpStatus": 409,
+    "errorType": "mcp_initialization_required",
+    "cause": "One stdio child is shared by logical clients. A second initialize clears readiness until notifications/initialized; an operation from another initialized caller or a caller omitting the notification is rejected in that interval.",
+    "historicalEventScope": "The exact earlier intermittent web event was not captured at packet level. This matching cause was reproduced deterministically through the actual pinned tunnel binary and Reader MCP. An unmodified 0.12.3 cold-start web trial also succeeded; the issue is intermittent.",
+    "repair": "Explicit official --mcp.stdio-send-initialized-notification flag in app-managed and standalone launchers. Notification is sent before releasing successful initialize lifecycle slot; late duplicate notification is suppressed. No guard disabling, synthetic initialize, or replay of tool calls.",
+    "source": "https://github.com/openai/tunnel-client/blob/v0.0.16/pkg/mcpclient/serialized_forwarding_transport.go"
+  },
+  "web": {
+    "conversation": "https://chatgpt.com/c/6ad87033-2b7c-83ee-a029-1eefb031b1d8",
+    "mode": "In-app browser against installed EXE localhost. Existing ChatGPT conversation was retained. PDF was reopened and a new question/share sent through the ordinary copy/paste workflow after each app start; no plugin refresh, new chat, or manual tool retry. Previous in-memory shares do not persist across app exit.",
+    "firstStart": {
+      "health": {
+        "schema_version": 1,
+        "snapshot_at": "2026-10-21T09:32:05.6034812Z",
+        "component": "mcp",
+        "status": "ok",
+        "state": "initialized",
+        "observed_at": "2026-10-21T09:31:57.8229711Z",
+        "limited": false,
+        "details": {
+          "channel": "main",
+          "transport": "stdio",
+          "child_state": "running",
+          "child_generation": "f01487a0d81152d52c30344cdbefd2ed",
+          "initialize_epoch": 3,
+          "evidence": "same_child",
+          "initialize": {
+            "ok": true,
+            "identity_complete": true,
+            "limited": false,
+            "observed_at": "2026-10-21T09:31:57.8229711Z",
+            "protocol_version": "2025-11-25",
+            "server_name": "paper-reader-link",
+            "server_version": "0.3.4",
+            "capability_names": [
+              "resources",
+              "tools"
+            ]
+          },
+          "tools_list": {
+            "ok": false,
+            "tool_names": [],
+            "retained_count": 0,
+            "complete": false,
+            "partial": false,
+            "limited": false
+          }
+        }
+      },
+      "initializationErrors": [],
+      "selectionId": "d7427425-bbd8-4066-a115-dd48db44b622",
+      "trace": [
+        {
+          "tool": "search_pdf",
+          "state": "complete",
+          "pages": [
+            9
+          ],
+          "at": "2026-10-21T09:31:48.231Z"
+        },
+        {
+          "tool": "read_pdf",
+          "state": "complete",
+          "pages": [
+            9
+          ],
+          "at": "2026-10-21T09:31:53.037Z",
+          "characters": 638,
+          "passages": [
+            {
+              "passageId": "p9.17",
+              "start": 2090,
+              "end": 2728
+            }
+          ]
+        },
+        {
+          "tool": "render_pdf_page",
+          "state": "complete",
+          "pages": [
+            8
+          ],
+          "at": "2026-10-21T09:32:01.319Z",
+          "image": {
+            "page": 8,
+            "region": [
+              0,
+              0,
+              1,
+              1
+            ],
+            "width": 1545,
+            "height": 2000,
+            "zoom": 1,
+            "rotation": 0,
+            "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+            "imageRef": "image-9085a424-4a4e-4f01-9a9c-d56702ae0848",
+            "delivery": "image"
+          }
+        }
+      ],
+      "saved": false,
+      "before": {
+        "schema_version": 1,
+        "snapshot_at": "2026-10-21T09:31:26.519745Z",
+        "component": "mcp",
+        "status": "unknown",
+        "state": "not_observed",
+        "limited": false,
+        "details": {
+          "channel": "main",
+          "transport": "stdio",
+          "child_state": "running",
+          "child_generation": "f01487a0d81152d52c30344cdbefd2ed",
+          "initialize_epoch": 0,
+          "evidence": "same_child",
+          "initialize": {
+            "ok": false,
+            "identity_complete": false,
+            "limited": false,
+            "capability_names": []
+          },
+          "tools_list": {
+            "ok": false,
+            "tool_names": [],
+            "retained_count": 0,
+            "complete": false,
+            "partial": false,
+            "limited": false
+          }
+        }
+      },
+      "figure": "Figure 2, p.8",
+      "screenshot": "../outputs/mcp-first-start-0.12.4.jpg",
+      "answerComplete": true,
+      "noManualRetry": true
+    },
+    "secondStart": {
+      "health": {
+        "schema_version": 1,
+        "snapshot_at": "2026-10-21T09:34:04.8024918Z",
+        "component": "mcp",
+        "status": "ok",
+        "state": "initialized",
+        "observed_at": "2026-10-21T09:34:00.6281353Z",
+        "limited": false,
+        "details": {
+          "channel": "main",
+          "transport": "stdio",
+          "child_state": "running",
+          "child_generation": "a9491008545e78f179f362c3c33291e9",
+          "initialize_epoch": 3,
+          "evidence": "same_child",
+          "initialize": {
+            "ok": true,
+            "identity_complete": true,
+            "limited": false,
+            "observed_at": "2026-10-21T09:34:00.6281353Z",
+            "protocol_version": "2025-11-25",
+            "server_name": "paper-reader-link",
+            "server_version": "0.3.4",
+            "capability_names": [
+              "resources",
+              "tools"
+            ]
+          },
+          "tools_list": {
+            "ok": false,
+            "tool_names": [],
+            "retained_count": 0,
+            "complete": false,
+            "partial": false,
+            "limited": false
+          }
+        }
+      },
+      "initializationErrors": [],
+      "selectionId": "e4d93b91-aa0e-4847-b25c-809be31ab6ec",
+      "trace": [
+        {
+          "tool": "search_pdf",
+          "state": "complete",
+          "pages": [
+            9
+          ],
+          "at": "2026-10-21T09:33:55.084Z"
+        },
+        {
+          "tool": "render_pdf_page",
+          "state": "complete",
+          "pages": [
+            9
+          ],
+          "at": "2026-10-21T09:33:55.541Z",
+          "image": {
+            "page": 9,
+            "region": [
+              0.58,
+              0.08,
+              0.27,
+              0.22
+            ],
+            "width": 1897,
+            "height": 2000,
+            "zoom": 4.545454545454545,
+            "rotation": 0,
+            "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+            "imageRef": "image-912cbdba-f116-4a8d-8922-15974f329b80",
+            "delivery": "image"
+          }
+        },
+        {
+          "tool": "read_pdf",
+          "state": "complete",
+          "pages": [
+            9
+          ],
+          "at": "2026-10-21T09:34:01.942Z",
+          "characters": 638,
+          "passages": [
+            {
+              "passageId": "p9.17",
+              "start": 2090,
+              "end": 2728
+            }
+          ]
+        }
+      ],
+      "saved": false,
+      "before": {
+        "schema_version": 1,
+        "snapshot_at": "2026-10-21T09:33:11.4046125Z",
+        "component": "mcp",
+        "status": "unknown",
+        "state": "not_observed",
+        "limited": false,
+        "details": {
+          "channel": "main",
+          "transport": "stdio",
+          "child_state": "running",
+          "child_generation": "a9491008545e78f179f362c3c33291e9",
+          "initialize_epoch": 0,
+          "evidence": "same_child",
+          "initialize": {
+            "ok": false,
+            "identity_complete": false,
+            "limited": false,
+            "capability_names": []
+          },
+          "tools_list": {
+            "ok": false,
+            "tool_names": [],
+            "retained_count": 0,
+            "complete": false,
+            "partial": false,
+            "limited": false
+          }
+        }
+      },
+      "figure": "Figure 3(c), p.9",
+      "parallelSearchAndImage": true,
+      "screenshot": "../outputs/mcp-second-start-0.12.4.jpg",
+      "answerComplete": true,
+      "modelReported": "Promise.all search/image succeeded, native content_items image displayed, four legend colors/widths/line styles read; no initialization error.",
+      "noManualRetry": true
+    },
+    "nativeScope": "Live web interaction used in-app browser copy/paste; full native EXE automatic-send IPC was not part of this lifecycle test."
+  },
+  "originalPdf": {
+    "sha256": "e052eb972f646747ac4554a294eb62874077e59a5f585f459e2dbd5cb2a0975d",
+    "annotationCount": 8,
+    "notesUnchanged": true
+  }
+}

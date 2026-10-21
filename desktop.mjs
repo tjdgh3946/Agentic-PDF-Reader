@@ -1,4 +1,4 @@
-import {app,BrowserWindow,Menu,shell,dialog,session} from 'electron';
+import {app,BrowserWindow,Menu,shell,dialog,session,safeStorage} from 'electron';
 import path from 'node:path';
 import {createAuth} from './auth.mjs';
 import {createAppServer} from './server.mjs';
@@ -10,6 +10,7 @@ import {configureDesktopProfile} from './desktop-profile.mjs';
 import {createReadingState} from './reading-state.mjs';
 import {createPdfRenderer} from './pdf-render-service.mjs';
 import {createDesktopSetup} from './desktop-setup.mjs';
+import {createShareArchive} from './share-archive.mjs';
 import {fileURLToPath} from 'node:url';
 
 app.setName('Paper Reader');
@@ -27,19 +28,20 @@ else {
     const chats=await createChats(path.join(app.getPath('userData'),'conversations'));
     const annotations=await createAnnotations(path.join(app.getPath('userData'),'annotations'));
     const reading=await createReadingState(path.join(app.getPath('userData'),'reading.json'));
-    server=createAppServer(auth,{pdfRenderer:createPdfRenderer(()=>origin),settings,chats,annotations,reading,linkDiscoveryPath:path.join(app.getPath('userData'),'link-connection.json'),getOrigin:()=>origin,externalCssPath:path.join(stylesDirectory,'Paper-Reader.css'),openBrowser:url=>{
+    server=createAppServer(auth,{pdfRenderer:createPdfRenderer(()=>origin),shareArchive:createShareArchive(path.join(app.getPath('userData'),'shared-pdfs'),safeStorage),settings,chats,annotations,reading,linkDiscoveryPath:path.join(app.getPath('userData'),'link-connection.json'),getOrigin:()=>origin,externalCssPath:path.join(stylesDirectory,'Paper-Reader.css'),openBrowser:url=>{
       if(url!=='https://chatgpt.com/' && (new URL(url).origin!==origin || new URL(url).pathname!=='/auth/launch')) throw new Error('Invalid external URL');
       return shell.openExternal(url);
     }});
     await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
     origin=`http://127.0.0.1:${server.address().port}`;
+    await server.link.restore();
     Menu.setApplicationMenu(null);
     session.defaultSession.setPermissionRequestHandler((_contents,_permission,callback)=>callback(false));
     window=new BrowserWindow({title:'Paper Reader',width:1400,height:950,minWidth:900,minHeight:650,backgroundColor:'#f4f6f4',show:false,webPreferences:{preload:path.join(app.getAppPath(),'desktop-preload.cjs'),nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true}});
     window.once('close',()=>{closing=true;});
     chatgptPanel=createChatGPTPanel(window,()=>origin);
     desktopSetup=await createDesktopSetup({app,window,getOrigin:()=>origin,resourceDirectory:app.isPackaged?path.join(process.resourcesPath,'paper-reader-link'):fileURLToPath(new URL('plugins/paper-reader-link/',import.meta.url))});
-    window.on('closed',()=>{chatgptPanel.dispose();server.pdfs.close();app.quit();});
+    window.on('closed',()=>{chatgptPanel.dispose();app.quit();});
     const external=url=>{
       try {
         const parsed=new URL(url);

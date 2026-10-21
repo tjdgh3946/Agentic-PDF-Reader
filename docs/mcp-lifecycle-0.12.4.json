@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-21T09:27:32.142Z",
+  "appVersion": "0.12.4",
+  "tunnelVersion": "v0.0.16",
+  "scope": "Offline real tunnel-client dev proxy + real Reader MCP; no hosted credentials or user data",
+  "scenarios": [
+    {
+      "shim": false,
+      "initialWithoutInitialize": 409,
+      "missingNotification": 409,
+      "reinitializedSearch": 409,
+      "reinitializedImage": 409,
+      "imageBlocks": 0,
+      "initializeCount": 2,
+      "downstreamInitializedNotifications": 2,
+      "lateDuplicatesSuppressed": false
+    },
+    {
+      "shim": true,
+      "initialWithoutInitialize": 409,
+      "missingNotification": 200,
+      "reinitializedSearch": 200,
+      "reinitializedImage": 200,
+      "imageBlocks": 1,
+      "initializeCount": 2,
+      "downstreamInitializedNotifications": 2,
+      "lateDuplicatesSuppressed": true
+    }
+  ],
+  "result": "pass"
+}

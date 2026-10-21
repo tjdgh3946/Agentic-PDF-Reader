@@ -1,0 +1,54 @@
+{
+  "version": "0.13.0",
+  "date": "2026-10-21T09:55:06.476Z",
+  "scope": "Isolated real-runtime restart simulation, plus image-only fixture. Installed app restart and ChatGPT vision are separate checks.",
+  "checks": [
+    {
+      "name": "same share across new server, renderer, MCP client and DPAPI archive instances",
+      "pass": true,
+      "selectionId": "8bb6950d-5bcd-4bcd-b2cc-8289b605664f",
+      "sourceHash": "e052eb972f646747ac4554a294eb62874077e59a5f585f459e2dbd5cb2a0975d",
+      "searchPages": [
+        9
+      ],
+      "imageReferencePreserved": true,
+      "textReferencePreserved": true,
+      "reasonedExpansionCharacters": 14,
+      "crop": {
+        "page": 9,
+        "region": [
+          0.58,
+          0.08,
+          0.27,
+          0.22
+        ],
+        "width": 1897,
+        "height": 2000,
+        "zoom": 4.545454545454545,
+        "rotation": 0,
+        "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation"
+      }
+    },
+    {
+      "name": "actual image-only PDF exposes lexical blind spot and still renders actual Figure pixels",
+      "pass": true,
+      "textQuality": {
+        "status": "limited",
+        "checkedPages": 1,
+        "lowTextPageCount": 1,
+        "lowTextPages": [
+          1
+        ],
+        "damagedTextPageCount": 0,
+        "damagedTextPages": [],
+        "pageListTruncated": false,
+        "advice": "일부 페이지의 추출 텍스트가 적거나 손상되었습니다. 스캔·그림·빈 페이지일 수 있습니다. 검색 0건을 내용 부재로 판단하지 말고, 관련 페이지를 render_pdf_page로 읽은 뒤 필요한 영역을 확대하세요. OCR은 수행하지 않습니다."
+      },
+      "imageBlocks": 1
+    },
+    {
+      "name": "explicit revoke removes encrypted PDF/share data",
+      "pass": true
+    }
+  ]
+}

@@ -34,13 +34,13 @@ function launchBrowser(url) {
     child.once('error',reject);child.once('spawn',()=>{child.unref();resolve();});
   });
 }
-export function createAppServer(auth,{pdfRenderer,openBrowser=launchBrowser,getOrigin=()=>ORIGIN,externalCssPath,settings,chats,annotations,reading,linkDiscoveryPath=path.join(root,'.local','link-connection.json'),readUsage=createUsageReader()}={}) {
+export function createAppServer(auth,{pdfRenderer,shareArchive,openBrowser=launchBrowser,getOrigin=()=>ORIGIN,externalCssPath,settings,chats,annotations,reading,linkDiscoveryPath=path.join(root,'.local','link-connection.json'),readUsage=createUsageReader()}={}) {
   const settingsReady=settings?Promise.resolve(settings):createSettings();
   const chatsReady=chats?Promise.resolve(chats):createChats();
   const annotationsReady=annotations?Promise.resolve(annotations):createAnnotations(path.join(root,'.local','annotations'));
   const readingReady=reading?Promise.resolve(reading):createReadingState();
   const pdfs=createPdfSnapshots({renderer:pdfRenderer});
-  const link=createPaperLink({annotations:annotationsReady,discoveryPath:linkDiscoveryPath,getOrigin,pdfs,onSaved:async value=>(await chatsReady).completeLink?.(value)});
+  const link=createPaperLink({annotations:annotationsReady,discoveryPath:linkDiscoveryPath,getOrigin,pdfs,archive:shareArchive,onSaved:async value=>(await chatsReady).completeLink?.(value)});
   let uploading=false;
   let responding=false,changingSettings=false;
   const server=http.createServer(async(req,res)=>{
@@ -73,6 +73,8 @@ export function createAppServer(auth,{pdfRenderer,openBrowser=launchBrowser,getO
           return;
         }
         const preferences=await settingsReady;
+        if(url.pathname==='/api/storage/status'&&req.method==='GET'){json(res,{stores:await Promise.all([(await chatsReady).storageStatus?.(),(await annotationsReady).storageStatus?.()])});return;}
+        if(url.pathname==='/api/storage/retry'&&req.method==='POST'){const input=await bodyJSON(req);await (await chatsReady).retryRecovery?.();if(input.documentId)await (await annotationsReady).list(input.documentId);json(res,{ok:true});return;}
         if(url.pathname==='/api/reading' && req.method==='GET'){json(res,(await readingReady).get(url.searchParams.get('documentId')));return;}
         if(url.pathname==='/api/reading' && req.method==='POST'){const input=await bodyJSON(req);json(res,await (await readingReady).set(input.documentId,input));return;}
         if(url.pathname==='/api/link/status' && req.method==='GET'){json(res,link.status());return;}
@@ -218,7 +220,7 @@ export function createAppServer(auth,{pdfRenderer,openBrowser=launchBrowser,getO
       if(!['GET','HEAD'].includes(req.method)) {res.writeHead(405).end();return;}
       const urlPath=decodeURIComponent(url.pathname);
       const relativePath=urlPath==='/'?'index.html':urlPath.slice(1);
-      if(!['setup.html','setup.mjs','setup.css','pdf-renderer.html','pdf-renderer.mjs','pdf-text.mjs','index.html','app.css','app.mjs','link-ui.mjs','link-question.mjs','web-panel-ui.mjs','annotation-ui.mjs','annotation-geometry.mjs','pdf-evidence.mjs','reading-tools.mjs','reading-restore.mjs','annotation-overlay.css','auto-context.mjs','context.mjs','help.mjs','ui.css','notes.css','auth-page.css','markdown.bundle.mjs'].includes(relativePath) && !relativePath.startsWith('pdfjs/') && !relativePath.startsWith('vendor/katex/')) throw new UserError('Not found',404);
+      if(!['draft-session.mjs','setup.html','setup.mjs','setup.css','pdf-renderer.html','pdf-renderer.mjs','pdf-text.mjs','index.html','app.css','app.mjs','link-ui.mjs','link-question.mjs','web-panel-ui.mjs','annotation-ui.mjs','annotation-geometry.mjs','pdf-evidence.mjs','reading-tools.mjs','reading-restore.mjs','annotation-overlay.css','auto-context.mjs','context.mjs','help.mjs','ui.css','notes.css','auth-page.css','markdown.bundle.mjs'].includes(relativePath) && !relativePath.startsWith('pdfjs/') && !relativePath.startsWith('vendor/katex/')) throw new UserError('Not found',404);
       let file=path.resolve(root,relativePath);
       const relative=path.relative(root,file);
       if(relative.startsWith('..') || path.isAbsolute(relative) || (relativePath.startsWith('pdfjs/') && !relative.replaceAll('\\','/').startsWith('pdfjs/')) || (relativePath.startsWith('vendor/katex/') && !relative.replaceAll('\\','/').startsWith('vendor/katex/'))) throw new UserError('Not found',404);

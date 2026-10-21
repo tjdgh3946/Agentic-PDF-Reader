@@ -1,0 +1,59 @@
+{
+  "version": "0.14.0",
+  "sourceFileCount": 58,
+  "mismatches": [],
+  "sha256": "950c6042359151eec2ba46bc38da2263475345ffe38e988dd3e3296d5b5941ae",
+  "date": "2026-10-21T10:45:59.014Z",
+  "tests": {
+    "passed": 152,
+    "failed": 0
+  },
+  "checks": {
+    "installedVersionIs0140": true,
+    "installedRuntimeMatchesSource": true,
+    "existingShareRestored": true,
+    "originalSelectionIdPreserved": true,
+    "healthyStorage": true,
+    "existingUserNotes": 8,
+    "chatgptExistingConversationSearchAndFigureAnswer": true
+  },
+  "trace": [
+    {
+      "tool": "search_pdf",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-21T10:45:10.221Z"
+    },
+    {
+      "tool": "render_pdf_page",
+      "state": "complete",
+      "pages": [
+        8
+      ],
+      "at": "2026-10-21T10:45:10.726Z",
+      "image": {
+        "page": 8,
+        "region": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "width": 1545,
+        "height": 2000,
+        "zoom": 1,
+        "rotation": 0,
+        "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+        "imageRef": "image-4b6c733f-3e56-4aff-8dcb-d1fc12fe641d",
+        "delivery": "image"
+      }
+    }
+  ],
+  "screenshots": [
+    "installed-reader-0.14.0.jpg",
+    "installed-chatgpt-0.14.0.jpg"
+  ],
+  "scope": "Final installed EXE localhost UI in in-app browser; existing ChatGPT conversation used the real hosted tunnel. Credential rotation failure tests are reported separately; no claim of native Electron IPC UI automation."
+}

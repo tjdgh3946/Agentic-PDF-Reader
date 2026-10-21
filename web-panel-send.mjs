@@ -46,7 +46,7 @@ export function composerAction(action,text,requestId){
   const buttons=[...scope.querySelectorAll(selector+(form?',button[type="submit"],input[type="submit"]':''))].filter(visible);
   const button=buttons.find(button=>!button.disabled && button.getAttribute('aria-disabled')!=='true');
   const submitReason=!editable?'composer_missing':stopped?'streaming':draft!==normalize(text)?'input_changed':!buttons.length?'button_missing':!button?'button_disabled':null;
-  if(action==='inspect')return {editable,hasDraft:!!draft,stopped,sent,submitReason};
+  if(action==='inspect')return {editable,hasDraft:!!draft,draftMatches:editable&&draft===normalize(text),stopped,sent,submitReason};
   if(action==='focus'){
     if(!editable || draft || stopped)return false;
     editor.focus();
@@ -66,6 +66,7 @@ export function composerAction(action,text,requestId){
 export function createWebSender({getContents,isAttached,wait=delay,attempts=30}){
   let sending=false;
   const sentIds=new Map();
+  const preparedIds=new Map();
   return async({text,requestId})=>{
     if(typeof text!=='string' || !text.trim() || text.length>200000 || typeof requestId!=='string' || !/^[a-zA-Z0-9_-]{1,100}$/.test(requestId))throw new Error('전송할 질문을 다시 준비하세요.');
     if(sentIds.has(requestId)){
@@ -84,16 +85,23 @@ export function createWebSender({getContents,isAttached,wait=delay,attempts=30})
       if(state.sent){sentIds.set(requestId,'sent');return {sent:true,duplicate:true};}
       if(state.stopped)throw new Error('ChatGPT가 답변 중입니다. 답변이 끝난 뒤 보내세요.');
       if(!state.editable)throw new Error('ChatGPT 입력창을 찾지 못했습니다. 로그인 상태를 확인하거나 질문을 복사해 직접 보내세요.');
-      if(state.hasDraft)throw new Error('오른쪽 ChatGPT 입력창에 작성 중인 내용이 있습니다. 먼저 전송하거나 비워 주세요.');
-      if(!unchanged() || !await inspect('focus'))throw new Error('ChatGPT 입력창 상태가 변경되었습니다. 질문을 다시 준비하세요.');
-      if(!unchanged())throw new Error('ChatGPT 대화가 변경되었습니다. 질문을 다시 준비하세요.');
-      contents.focus();await contents.insertText(text);
+      // A disabled/missing submit button leaves our own draft intact. An
+      // explicit retry may submit that exact draft, but never overwrites it,
+      // never moves it to another conversation, and never retries a prior click.
+      const resume=state.hasDraft&&state.draftMatches&&preparedIds.get(requestId)?.text===text&&preparedIds.get(requestId)?.url===url;
+      if(state.hasDraft&&!resume)throw new Error('오른쪽 ChatGPT 입력창에 작성 중인 내용이 있습니다. 먼저 전송하거나 비워 주세요.');
+      if(!resume){
+        if(!unchanged() || !await inspect('focus'))throw new Error('ChatGPT 입력창 상태가 변경되었습니다. 질문을 다시 준비하세요.');
+        if(!unchanged())throw new Error('ChatGPT 대화가 변경되었습니다. 질문을 다시 준비하세요.');
+        contents.focus();await contents.insertText(text);preparedIds.set(requestId,{text,url});
+        if(preparedIds.size>100)preparedIds.delete(preparedIds.keys().next().value);
+      }
       let submitted=false;
       for(let attempt=0;attempt<attempts;attempt++){
         if(!unchanged())throw new Error('ChatGPT 대화가 변경되었습니다. 입력된 질문을 확인해 직접 전송하세요.');
         sentIds.set(requestId,'unknown');
         if(sentIds.size>100)sentIds.delete(sentIds.keys().next().value);
-        if(await inspect('submit')){submitted=true;break;}
+        if(await inspect('submit')){submitted=true;preparedIds.delete(requestId);break;}
         sentIds.delete(requestId);
         await wait(100);
       }

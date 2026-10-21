@@ -8,6 +8,8 @@ export async function requestLinkShare({api,input,allowSave,lastRequest}){
 export function createLinkUI({api,prepare,onAnnotations,status,updateSend,getDocumentId,openNote,onPage,onPdfAvailability,sendToChatGPT,writeClipboard,recordQuestion}){
   let busy=false,revision=-1,timer,polling=false,latest=null,notice=null;
   let lastRequest=null;
+  const pendingRecords=new Map();
+  let runtime=null,runtimeChecked=0;
   const buttonLabel=sendToChatGPT?'ChatGPT에 질문 보내기':'질문 복사';
   $('link-share').textContent=buttonLabel;
   $('link-share').title=sendToChatGPT?'선택 문장과 질문을 오른쪽 ChatGPT 대화로 전송 · Ctrl+Enter':'선택 문장과 질문을 준비 · Ctrl+Enter';
@@ -26,8 +28,11 @@ export function createLinkUI({api,prepare,onAnnotations,status,updateSend,getDoc
     $('link-open-note').hidden=!shared?.annotationId;
     $('link-copy').hidden=!sendToChatGPT || lastRequest?.input.documentId!==current || lastRequest.result.allowSave!==$('link-save-answer').checked;
     const trace=shared?.trace||[];
+    const pending=[...pendingRecords.values()].filter(value=>value.input.documentId===current);
+    $('link-retry-record').hidden=!pending.length;$('link-retry-record').disabled=busy;
+    $('link-retry-record').textContent=`질문 기록 다시 저장 (${pending.length})`;
     updateRecovery();
-    $('link-evidence').hidden=!trace.length;
+    $('link-evidence').hidden=!trace.length&&!pending.length;
     const labels={inspect_pdf:'문서 확인',query_pdf:'SQL 검색',search_pdf:'문단 검색',read_pdf:'문단 읽기',expand_pdf:'앞뒤 문맥 확장',render_pdf_page:'이미지 확인',list_annotations:'논문 노트 검색',read_annotation:'논문 노트 읽기'};
     $('link-trace').textContent=trace.slice(-4).map(event=>`${event.tool==='render_pdf_page'&&event.image?.delivery==='reference'?'이미지 재사용':event.tool==='render_pdf_page'&&event.image?.zoom>1?'영역 확대':labels[event.tool]} ${event.state==='running'?'중…':event.state==='error'?'실패':'완료'}`).join(' → ');
     const pages=[...new Set(trace.flatMap(event=>event.pages))].sort((a,b)=>a-b);
@@ -37,13 +42,21 @@ export function createLinkUI({api,prepare,onAnnotations,status,updateSend,getDoc
     if(polling)return;polling=true;clearTimeout(timer);
     try{
       const value=await api('/api/link/status');
+      if(window.paperDesktop?.setupState&&Date.now()-runtimeChecked>10000){runtimeChecked=Date.now();try{runtime=(await window.paperDesktop.setupState()).link;}catch{runtime={phase:'error',message:'터널 상태를 확인하지 못했습니다.'};}}
       onPdfAvailability?.(value.pdfAvailable);
       $('pdf-search-description').textContent=value.pdfAvailable?'질문 당시 PDF 전체를 공유합니다. ChatGPT가 필요한 문단을 검색·읽고 부족한 앞뒤 문맥만 확장합니다. 수식·도표는 이미지로 확인합니다. Link 플러그인 연결이 필요합니다.':'PDF 전체 검색은 Windows 앱을 실행한 뒤 사용할 수 있습니다.';
-      const connected=value.enabled && !!value.lastContactAt;
+      const recent=value.lastContactAt&&Date.now()-Date.parse(value.lastContactAt)<120000;
+      const disrupted=runtime&&(runtime.phase==='error'||runtime.phase==='recovering'||['unreachable','waiting','reconnecting','auth_required'].includes(runtime.health));
+      const connected=value.enabled && !!recent && !disrupted;
       $('link-indicator').classList.toggle('is-connected',connected);
-      $('link-indicator').textContent=connected?'Link 요청 수신':value.enabled?'Link 요청 대기':'Link 설정';
-      $('link-disconnect').disabled=!value.enabled;
-      $('link-connection-status').textContent=!value.enabled?'공유할 때 연결이 켜집니다.':value.lastContactAt?'Link 도구 요청을 받았습니다. ChatGPT 연결은 ChatGPT에서 확인하세요.':'앱 연결 준비 완료 · ChatGPT 플러그인 연결을 기다립니다.';
+      $('link-indicator').textContent=disrupted?'Link 확인 필요':connected?'최근 Link 요청 수신':value.enabled?'Link 요청 대기':'Link 설정';
+      // A damaged archive can fail before Link is enabled. Keep the cache reset
+      // available in that state so the recovery message has an actionable exit.
+      $('link-disconnect').disabled=!value.enabled&&!value.archiveError;
+      const cache=value.restorable?'공유는 이 PC에 암호화해 최대 24시간 보관합니다. 연결 해제 시 삭제됩니다.':'';
+      $('link-connection-status').textContent=(disrupted?(runtime.health==='auth_required'?'터널 인증 실패 · 환경 설정에서 조직·키 권한을 확인하세요.':runtime.health==='reconnecting'?'터널 네트워크 복구 중 · 자동 재연결을 기다립니다.':runtime.message+' · 준비 상태 확인 필요'):!value.enabled?'공유할 때 연결이 켜집니다.':recent?'최근 Link 도구 요청을 받았습니다. 현재 요청의 성공을 보장하는 표시는 아닙니다.':'ChatGPT 플러그인 요청을 기다립니다.')+' '+cache;
+      const warning=value.archiveError||(disrupted?'Link 연결 확인 필요 · 환경 설정에서 상태를 확인하세요.':value.restoredCount?`이전 공유 ${value.restoredCount}개 유지 · 기존 대화의 요청 시 PDF를 복원합니다.`:'');
+      $('link-runtime-status').hidden=!warning;$('link-runtime-status').textContent=warning;
       if(revision!==value.revision){
         if((value.latest?.saved || revision>=0) && await onAnnotations()===false)return;
         if(value.latest?.saved)$('link-share-status').textContent=value.latest.fileName+' · p. '+value.latest.pages.join(', ')+'에 답변을 주석으로 저장했습니다.';
@@ -73,12 +86,23 @@ export function createLinkUI({api,prepare,onAnnotations,status,updateSend,getDoc
         await writeClipboard(recover?imageRecoveryQuestion(result):linkQuestion(result));
         notice={documentId:input.documentId,message:recover?'이미지 재확인 질문을 복사했습니다. 기존 ChatGPT 대화에 붙여넣으세요.':'질문 복사 완료 · ChatGPT 입력창에 Ctrl+V로 붙여넣어 전송하세요.'};render();status(notice.message);
       }
-      try{if(!recover)await recordQuestion?.(result,input);}catch{status(notice.message+' 질문 기록 저장에 실패했습니다.');}
+      if(!recover&&recordQuestion){
+        pendingRecords.set(result.selectionId,{result,input});
+        try{await recordQuestion(result,input);pendingRecords.delete(result.selectionId);}
+        catch{notice={documentId:input.documentId,state:'error',message:'질문 전달은 완료됐지만 기록 저장에 실패했습니다. 「질문 기록 다시 저장」으로 전송 없이 기록만 다시 저장하세요.'};status(notice.message);}
+        render();
+      }
       await refresh();
     }catch(error){$('link-share-status').textContent=error.message;notice={documentId:notice?.documentId||getDocumentId(),message:error.message,state:'error'};render();status(error.message);}
-    finally{busy=false;$('link-share').textContent=buttonLabel;updateSend();}
+    finally{busy=false;$('link-share').textContent=buttonLabel;render();updateSend();}
   }
   $('link-share').onclick=()=>share();
+  $('link-retry-record').onclick=async()=>{
+    if(busy)return;busy=true;render();
+    try{for(const [id,pending] of pendingRecords)if(pending.input.documentId===getDocumentId()){await recordQuestion(pending.result,pending.input);pendingRecords.delete(id);}notice={documentId:getDocumentId(),message:'질문 기록을 저장했습니다. ChatGPT에는 다시 전송하지 않았습니다.'};status(notice.message);}
+    catch(error){notice={documentId:getDocumentId(),state:'error',message:'기록 저장 실패 · 다시 시도할 수 있습니다. '+error.message};status(notice.message);}
+    finally{busy=false;render();}
+  };
   $('link-recover').onclick=()=>share({recover:true});
   $('link-copy').onclick=async()=>{
     if(lastRequest?.input.documentId!==getDocumentId())return;
@@ -95,6 +119,7 @@ export function createLinkUI({api,prepare,onAnnotations,status,updateSend,getDoc
     catch(error){$('link-share-status').textContent=error.message;}
   };
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
+  window.addEventListener('online',()=>{runtimeChecked=0;refresh();});
   refresh();
   return {render,updateRecovery,get busy(){return busy;}};
 }

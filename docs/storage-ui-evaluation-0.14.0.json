@@ -1,0 +1,51 @@
+{
+  "version": "0.14.0",
+  "date": "2026-10-21T10:32:38.474Z",
+  "scope": "In-app browser against isolated real Reader server/PDF.js. Windows FileShare.None locks on actual note/question JSON files. Synthetic notes only; original PDF untouched. Question delivery is clipboard mode; record-only retry sends no new question.",
+  "checks": {
+    "damagedQuestionRecoveredAtStartup": true,
+    "noteWriteActuallyFailedUnderWindowsLock": true,
+    "noteDraftPreserved": true,
+    "noteDraftCopiedExactly": true,
+    "noteDraftSurvivedCloseAndReopen": true,
+    "noteRetryCommittedOnce": true,
+    "questionWriteActuallyFailedUnderWindowsLock": true,
+    "questionRetryButtonEnabled": true,
+    "questionRetryAddedExactlyOne": true,
+    "questionRetryCreatedNoNewShare": true,
+    "questionRetryLeftClipboardUnchanged": true,
+    "noteDraftSurvivedSameWindowSetupNavigation": true,
+    "noteSavedAfterSetupNavigation": true
+  },
+  "noteCount": 1,
+  "questionCount": 2,
+  "shareCount": 1,
+  "storage": {
+    "stores": [
+      {
+        "label": "질문 기록",
+        "quarantined": 1,
+        "notices": [
+          {
+            "file": "9a816d9c-1991-4dc1-9ddb-474779c2b389.json",
+            "state": "recovered",
+            "message": "질문 기록을 정상 백업에서 복원했습니다. 최근 내용이 맞는지 확인하세요."
+          }
+        ]
+      },
+      {
+        "label": "논문 노트",
+        "quarantined": 0,
+        "notices": []
+      }
+    ]
+  },
+  "screenshots": [
+    "storage-recovered-startup-0.14.0.jpg",
+    "storage-note-locked-0.14.0.jpg",
+    "storage-note-retried-0.14.0.jpg",
+    "storage-question-locked-0.14.0.jpg",
+    "storage-question-retried-0.14.0.jpg",
+    "storage-draft-navigation-0.14.0.jpg"
+  ]
+}

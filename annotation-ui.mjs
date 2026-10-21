@@ -1,3 +1,4 @@
+import {createWindowDrafts} from './draft-session.mjs';
 import {renderMarkdown} from './markdown.bundle.mjs';
 import {hasNote,findNotes,notesMarkdown,notesFileName} from './reading-tools.mjs';
 import {capturePage,contentBox,resolveRects} from './annotation-geometry.mjs';
@@ -7,6 +8,15 @@ const shades={yellow:'#ffe35c',green:'#8fe4a5',pink:'#ff9cc7',blue:'#8ecbff'};
 
 export function createAnnotationUI({frame,api,getViewer,getFileName}){
   let documentId='',items=[],selection=null,editing=null,revision=0,saving=false,activeId='';
+  const drafts=createWindowDrafts('paper-reader-note-drafts',value=>value&&typeof value.documentId==='string'&&value.item&&typeof value.item.note==='string'&&typeof value.item.color==='string'&&Array.isArray(value.item.anchors)&&value.baseline&&typeof value.baseline.note==='string');let editorContext=null;
+  function drawDrafts(){const count=[...drafts.values()].filter(draft=>draft.documentId===documentId).length;$('annotation-restore-draft').hidden=!count;$('annotation-restore-draft').textContent=`작성 중인 노트 복원 (${count})`;}
+  function rememberDraft(){
+    if(!editorContext)return;
+    const note=$('annotation-note').value,color=$('annotation-color').value;
+    if(note===editorContext.baseline.note&&color===editorContext.baseline.color)drafts.delete(editorContext.key);
+    else drafts.set(editorContext.key,{...editorContext,item:{...editorContext.item,note,color}});
+    drawDrafts();
+  }
   const status=message=>{$('annotation-status').textContent=message;};
   const fail=error=>status(error.message || String(error));
   function setPanel(open){$('annotation-panel').hidden=!open;document.querySelector('main').classList.toggle('has-annotations',open);$('annotations-toggle').setAttribute('aria-expanded',String(open));}
@@ -77,6 +87,7 @@ export function createAnnotationUI({frame,api,getViewer,getFileName}){
     }
   }
   function drawList(){
+    drawDrafts();
     const notes=items.filter(hasNote);
     $('annotation-count').textContent=String(notes.length);const list=$('annotation-list');list.replaceChildren();
     $('annotation-panel-count').textContent=String(notes.length);
@@ -126,19 +137,28 @@ export function createAnnotationUI({frame,api,getViewer,getFileName}){
     return !!selection;
   }
   function openEditor(item){
+    if(saving)return;
     if(!item && !selection){status('PDF에서 먼저 문장을 선택하세요.');return;}
+    if($('annotation-dialog').open)rememberDraft();
     editing=item||null;
+    const original=structuredClone(item||selection),key=JSON.stringify([documentId,original.id||[original.quote,original.anchors]]),draft=drafts.get(key);
+    editorContext={key,documentId,item:original,creationId:draft?.creationId||crypto.randomUUID(),baseline:draft?.baseline||{note:original.note||'',color:original.color||'yellow'}};
     $('annotation-title').textContent=item&&!hasNote(item)?'하이라이트 · 노트':'논문 노트';
     $('annotation-delete').hidden=!item;
     $('annotation-delete').textContent=item&&hasNote(item)?'주석 삭제':'하이라이트 삭제';
     $('annotation-quote').textContent=item?.quote||selection.quote;
     document.querySelector('label[for="annotation-color"]').textContent=(item||selection).anchors[0].kind==='page-note'?'노트 표시 색상':'하이라이트 색상';
-    $('annotation-color').value=item?.color||'yellow';$('annotation-note').value=item?.note||'';
-    $('annotation-editor-status').textContent='';renderMarkdown($('annotation-preview'),$('annotation-note').value);
+    $('annotation-color').value=draft?.item.color||item?.color||'yellow';$('annotation-note').value=draft?.item.note??item?.note??'';
+    $('annotation-editor-status').textContent=draft?'이 창에서 보관한 초안을 복원했습니다. 저장하거나 복사할 수 있습니다.':'';renderMarkdown($('annotation-preview'),$('annotation-note').value);
     $('annotation-dialog').showModal();$('annotation-note').focus();
   }
   $('annotation-preview').classList.add('markdown-body');
-  $('annotation-note').addEventListener('input',()=>renderMarkdown($('annotation-preview'),$('annotation-note').value));
+  $('annotation-note').addEventListener('input',()=>{rememberDraft();renderMarkdown($('annotation-preview'),$('annotation-note').value);});
+  $('annotation-color').addEventListener('change',rememberDraft);
+  $('annotation-dialog').addEventListener('close',rememberDraft);
+  $('annotation-dialog').addEventListener('cancel',event=>{if(saving)event.preventDefault();});
+  $('annotation-restore-draft').onclick=()=>{const draft=[...drafts.values()].filter(value=>value.documentId===documentId).at(-1);if(draft)openEditor(items.find(item=>item.id&&item.id===draft.item.id)||draft.item);};
+  $('annotation-copy').onclick=async()=>{try{const text=$('annotation-note').value;if(window.paperDesktop?.writeClipboard)await window.paperDesktop.writeClipboard(text);else await navigator.clipboard.writeText(text);$('annotation-editor-status').textContent='노트 초안을 복사했습니다.';}catch{$('annotation-note').focus();$('annotation-note').select();$('annotation-editor-status').textContent='내용을 선택했습니다. Ctrl+C로 복사하세요.';}};
   $('annotation-cancel').onclick=()=>$('annotation-dialog').close();
   $('annotation-delete').onclick=async()=>{
     if(!editing||saving||!confirm('이 하이라이트와 노트를 삭제할까요?'))return;
@@ -150,14 +170,15 @@ export function createAnnotationUI({frame,api,getViewer,getFileName}){
     event.preventDefault();if(saving || !documentId)return;
     const item=editing||selection;if(!item)return;
     const id=documentId,current=revision;
-    saving=true;$('annotation-save').disabled=true;
+    saving=true;rememberDraft();for(const control of ['annotation-save','annotation-note','annotation-color','annotation-cancel','annotation-delete'])$(control).disabled=true;
     try{
-      const saved=await api('/api/annotations/upsert',{documentId:id,item:{id:editing?.id,quote:item.quote,note:$('annotation-note').value,color:$('annotation-color').value,anchors:item.anchors,rotation:item.rotation||0}});
+      const saved=await api('/api/annotations/upsert',{documentId:id,item:{id:editing?.id,...(!editing?.id?{creationId:editorContext.creationId}:{}),quote:item.quote,note:$('annotation-note').value,color:$('annotation-color').value,anchors:item.anchors,rotation:item.rotation||0}});
+      drafts.delete(editorContext.key);editorContext.baseline={note:saved.note,color:saved.color};drawDrafts();
       if(current!==revision)return;
       const index=items.findIndex(value=>value.id===saved.id);if(index>=0)items[index]=saved;else items.push(saved);
       frame.contentWindow.getSelection()?.removeAllRanges();$('annotation-dialog').close();focusAnnotation(saved);status(hasNote(saved)?'노트를 이 PC에 저장했습니다. 원본 PDF 파일은 수정하지 않습니다.':'하이라이트를 저장했습니다. 노트 내용이 있는 항목만 논문 노트에 표시됩니다.');
-    }catch(error){$('annotation-editor-status').textContent=error.message;}
-    finally{saving=false;$('annotation-save').disabled=false;}
+    }catch(error){rememberDraft();$('annotation-editor-status').textContent='저장 실패 · 초안은 이 창에 보관됩니다. 다시 저장하거나 노트를 복사하세요. '+error.message;}
+    finally{saving=false;for(const control of ['annotation-save','annotation-note','annotation-color','annotation-cancel','annotation-delete'])$(control).disabled=false;}
   };
   $('highlight').onclick=async()=>{
     $('context').hidden=true;if(!documentId || !selection || saving)return;
@@ -186,7 +207,7 @@ export function createAnnotationUI({frame,api,getViewer,getFileName}){
     },
     frameLoaded,
     redraw,
-    reset(){revision++;documentId='';items=[];selection=null;editing=null;activeId='';$('annotation-search').value='';drawList();status('선택한 문장과 답변을 이곳에 모아두세요.');if($('annotation-dialog').open)$('annotation-dialog').close();},
+    reset(){if($('annotation-dialog').open)rememberDraft();revision++;documentId='';items=[];selection=null;editing=null;activeId='';$('annotation-search').value='';drawList();status('선택한 문장과 답변을 이곳에 모아두세요.');if($('annotation-dialog').open)$('annotation-dialog').close();},
     async ready(id){const current=++revision;documentId=id;items=[];drawList();try{const result=await api('/api/annotations?documentId='+encodeURIComponent(id));if(current!==revision)return;items=result;drawList();redraw();status(items.filter(hasNote).length+'개 노트 · 하이라이트를 클릭해 노트를 추가·수정할 수 있습니다.');}catch(error){if(current===revision)fail(error);}}
   };
 }

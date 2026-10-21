@@ -91,6 +91,17 @@ test('failed readiness reports whether the button is missing, disabled, or the i
     const f=fixture({noSubmit:true,state:{submitReason}});await assert.rejects(f.send(input),message);assert.equal(f.inserted,1);assert.equal(f.submitted,0);
   }
 });
+
+test('explicit retry submits only the exact draft previously inserted by Reader',async()=>{
+  const options={noSubmit:true,state:{submitReason:'button_disabled'}},f=fixture(options);
+  await assert.rejects(f.send(input),/비활성화/);assert.equal(f.inserted,1);
+  options.noSubmit=false;options.state={hasDraft:true,draftMatches:true};
+  assert.equal((await f.send(input)).sent,true);assert.equal(f.inserted,1,'A retry must not duplicate or replace the prepared draft');assert.equal(f.submitted,1);
+  assert.equal((await f.send(input)).duplicate,true);assert.equal(f.submitted,1);
+  const editedOptions={noSubmit:true},edited=fixture(editedOptions);await assert.rejects(edited.send(input));
+  editedOptions.noSubmit=false;editedOptions.state={hasDraft:true,draftMatches:false};
+  await assert.rejects(edited.send(input),/작성 중/);assert.equal(edited.inserted,1);assert.equal(edited.submitted,0);
+});
 test('acknowledges desktop message content without the surrounding 더 보기 controls',()=>{
   const previous=globalThis.document;
   const bubble={innerText:input.text+'\n…\n더 보기',querySelector:()=>({innerText:input.text})};

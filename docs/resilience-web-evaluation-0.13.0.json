@@ -1,0 +1,160 @@
+{
+  "version": "0.13.0",
+  "date": "2026-10-21T10:03:50.155Z",
+  "conversation": "https://chatgpt.com/c/6ad87033-2b7c-83ee-a029-1eefb031b1d8",
+  "scope": "Installed EXE localhost accessed through in-app browser; manual paste into the SAME existing ChatGPT conversation. No native EXE autosend IPC in this web test.",
+  "sameConversation": true,
+  "pdfReopenedBeforeRestoredTools": false,
+  "newShareCreatedAfterRestart": false,
+  "shareCountBefore": 1,
+  "shareCountAfter": 1,
+  "selectionId": "1bbe166a-daf0-47ce-a07d-bfd3302e4250",
+  "sameSelectionId": true,
+  "restoredCount": 1,
+  "archiveError": null,
+  "initialTrace": [
+    {
+      "tool": "search_pdf",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-21T09:57:54.258Z"
+    },
+    {
+      "tool": "read_pdf",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-21T09:58:00.185Z",
+      "characters": 638,
+      "passages": [
+        {
+          "passageId": "p9.17",
+          "start": 2090,
+          "end": 2728
+        }
+      ]
+    },
+    {
+      "tool": "render_pdf_page",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-21T09:58:06.520Z",
+      "image": {
+        "page": 9,
+        "region": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "width": 1545,
+        "height": 2000,
+        "zoom": 1,
+        "rotation": 0,
+        "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+        "imageRef": "image-83a71206-755c-4050-93f9-bfd3d387fd5b",
+        "delivery": "image"
+      }
+    }
+  ],
+  "restoredTrace": [
+    {
+      "tool": "search_pdf",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-21T10:02:33.731Z"
+    },
+    {
+      "tool": "render_pdf_page",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-21T10:02:34.286Z",
+      "image": {
+        "page": 9,
+        "region": [
+          0.58,
+          0.08,
+          0.27,
+          0.22
+        ],
+        "width": 1897,
+        "height": 2000,
+        "zoom": 4.545454545454545,
+        "rotation": 0,
+        "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+        "imageRef": "image-d336d3de-c272-4a52-be4c-6c842a011eb4",
+        "delivery": "image"
+      }
+    },
+    {
+      "tool": "read_pdf",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-21T10:02:47.599Z",
+      "characters": 0,
+      "passages": [
+        {
+          "passageId": "p9.17",
+          "start": 2090,
+          "end": 2728
+        }
+      ]
+    },
+    {
+      "tool": "render_pdf_page",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-21T10:02:47.620Z",
+      "image": {
+        "page": 9,
+        "region": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "width": 1545,
+        "height": 2000,
+        "zoom": 1,
+        "rotation": 0,
+        "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+        "imageRef": "image-83a71206-755c-4050-93f9-bfd3d387fd5b",
+        "delivery": "reference"
+      }
+    }
+  ],
+  "errorCount": 0,
+  "sourceSha256": "e052eb972f646747ac4554a294eb62874077e59a5f585f459e2dbd5cb2a0975d",
+  "annotationCount": 8,
+  "answerSaved": false,
+  "tunnelRecovery": {
+    "injectedExitPid": 22020,
+    "autoRecoveredPid": 18820,
+    "oldAppPid": 28420,
+    "restartedAppPid": 23892,
+    "finalTunnelPid": 8184
+  },
+  "screenshots": [
+    "resilience-first-question-0.13.0.jpg",
+    "resilience-restored-chat-0.13.0.jpg",
+    "resilience-restored-reader-0.13.0.jpg"
+  ],
+  "limits": [
+    "No physical OS suspend or adapter/network disconnect performed.",
+    "Old pre-0.13 memory shares cannot be restored retroactively.",
+    "Context budget is per selection, not entire ChatGPT conversation."
+  ]
+}

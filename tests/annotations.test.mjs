@@ -20,7 +20,7 @@ test('PDF highlights and Markdown notes persist independently of conversations',
   assert.equal((await store.list('abcdef1234')).length,1);
   await store.delete('abcdef1234',saved.id);
   assert.equal((await store.list('abcdef1234')).length,0);
-  const names=await readdir(directory);assert.equal(names.length,1);
+  const names=(await readdir(directory)).filter(name=>name.endsWith('.json'));assert.equal(names.length,1);
   assert.equal(JSON.parse(await readFile(path.join(directory,names[0]),'utf8')).documentId,'abcdef1234');
 });
 

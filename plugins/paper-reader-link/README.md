@@ -1,10 +1,10 @@
-# Paper Reader Link · 0.3.3 시제품
+# Paper Reader Link · 0.4.0
 
 Paper Reader에서 선택한 문장을 ChatGPT 대화로 가져오고, 답변을 원래 PDF 위치의 주석으로 저장하는 MCP 플러그인입니다. 모델 호출은 ChatGPT 대화에서 이루어집니다. Link 서버는 모델 API나 Codex 추론 API를 호출하지 않습니다.
 
 ## 처음 연결하기
 
-1. 기존 Paper Reader 창을 종료한 뒤, **Paper Reader 0.10.1 EXE** 또는 저장소의 `npm run desktop`으로 실행합니다. 이전 버전이 실행 중이면 새 EXE도 기존 창을 활성화하므로 먼저 종료해야 합니다. 다른 PC에서 준비할 파일은 [개발 인수인계](../../docs/DEVELOPMENT-HANDOFF.md)를 참고하세요.
+1. 기존 Paper Reader 창을 종료한 뒤, **Agentic PDF Reader 0.14.0 EXE** 또는 저장소의 `npm run desktop`으로 실행합니다. 이전 버전이 실행 중이면 새 EXE도 기존 창을 활성화하므로 먼저 종료해야 합니다. 다른 PC에서 준비할 파일은 [개발 인수인계](../../docs/DEVELOPMENT-HANDOFF.md)를 참고하세요.
 2. [OpenAI Platform 터널 설정](https://platform.openai.com/settings/organization/tunnels)에 로그인하여 터널을 생성합니다. 사용할 **ChatGPT 워크스페이스를 연결**하고 터널 ID를 기록합니다. 생성에는 Tunnels **Read + Manage**, 실행에는 **Read + Use** 권한이 필요합니다.
 3. Platform에서 터널 실행용 API 키를 준비합니다. 이 키는 **채팅에 붙여넣지 마세요**. Link 연결용이며 모델 요청 코드는 포함하지 않습니다.
 4. 이 폴더의 **Start-Link.cmd**를 실행합니다. Node.js 20 이상이 필요합니다. 처음 한 번만 터널 ID와 실행 키를 입력합니다. 키는 숨김 입력으로 받아 Windows DPAPI(CurrentUser)로 암호화해 `%LOCALAPPDATA%\PaperReaderLink\credentials.json`에 저장합니다. 다음 실행부터 같은 Windows 계정에서 자동으로 불러옵니다. 기존 터널 프로필의 ID도 재사용합니다. 창을 닫으면 연결이 종료됩니다.
@@ -25,6 +25,12 @@ Windows가 파일 실행을 차단하는 경우 보안 정책을 끄지 말고, 
 같은 PC에서 Link를 두 번 실행하면 기존 실행 정보를 보여주고 종료합니다. 키나 터널 설정을 덮어쓰지 않습니다. 업데이트할 때는 실행 중인 Link를 먼저 종료하세요.
 
 답변 노트에는 ChatGPT가 실제 읽은 본문·이미지 페이지가 함께 저장됩니다. **AI가 읽은 페이지** 버튼으로 원문을 대조할 수 있고 노트를 수정하거나 앱을 다시 열어도 기록이 유지됩니다. 이는 도구로 읽은 이력이며 답변의 모든 주장이 해당 페이지로 증명된다는 보장은 아닙니다. PDF 전체 검색과 노트 저장 허용 설정도 다음 실행에서 유지됩니다.
+
+## 0.4.0 복구와 문맥 제한
+
+Reader 0.13.0에서 새로 공유한 PDF는 Windows 계정으로 암호화해 최대 24시간 보관하며, 앱을 다시 실행해도 기존 선택 ID를 사용합니다. 원본과 다른 파일로 바꾸지 않고 저장된 고정본을 요청 시 복원합니다. 문맥 설정의 연결 해제는 캐시와 공유 권한을 지웁니다. 이전 버전의 메모리 공유는 소급 복원되지 않습니다.
+
+같은 원문 범위는 textRef만 반환합니다. 원문을 더 이상 볼 수 없을 때만 read_pdf/expand_pdf에 reread:true와 reason을 지정하세요. 질문별 기본 누적 예산은 본문·검색 24,000자와 이미지 8개이며, 이후 추가 자료 요청에는 reason이 필요합니다. 과거 대화 내용을 지우는 기능은 아닙니다. search_pdf의 textQuality가 partial/limited이면 관련 페이지 이미지를 확인하세요. OCR은 수행하지 않습니다.
 
 ## 기본 사용 흐름
 
@@ -70,6 +76,8 @@ ChatGPT를 기본 모드로 사용합니다. 앱에서 직접 요청하는 방�
 
 2026-10-13 실제 로그인된 ChatGPT 일반 Chat에서 7개 도구 갱신 후 NTK 논문을 검증했습니다. 모델이 질문에 맞춰 SQL 검색 → 원문 읽기 → 실제 PNG 확인을 수행했습니다. Theorem 2/ReLU 가정 대조와 Figure 3(c)/Figure 1 비교를 근거 페이지와 함께 답했고, Paper Reader에서도 도구 처리 상태와 근거 페이지를 확인했습니다. 이 테스트는 별도 인앱 브라우저의 ChatGPT에서 실행했으며, EXE 내장 패널의 직접 전송은 기존 검증과 구별합니다.
 
-기존 터널을 사용 중이라면 앱을 0.12.3로 업데이트하거나 실행 중인 Link를 종료하고 0.3.3 패키지의 `Start-Link.cmd`로 다시 연결하세요. ChatGPT의 해당 플러그인 **관리 → 도구 새로 고침**으로 갱신하여 `list_annotations`, `read_annotation`을 포함한 11개 도구가 보이는지 확인합니다. API 키는 채팅에 공유하지 마세요.
+기존 터널을 사용 중이라면 앱을 0.12.4로 업데이트하거나 실행 중인 Link를 종료하고 0.3.4 패키지의 `Start-Link.cmd`로 다시 연결하세요. ChatGPT의 해당 플러그인 **관리 → 도구 새로 고침**으로 갱신하여 `list_annotations`, `read_annotation`을 포함한 11개 도구가 보이는지 확인합니다. API 키는 채팅에 공유하지 마세요.
 
 `imageReturned:true`는 서버의 PNG 반환 기록이며 모델의 판독 완료를 뜻하지 않습니다. JavaScript/exec 결과에서 `content`가 문자열이면 `content_items`의 이미지 블록을 확인하세요. 표준 MCP는 `content` 배열입니다. 실제 `type:image` 블록을 실행 도구의 `image(block)` 함수로 표시해야 합니다. 원본 결과가 남아 있으면 먼저 표시하고, 없을 때만 이유를 적어 한 번 재전송하세요. Reader의 **이미지 다시 읽기**는 기존 대화를 유지합니다. 반복 재전송이나 텍스트만으로 색상 추측은 금지합니다.
+
+MCP 초기화 완료 알림: 앱과 Start-Link 실행기는 공식 `--mcp.stdio-send-initialized-notification` 옵션으로 성공한 초기화의 완료 알림을 즉시 보냅니다. 뒤늦은 중복 알림은 터널이 억제합니다. 재초기화 직후 다른 도구가 끼면서 발생하는 409를 방지하며, 초기화 절차 자체와 기존 공유 범위·인증 검사는 유지합니다.

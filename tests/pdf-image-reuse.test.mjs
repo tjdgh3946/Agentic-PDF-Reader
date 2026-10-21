@@ -65,8 +65,8 @@ test('explicit resend requires a reason, is not the zoom path, and duplicates ad
 });
 test('image delivery tracking respects revocation and bounds unique regions without evicting references',async t=>{
   const {link,shared}=await fixture(t),args={selectionId:shared.selectionId,page:9};
-  for(let i=0;i<32;i++)await link.call('render_pdf_page',{...args,region:[i*.01,0,.5,.5]});
-  await assert.rejects(link.call('render_pdf_page',{...args,region:[.4,0,.5,.5]}),/32/);
+  for(let i=0;i<32;i++)await link.call('render_pdf_page',{...args,region:[i*.01,0,.5,.5],reason:'Verify a distinct evidence region in the bounded history test.'});
+  await assert.rejects(link.call('render_pdf_page',{...args,region:[.4,0,.5,.5],reason:'Check the region limit.'}),/32/);
   assert.equal((await link.call('render_pdf_page',{...args,region:[0,0,.5,.5]})).delivery,'reference');
   await link.setEnabled(false);await assert.rejects(link.call('render_pdf_page',args),/꺼져/);
   await link.setEnabled(true);await assert.rejects(link.call('render_pdf_page',args),/만료/);

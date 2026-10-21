@@ -1,3 +1,4 @@
+import {createWindowDrafts} from './draft-session.mjs';
 import {retrieveCandidates} from './auto-context.mjs';
 import {renderMarkdown} from './markdown.bundle.mjs';
 import {pageWindow,historyFor,buildPrompt} from './context.mjs';
@@ -18,6 +19,7 @@ let selectedEndPage='',promptRevision=0,prepared=null,pdfWindow='near1',historyT
 let chat=null,chatList=[],chatRevision=0,chatBusy=false,documentId='',tokenTimer,autoController=null,autoBudget=8000,answerRenderTimer=null;
 let readingTimer,readingRestoring=false,openingPdf=false,questionInputRevision=0;
 let lastReadingQuestion='';
+let storageChecked=0,storageChecking=false;const answerDrafts=createWindowDrafts('paper-reader-answer-drafts',value=>typeof value==='string');
 let pdfSearch=false,linkAllowSave=false;
 let pdfSearchAvailable=false;
 const searchingPDF=()=>pdfSearch && pdfSearchAvailable && requestMode==='manual' && manualDelivery==='link';
@@ -406,7 +408,8 @@ async function saveExport(linked,input) {
   chatBusy=true;updateSend();
   try {
     const current=await ensureChat();if(revision!==chatRevision)return;
-    const entry=await api('/api/chat/export',{id:current.id,turn:{...turnMetadata(snapshot),...(linked?.selectionId?{linkSelectionId:linked.selectionId}:{})}});
+    snapshot.recordId??=crypto.randomUUID();
+    const entry=await api('/api/chat/export',{id:current.id,turn:{...turnMetadata(snapshot),clientEntryId:snapshot.recordId,...(linked?.selectionId?{linkSelectionId:linked.selectionId}:{})}});
     snapshot.exported=true;if(revision===chatRevision){if(!current.entries.some(item=>item.id===entry.id))current.entries.push(entry);renderChat();await refreshChats();}
   }finally{if(revision===chatRevision){chatBusy=false;updateSend();}}
 }
@@ -430,9 +433,27 @@ for(const id of ['pdf-window','history-window','auto-budget'])$(id).onchange=asy
 async function api(url, body, signal) {
   const response = await fetch(url,{signal,headers:{'X-Paper-Reader':'1',...(body!==undefined?{'Content-Type':'application/json'}:{})},method:body!==undefined?'POST':'GET',...(body!==undefined?{body:JSON.stringify(body)}:{})});
   const data = await response.json();
+  refreshStorage(!response.ok).catch(()=>{});
   if(!response.ok) throw new Error(data.error || '요청에 실패했습니다.');
   return data;
 }
+async function refreshStorage(force=false){
+  if(storageChecking||!force&&Date.now()-storageChecked<5000)return;storageChecking=true;storageChecked=Date.now();
+  try{
+    const response=await fetch('/api/storage/status',{headers:{'X-Paper-Reader':'1'}});if(!response.ok)return;
+    const value=await response.json(),stores=(value.stores||[]).filter(Boolean),notices=stores.flatMap(store=>store.notices||[]);
+    const total=stores.reduce((sum,store)=>sum+(store.quarantined||0),0);
+    $('storage-notice-open').hidden=!notices.length&&!total;
+    const messages=notices.map(notice=>notice.message);if(total)messages.push('별도로 보관한 손상 파일 '+total+'개가 있습니다.');
+    $('storage-notices').replaceChildren(...messages.map(message=>{const item=document.createElement('li');item.textContent=message;return item;}));
+  }finally{storageChecking=false;}
+}
+$('storage-retry').onclick=async()=>{
+  $('storage-retry').disabled=true;
+  try{await api('/api/storage/retry',{documentId:documentId||null});await refreshChats();if(documentId){await annotationUI.refresh();if(!chat)await restoreDocumentChat();}await refreshStorage(true);$('storage-retry-status').textContent='기록을 다시 확인했습니다.';}
+  catch(error){$('storage-retry-status').textContent=error.message;}
+  finally{$('storage-retry').disabled=false;}
+};
 function renderHeaderAccount() {
   const connected=!!authState?.connected;
   const account=connected?authState.account:usageState?.account;
@@ -603,7 +624,8 @@ linkUI=createLinkUI({api,status,updateSend,writeClipboard,onPdfAvailability:avai
     const registration=await result.json();if(!result.ok)throw new Error(registration.error);
     if(generation!==docGeneration || revision!==promptRevision || (!selection && page!==viewer.page))throw new Error('질문 또는 문서가 바뀌었습니다. 다시 보내세요.');
     prepared={question,selection,pages:[page],pageLabel:'p. '+page,pdfWindow:'page',historyCount:0,prompt:question};
-    $('token-estimate').textContent=`${registration.pageCount}페이지 검색 준비 완료 · 본문/이미지는 ChatGPT가 요청할 때 전달`;
+    const quality=registration.textQuality;
+    $('token-estimate').textContent=quality&&quality.status!=='searchable'?`${registration.pageCount}페이지 준비 · 텍스트 부족·손상 페이지가 있습니다. 관련 페이지는 AI가 이미지로 확인합니다.`:`${registration.pageCount}페이지 검색 준비 완료 · 본문/이미지는 ChatGPT가 요청할 때 전달`;
     return {documentId:id,fileName:name,...location,question,context:'',snapshotId:registration.snapshotId};
   }
   if(!prepared)await $('prepare').onclick();
@@ -625,20 +647,22 @@ function openAnswerImport(entry) {
   if(chatBusy || answerController || !chat)return;
   importTarget={chatId:chat.id,entryId:entry.id};
   $('import-answer-question').textContent=entry.question;
-  $('import-answer-text').value=entry.answer || '';$('import-answer-status').textContent='';
+  $('import-answer-text').value=answerDrafts.get(chat.id+':'+entry.id)??entry.answer??'';$('import-answer-status').textContent='';
   $('import-answer-dialog').showModal();$('import-answer-text').focus();
 }
+$('import-answer-text').addEventListener('input',()=>{if(importTarget)answerDrafts.set(importTarget.chatId+':'+importTarget.entryId,$('import-answer-text').value);});
+$('import-answer-copy').onclick=async()=>{try{await writeClipboard($('import-answer-text').value);$('import-answer-status').textContent='답변 초안을 복사했습니다.';}catch{$('import-answer-text').focus();$('import-answer-text').select();$('import-answer-status').textContent='Ctrl+C로 답변을 복사하세요.';}};
 $('import-answer-cancel').onclick=()=>{if(!importSaving)$('import-answer-dialog').close();};
 $('import-answer-dialog').addEventListener('cancel',event=>{if(importSaving)event.preventDefault();});
 $('import-answer-form').onsubmit=async event=>{
   event.preventDefault();if(importSaving || !importTarget)return;
-  const target=importTarget;importSaving=true;$('import-answer-save').disabled=true;$('import-answer-cancel').disabled=true;
+  const target=importTarget;importSaving=true;$('import-answer-text').disabled=true;$('import-answer-save').disabled=true;$('import-answer-cancel').disabled=true;
   try {
     const entry=await api('/api/chat/import-answer',{id:target.chatId,entryId:target.entryId,answer:$('import-answer-text').value});
     if(chat?.id===target.chatId){const index=chat.entries.findIndex(item=>item.id===entry.id);if(index>=0)chat.entries[index]=entry;invalidatePrompt();renderChat();}
-    await refreshChats();$('import-answer-dialog').close();status('답변을 저장했습니다. 다음 질문의 이전 대화 문맥에 포함됩니다.');
+    answerDrafts.delete(target.chatId+':'+target.entryId);await refreshChats();$('import-answer-dialog').close();status('답변을 저장했습니다. 다음 질문의 이전 대화 문맥에 포함됩니다.');
   }catch(error){$('import-answer-status').textContent=error.message;}
-  finally{importSaving=false;$('import-answer-save').disabled=false;$('import-answer-cancel').disabled=false;}
+  finally{importSaving=false;$('import-answer-text').disabled=false;$('import-answer-save').disabled=false;$('import-answer-cancel').disabled=false;}
 };
 async function loadModels() {
   if(requestMode!=='plan') return;

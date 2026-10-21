@@ -54,7 +54,10 @@ async function main(){
   console.log('Using saved Windows-encrypted credentials. Next launch needs no key entry.');
   console.log('Keep this window and Paper Reader open. Stop with Ctrl+C.\nIn ChatGPT > Plugins > Add custom MCP server, choose Tunnel and this tunnel ID.\nFor this private stdio server choose No authentication; the tunnel controls access.');
   const environment={...process.env,CONTROL_PLANE_API_KEY:key};key='';
-  try{await run(['run','--config',path.join(profileDirectory,'paper-reader-link.yaml'),'--open-web-ui'],environment);}
+  // Finish each successful initialize before another logical caller can issue
+  // a tool request on the same stdio child. Late upstream notifications are
+  // suppressed by the official tunnel shim, not sent twice to the MCP server.
+  try{await run(['run','--config',path.join(profileDirectory,'paper-reader-link.yaml'),'--mcp.stdio-send-initialized-notification','--open-web-ui'],environment);}
   finally{delete environment.CONTROL_PLANE_API_KEY;}
 }
 try{await main();}

@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('paperDesktop',{
   openSetup:()=>ipcRenderer.invoke('paper:setup-open'),
   setupLink:input=>ipcRenderer.invoke('paper:setup-link',input),
   setupStartLink:()=>ipcRenderer.invoke('paper:setup-start-link'),
+  setupStopLink:()=>ipcRenderer.invoke('paper:setup-stop-link'),
   setupExternal:kind=>ipcRenderer.invoke('paper:setup-external',kind),
   writeClipboard:text=>ipcRenderer.invoke('paper:copy-text',text),
   setWebPanel:input=>ipcRenderer.invoke('paper:web-panel',input),
