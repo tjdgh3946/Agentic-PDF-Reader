@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-21",
+  "version": "0.11.4",
+  "automatedTests": {"passed": 106, "failed": 0},
+  "chromiumComposerRegression": {
+    "result": "pass",
+    "script": "scripts/web-send-dom-check.mjs",
+    "consecutiveSends": 2,
+    "pluginPreserved": true,
+    "realDraftProtected": true
+  },
+  "inAppBrowser": {
+    "pluginExplicitlySelected": true,
+    "document": "1806.07572v4.pdf",
+    "successfulQuestions": 2,
+    "notesBefore": 5,
+    "notesAfter": 7,
+    "followupTrace": ["inspect_pdf", "query_pdf", "read_pdf", "render_pdf_page"],
+    "imagePages": [8],
+    "historyError": false,
+    "scope": "Browser question copy/paste and explicit ChatGPT Send; not native EXE IPC automatic-send validation. Initial disconnected-tunnel failure was repaired before the successful questions."
+  },
+  "saveCheckbox": {
+    "visibleBesideQuestion": true,
+    "defaultChecked": false,
+    "legacyAutomaticPermissionIgnored": true,
+    "uncheckedPromptContainsSaveAnnotation": false,
+    "checkedPromptContainsSaveAnnotation": true,
+    "checkedChoiceSurvivesReload": true,
+    "finalChecked": false,
+    "newShareAfterOptionChange": true,
+    "scope": "On/off templates and persistence checked in an isolated local source server; installed 0.11.4 UI and settings verified with the existing profile."
+  },
+  "installer": {
+    "exitCode": 0,
+    "installedVersion": "0.11.4",
+    "changedRuntimeFilesMatchSource": true,
+    "health": "ok",
+    "savedCredentialsReused": true,
+    "managedTunnelRunning": true,
+    "sha256": "f0b5868609fe75f11b54669ff0b05f5000b613590cf3a433d04792fde0070e3a"
+  },
+  "limitations": [
+    "No new long-duration soak, OS reboot, or native EXE model-driven end-to-end automatic send test was performed for 0.11.4.",
+    "Checkbox changes apply to newly prepared shares; existing immutable shares keep their original save permission."
+  ]
+}

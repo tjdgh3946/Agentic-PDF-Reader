@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp} from 'node:fs/promises';
+import {mkdtemp,writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {questionContext,findNotes,notesMarkdown,notesFileName} from '../reading-tools.mjs';
@@ -51,4 +51,18 @@ test('PDF search consent and note-save preference survive new origins and store 
   assert.equal(settings.get().mode,'manual');
   await settings.set({panelWidth:500});assert.equal(settings.get().linkAllowSave,false);
   assert.throws(()=>settings.set({pdfSearch:'true'}));assert.throws(()=>settings.set({linkAllowSave:1}));
+});
+
+test('answer-note saving is an explicit opt-in independent of the old automatic permission',async()=>{
+  const directory=await mkdtemp(path.join(tmpdir(),'paper-note-opt-in-'));
+  const file=path.join(directory,'settings.json');
+  assert.equal((await createSettings()).get().linkSaveAnswer,false);
+  await writeFile(file,JSON.stringify({mode:'manual',linkAllowSave:true}));
+  let settings=await createSettings(file);
+  assert.equal(settings.get().linkSaveAnswer,false,'Legacy automatic saving must not select the new checkbox');
+  await settings.set({linkSaveAnswer:true});settings=await createSettings(file);
+  assert.equal(settings.get().linkSaveAnswer,true);
+  await settings.set({linkSaveAnswer:false});settings=await createSettings(file);
+  assert.equal(settings.get().linkSaveAnswer,false);
+  assert.throws(()=>settings.set({linkSaveAnswer:'true'}));
 });

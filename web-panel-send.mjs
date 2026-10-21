@@ -10,10 +10,26 @@ export function composerAction(action,text,requestId){
   };
   // Chromium's contenteditable blocks can add blank lines to innerText.
   const normalize=value=>value.replace(/\r\n?/g,'\n').replace(/\u00a0/g,' ').replace(/[\u200b\ufeff]/g,'').replace(/\n+/g,'\n').trim();
+  // ChatGPT keeps selected plugins as non-editable inline mentions. Their
+  // labels are configuration, not a draft. Only omit explicit app mentions;
+  // ordinary text (including a typed plugin name) must still block overwrites.
+  // Sent bubbles keep the app:// marker but omit contenteditable="false".
+  const appMention='[data-prompt-link-href^="app://"]';
+  const contentText=element=>{
+    if(!element)return '';
+    if(!element.querySelector?.(appMention))return element.innerText || '';
+    const copy=element.cloneNode(true);
+    for(const mention of copy.querySelectorAll(appMention))mention.remove();
+    // Detached innerText loses rendered block boundaries. Recreate those
+    // boundaries in the copy without changing the live editor or its chips.
+    for(const br of copy.querySelectorAll('br'))br.replaceWith('\n');
+    for(const block of copy.querySelectorAll('p,div,li'))block.append('\n');
+    return copy.textContent || '';
+  };
   const editors=document.querySelectorAll('#prompt-textarea,#prompt-textarea [contenteditable="true"],#mobile-composer-prompt,textarea[data-mobile-composer-prompt],textarea[name="prompt"],[contenteditable="true"][role="textbox"]');
   const editor=[...editors].find(element=>visible(element) && (element.isContentEditable || element.tagName==='TEXTAREA') && !element.disabled && !element.readOnly && element.getAttribute('aria-readonly')!=='true');
   const editable=!!editor;
-  const draft=editable?normalize(editor.tagName==='TEXTAREA'?editor.value:editor.innerText):'';
+  const draft=editable?normalize(editor.tagName==='TEXTAREA'?editor.value:contentText(editor)):'';
   const form=editor?.form || editor?.closest?.('form');
   const stopped=[...document.querySelectorAll('button[data-testid="stop-button"],button[aria-label="Stop streaming"],button[aria-label="Stop generating"],button[aria-label="停止生成"],button[aria-label="응답 중지"],button[aria-label="생성 중단하기"]')].some(visible) || [...document.querySelectorAll('button[data-composer-submit]')].some(button=>visible(button) && button.getAttribute('data-stop-label') && button.getAttribute('aria-label')===button.getAttribute('data-stop-label')) || !!form && [...form.querySelectorAll('button')].some(button=>visible(button) && /(?:^Stop\b|중지|중단)/i.test(button.getAttribute('aria-label')||''));
   const messages=[...document.querySelectorAll('[data-message-author-role="user"],[data-user-message-bubble]')];
@@ -21,7 +37,7 @@ export function composerAction(action,text,requestId){
   // Desktop bubbles also contain "더 보기" controls. Compare the actual message
   // content, not the surrounding bubble's labels and action buttons.
   const message=last?.querySelector?.('.whitespace-pre-wrap') || last;
-  const messageText=message?.innerText || '';
+  const messageText=contentText(message);
   const sent=!!last && (normalize(messageText)===normalize(text) || (text.includes('선택 ID: '+requestId) && messageText.includes('선택 ID: '+requestId)));
   // Current desktop ChatGPT uses a ProseMirror editor and a localized form
   // submit button without the legacy id/data-testid. Keep the lookup in that form.
@@ -33,7 +49,12 @@ export function composerAction(action,text,requestId){
   if(action==='inspect')return {editable,hasDraft:!!draft,stopped,sent,submitReason};
   if(action==='focus'){
     if(!editable || draft || stopped)return false;
-    editor.focus();return document.activeElement===editor;
+    editor.focus();
+    if(editor.isContentEditable && document.createRange && document.getSelection){
+      const range=document.createRange();range.selectNodeContents(editor);range.collapse(false);
+      const selection=document.getSelection();selection.removeAllRanges();selection.addRange(range);
+    }
+    return document.activeElement===editor;
   }
   if(action==='submit'){
     if(submitReason)return false;

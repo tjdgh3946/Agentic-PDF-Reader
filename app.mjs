@@ -18,7 +18,7 @@ let selectedEndPage='',promptRevision=0,prepared=null,pdfWindow='near1',historyT
 let chat=null,chatList=[],chatRevision=0,chatBusy=false,documentId='',tokenTimer,autoController=null,autoBudget=8000,answerRenderTimer=null;
 let readingTimer,readingRestoring=false,openingPdf=false,questionInputRevision=0;
 let lastReadingQuestion='';
-let pdfSearch=false,linkAllowSave=true;
+let pdfSearch=false,linkAllowSave=false;
 let pdfSearchAvailable=false;
 const searchingPDF=()=>pdfSearch && pdfSearchAvailable && requestMode==='manual' && manualDelivery==='link';
 const status = message => { $('status').textContent = message; };
@@ -519,6 +519,7 @@ function updateSend() {
   $('manual-delivery').disabled=savingSettings || openingChatGPT || !!answerController || !!linkUI?.busy;
   $('pdf-search').disabled=!pdfSearchAvailable || savingSettings || busy || !!linkUI?.busy;
   $('link-save-answer').disabled=savingSettings || busy || !!linkUI?.busy;
+  $('link-save-option').hidden=requestMode!=='manual' || manualDelivery!=='link';
   $('pdf-search-option').hidden=requestMode!=='manual' || manualDelivery!=='link';
   $('context-options-manual').hidden=searchingPDF();$('preview').hidden=searchingPDF();$('history-status').hidden=searchingPDF();
   const anchor=annotationUI.selectionSnapshot();
@@ -534,7 +535,7 @@ function applyMode(mode) {
   $('plan-controls').hidden=!direct;
   $('manual-controls').hidden=mode!=='manual';
   $('mode-title').textContent=direct?'앱에서 직접 요청':'ChatGPT에서 직접 질문';
-  $('mode-description').textContent=direct?'앱 안에서 답변받습니다. Codex / ChatGPT Work 공유 사용량 또는 허용한 크레딧을 사용합니다.':'PDF 아래에서 ChatGPT Link 또는 복사 후 붙여넣기를 선택하세요. Link 답변은 논문 노트로 돌아옵니다.';
+  $('mode-description').textContent=direct?'앱 안에서 답변받습니다. Codex / ChatGPT Work 공유 사용량 또는 허용한 크레딧을 사용합니다.':'PDF 아래에서 ChatGPT Link 또는 복사 후 붙여넣기를 선택하세요. 저장 옵션을 켜면 Link 답변을 논문 노트로 받을 수 있습니다.';
   renderUsage();
   updateReadingContext();
   updateSend();
@@ -542,7 +543,7 @@ function applyMode(mode) {
 $('manual-delivery').onchange=async()=>{
   const next=$('manual-delivery').value;savingSettings=true;updateSend();
   try{const saved=await api('/api/settings',{mode:requestMode||'manual',manualDelivery:next});manualDelivery=saved.manualDelivery;
-    status(manualDelivery==='link'?'문장 또는 현재 페이지로 질문할 수 있습니다. 연결된 플러그인은 답변을 논문 노트에 저장합니다.':'질문을 복사해 ChatGPT에서 전송하세요.');}
+    status(manualDelivery==='link'?'문장 또는 현재 페이지로 질문할 수 있습니다. 저장을 원하면 질문창 옆의 저장 옵션을 체크하세요.':'질문을 복사해 ChatGPT에서 전송하세요.');}
   catch(error){status('전달 방식을 저장하지 못했습니다: '+error.message);}
   finally{$('manual-delivery').value=manualDelivery;savingSettings=false;updateReadingContext();updateSend();}
 };
@@ -612,12 +613,12 @@ $('pdf-search').checked=pdfSearch;
 async function saveSharePreference(key,control){
   const previous=key==='pdfSearch'?pdfSearch:linkAllowSave,next=control.checked;
   savingSettings=true;updateSend();
-  try{const saved=await api('/api/settings',{[key]:next});if(key==='pdfSearch')pdfSearch=saved.pdfSearch;else linkAllowSave=saved.linkAllowSave;invalidatePrompt();}
+  try{const saved=await api('/api/settings',{[key]:next});if(key==='pdfSearch')pdfSearch=saved.pdfSearch;else linkAllowSave=saved.linkSaveAnswer;invalidatePrompt();}
   catch(error){control.checked=previous;status('공유 설정을 저장하지 못했습니다: '+error.message);}
   finally{savingSettings=false;updateReadingContext();updateSend();}
 }
 $('pdf-search').onchange=()=>saveSharePreference('pdfSearch',$('pdf-search'));
-$('link-save-answer').onchange=()=>saveSharePreference('linkAllowSave',$('link-save-answer'));
+$('link-save-answer').onchange=()=>saveSharePreference('linkSaveAnswer',$('link-save-answer'));
 let importTarget=null,importSaving=false;
 function openAnswerImport(entry) {
   if(chatBusy || answerController || !chat)return;
@@ -753,7 +754,7 @@ divider.addEventListener('lostpointercapture',finishResize);
 divider.addEventListener('keydown',event=>{let width=Number(divider.getAttribute('aria-valuenow'));if(event.key==='ArrowLeft')width+=24;else if(event.key==='ArrowRight')width-=24;else if(event.key==='Home')width=360;else if(event.key==='End')width=1200;else return;event.preventDefault();desiredPanelWidth=resizePanel(width);savePanelWidth();});
 divider.addEventListener('dblclick',()=>{desiredPanelWidth=resizePanel(Math.min(640,workspace.clientWidth*.44));savePanelWidth();});
 new ResizeObserver(()=>resizePanel()).observe(workspace);resizePanel();
-try {const saved=await api('/api/settings');if(saved.panelWidth){desiredPanelWidth=saved.panelWidth;resizePanel();}manualDelivery=saved.manualDelivery||'link';$('manual-delivery').value=manualDelivery;pdfSearch=saved.pdfSearch===true;linkAllowSave=saved.linkAllowSave!==false;$('pdf-search').checked=pdfSearch;$('link-save-answer').checked=linkAllowSave;applyMode(saved.mode);pdfWindow=saved.pdfWindow || 'near1';historyTurns=saved.historyTurns ?? 3;autoBudget=saved.autoBudget || 8000;$('auto-budget').value=String(autoBudget);$('pdf-window').value=pdfWindow;$('history-window').value=String(historyTurns);updateReadingContext();}
+try {const saved=await api('/api/settings');if(saved.panelWidth){desiredPanelWidth=saved.panelWidth;resizePanel();}manualDelivery=saved.manualDelivery||'link';$('manual-delivery').value=manualDelivery;pdfSearch=saved.pdfSearch===true;linkAllowSave=saved.linkSaveAnswer===true;$('pdf-search').checked=pdfSearch;$('link-save-answer').checked=linkAllowSave;applyMode(saved.mode);pdfWindow=saved.pdfWindow || 'near1';historyTurns=saved.historyTurns ?? 3;autoBudget=saved.autoBudget || 8000;$('auto-budget').value=String(autoBudget);$('pdf-window').value=pdfWindow;$('history-window').value=String(historyTurns);updateReadingContext();}
 catch(error) {$('mode-title').textContent='설정을 불러오지 못했습니다';$('mode-description').textContent='환경 설정에서 모드를 선택해 저장하세요. '+error.message;}
 await refreshAuth();
 if(requestMode==='plan')$('refresh-usage').click();

@@ -1,4 +1,21 @@
-# 개발 인수인계 · Agentic PDF Reader 0.11.2
+# 개발 인수인계 · Agentic PDF Reader 0.11.4
+
+## 0.11.4 · 답변 저장 선택 · 2026-10-21
+
+- 숨겨진 Link 설정의 저장 허용 체크박스를 질문창 옆의 **답변을 논문 노트에 저장**으로 옮겼다. 기본은 해제이며, 켜면 저장 요청을 포함하고 끄면 저장하지 말라는 요청과 읽기 전용 공유를 만든다.
+- 새 `linkSaveAnswer` 설정으로 명시적 선택을 저장한다. 기존 `linkAllowSave=true`는 과거 자동 허용이므로 새 체크박스를 자동 선택하지 않는다. 발췌/전체 PDF 질문 모두 같은 선택을 사용한다.
+- 저장 옵션이 바뀌면 이전 공유의 복사 버튼을 숨기고 다시 준비하도록 검증해 오래된 저장 요청이 복사되지 않게 했다. 이전에 전송한 고정본의 권한은 소급 변경하지 않는다.
+- 기본 해제·기존 설정 마이그레이션·선택 유지·두 가지 질문 템플릿 회귀 검증을 추가했다. `npm test` 106개 통과. 내장 브라우저에서 기본 해제 질문에 `save_annotation` 요청이 없음을 확인했다.
+- 0.11.4 NSIS 설치 파일을 빌드하고 기존 설치에 적용했다(종료 코드 0). 설치된 변경 코드가 소스와 일치하며 앱 health 정상, 실제 저장 설정 false, 관리형 터널 자동 시작을 확인했다. 기존 인증·노트 7개를 재사용했다. 파일은 workspace `outputs/Agentic-PDF-Reader-0.11.4-install.exe`, SHA-256 `f0b5868609fe75f11b54669ff0b05f5000b613590cf3a433d04792fde0070e3a`. [검증 범위](save-option-evaluation-0.11.4.json).
+
+## 0.11.3 · 플러그인 칩과 연속 질문 · 2026-10-21
+
+- 실제 ChatGPT에서 Paper Reader Link를 선택하면 빈 입력창의 `innerText`가 `Paper Reader Link `가 된다. 기존 코드는 이를 초안으로 판정했다. `app://` 메타데이터가 붙은 칩만 읽기용 DOM 복사본에서 제외하며, 플러그인 선택과 실제 입력 문장은 보존한다. 전송 후 말풍선은 `contenteditable` 속성이 없으므로 그 속성에 의존하지 않고 같은 메타데이터로 확인한다.
+- 질문 입력 시 커서를 편집기 끝에 놓아 칩을 덮어쓰지 않는다. 실제 질문·일반 문자열로 입력한 플러그인 이름·기타 편집 불가 내용은 계속 전송을 차단한다.
+- `scripts/web-send-dom-check.mjs`는 실제 Chromium DOM에서 칩 유지, 두 질문 전송·확인, 여러 줄·한글, 실제 초안 보호를 검증한다. 실행: `npx electron scripts/web-send-dom-check.mjs`. `npm test` 104개도 통과했다.
+- 저장된 키는 유효했지만 tunnel-client 0.0.16의 `--profile-dir` 읽기가 일반 Windows YAML 파일에 `too many levels of symbolic links`를 반환해 연결이 종료됐다. 같은 파일의 `--config <절대 경로>` 실행은 정상 연결됐다. 앱과 독립 Link 실행기에 이 방식을 반영했다.
+- 앱 내장 브라우저 computer-use로 localhost Reader → Paper Reader Link 칩 선택 → 첫 본문 질문 → 후속 Figure 질문을 실제 전송했다. 처음의 종료된 터널 오류를 복구한 뒤 첫 답변과 후속 답변 모두 저장됐다(논문 노트 5→7). 후속 공유의 서버 trace는 inspect/query/read/render(p.8) 완료 및 saved=true, historyError=false를 확인했다.
+- 브라우저 시험은 질문 복사·붙여넣기 전송이다. 실제 EXE IPC 자동 전송과 구분하며, 칩을 포함한 자동 전송 로직은 위 Chromium 회귀 시험으로 검증했다. 초기 여러 줄 `typeText` 입력이 줄바꿈에서 나뉘어 전송된 잘못된 시도는 성공 검증에서 제외하고, 새 대화에서 `paste`와 명시적 전송으로 다시 확인했다.
 
 ## 커밋 시점 상태 · 2026-10-15
 

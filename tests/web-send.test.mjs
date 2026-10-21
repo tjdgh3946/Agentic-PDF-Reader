@@ -135,3 +135,16 @@ test('desktop and card questions preserve the exact selection and save permissio
   assert.match(linkQuestion({...selection,allowSave:false}),/PDF에 저장하지 마세요/);
   assert.ok(linkQuestion(selection).includes(JSON.stringify({quote:selection.quote,context:selection.context})));
 });
+
+test('answer saving instructions appear only when explicitly opted in, for both PDF search and excerpts',()=>{
+  for(const pdfAvailable of [false,true]){
+    const selection={selectionId:'save-option',fileName:'paper.pdf',pages:[1],question:'Explain.',quote:'Source.',context:'Context.',pdfAvailable};
+    for(const allowSave of [false,undefined]){
+      const prompt=linkQuestion({...selection,allowSave});
+      assert.doesNotMatch(prompt,/save_annotation/);
+      assert.match(prompt,/이번 답변은 PDF에 저장하지 마세요/);
+    }
+    assert.match(linkQuestion({...selection,allowSave:true}),/save_annotation/);
+    assert.doesNotMatch(linkQuestion({...selection,allowSave:true},'Explain.',false),/save_annotation/);
+  }
+});

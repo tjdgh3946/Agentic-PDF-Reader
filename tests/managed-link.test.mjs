@@ -19,6 +19,9 @@ test('bundled Electron runtime starts Link without exposing a saved key in args 
   assert.equal(f.calls.length,2);assert.equal(f.calls[1].options.env.ELECTRON_RUN_AS_NODE,'1');
   assert.equal(f.calls[1].options.env.CONTROL_PLANE_API_KEY,'test-only-private-value');
   assert.equal(f.calls[0].options.env.CONTROL_PLANE_API_KEY,undefined);
+  assert.equal(f.calls[1].args[1],'--config');
+  assert.match(f.calls[1].args[2],/[/\\]tunnel[/\\]paper-reader-link\.yaml$/);
+  assert.ok(!f.calls[1].args.includes('--profile-dir'));
   assert.match(f.calls[0].args[f.calls[0].args.indexOf('--mcp-command')+1],/--connection ".*private-connection.json"/);
   assert.ok(!JSON.stringify(f.calls.map(c=>c.args)).includes('test-only-private-value'));
   assert.ok(!JSON.stringify(await f.manager.status()).includes('test-only-private-value'));

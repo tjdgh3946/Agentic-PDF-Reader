@@ -1,4 +1,4 @@
-Windows 설치: Agentic-PDF-Reader-0.11.2-install.exe 실행.
+Windows 설치: Agentic-PDF-Reader-0.11.4-install.exe 실행.
 설치 중 지금 인증 설정 / 나중에 설정을 선택합니다. 인증 없이도 PDF와 노트를 사용할 수 있습니다.
 환경 설정의 인증·Link 설정 열기에서 다시 연결할 수 있습니다.
 Node.js 또는 별도 터널 실행기 설치는 필요하지 않습니다.

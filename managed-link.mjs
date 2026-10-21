@@ -32,7 +32,9 @@ export function createManagedLink({directory,resourceDirectory,connectionFile,ex
     await initialize(saved.tunnelId);
     if(closing){saved.key='';throw Error('연결 준비를 취소했습니다.');}
     const env={...process.env,ELECTRON_RUN_AS_NODE:'1',CONTROL_PLANE_API_KEY:saved.key};
-    try{child=spawnProcess(client,['run','--profile-dir',path.join(directory,'tunnel'),'--profile','paper-reader-link'],{env,stdio:'ignore',windowsHide:true});}
+    // v0.0.16's profile-directory reader can reject ordinary Windows files
+    // with "too many levels of symbolic links". Load our fixed config directly.
+    try{child=spawnProcess(client,['run','--config',path.join(directory,'tunnel','paper-reader-link.yaml')],{env,stdio:'ignore',windowsHide:true});}
     finally{delete env.CONTROL_PLANE_API_KEY;saved.key='';}
     await new Promise((resolve,reject)=>{child.once('spawn',resolve);child.once('error',()=>reject(Error('터널 실행에 실패했습니다.')));});
     child.once('exit',()=>{child=null;if(!closing)set('error','터널이 종료됐습니다. 조직·Tunnels Read + Use 권한·인터넷 연결을 확인하고 다시 시작하세요.');});

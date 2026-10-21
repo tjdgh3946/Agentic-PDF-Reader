@@ -12,7 +12,7 @@ export function createLinkUI({api,prepare,onAnnotations,status,updateSend,getDoc
     $('link-activity').hidden=!message;$('link-activity-text').textContent=message+(shared?.historyError?' 노트는 저장됐지만 질문 기록 갱신에 실패했습니다. 같은 저장 요청으로 재시도할 수 있습니다.':'');
     $('link-activity').dataset.state=notice?.state==='error'?'error':shared?.saved?'saved':'pending';
     $('link-open-note').hidden=!shared?.annotationId;
-    $('link-copy').hidden=!sendToChatGPT || lastRequest?.input.documentId!==current;
+    $('link-copy').hidden=!sendToChatGPT || lastRequest?.input.documentId!==current || lastRequest.result.allowSave!==$('link-save-answer').checked;
     const trace=shared?.trace||[];
     $('link-evidence').hidden=!trace.length;
     const labels={inspect_pdf:'문서 확인',query_pdf:'본문 검색',read_pdf:'페이지 읽기',render_pdf_page:'이미지 확인'};
@@ -67,6 +67,7 @@ export function createLinkUI({api,prepare,onAnnotations,status,updateSend,getDoc
   };
   $('link-copy').onclick=async()=>{
     if(lastRequest?.input.documentId!==getDocumentId())return;
+    if(lastRequest.result.allowSave!==$('link-save-answer').checked){status('저장 옵션이 바뀌었습니다. 질문 보내기로 새 질문을 준비하세요.');return;}
     try{await writeClipboard(linkQuestion(lastRequest.result));status('준비한 질문을 복사했습니다. 중복 전송을 피하려면 오른쪽 대화를 먼저 확인한 뒤 붙여넣으세요.');}
     catch(error){status('질문 복사 실패: '+error.message);}
   };

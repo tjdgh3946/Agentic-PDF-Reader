@@ -37,9 +37,9 @@ test('conversations survive restart; partials stay out of context; explicit dele
 test('context preferences migrate old settings and survive restart',async()=>{
   const directory=await mkdtemp(path.join(tmpdir(),'paper-reader-settings-test-')),file=path.join(directory,'settings.json');
   await writeFile(file,JSON.stringify({mode:'plan'}));const settings=await createSettings(file);
-  assert.deepEqual(settings.get(),{mode:'plan',pdfWindow:'near1',historyTurns:3});
+  assert.deepEqual(settings.get(),{mode:'plan',pdfWindow:'near1',historyTurns:3,linkSaveAnswer:false});
   await settings.set({mode:'plan',pdfWindow:'selection',historyTurns:6});await settings.set({mode:'manual'});
-  assert.deepEqual((await createSettings(file)).get(),{mode:'manual',pdfWindow:'selection',historyTurns:6});
+  assert.deepEqual((await createSettings(file)).get(),{mode:'manual',pdfWindow:'selection',historyTurns:6,linkSaveAnswer:false});
   assert.throws(()=>settings.set({mode:'plan',historyTurns:999}));
 });
 test('panel width persists independently from request mode and rejects invalid sizes',async()=>{

@@ -10,7 +10,7 @@
 </head>
 <body>
   <header>
-    <div class="app-brand"><strong>Agentic PDF Reader<span>0.11.2</span></strong><small>읽던 자리에서, 문맥과 함께 질문하기</small></div>
+    <div class="app-brand"><strong>Agentic PDF Reader<span>0.11.4</span></strong><small>읽던 자리에서, 문맥과 함께 질문하기</small></div>
     <section class="header-usage" aria-label="계정 사용량">
       <button class="usage-trigger" type="button" popovertarget="usage-popover" aria-label="계정 및 사용량 상세 보기">
         <span id="header-avatar" class="account-avatar" aria-hidden="true">P</span>
@@ -35,7 +35,7 @@
         <div class="reading-actions" aria-label="읽기 도구"><button type="button" data-reading-action="explain" disabled>설명 질문</button><button type="button" data-reading-action="translate" disabled>번역 질문</button><button type="button" data-reading-action="math" disabled>수식 질문</button><span class="action-divider"></span><button id="selection-highlight" type="button" disabled>하이라이트 저장</button><button id="selection-note" type="button" disabled>노트 추가</button></div>
 
         <label for="question" class="sr-only">논문에 질문하기</label><textarea id="question" rows="2" maxlength="10000" aria-describedby="reading-tools-hint" placeholder="궁금한 점을 물어보세요. 후속 질문도 이어서 할 수 있습니다."></textarea>
-<div class="composer-toolbar"><div class="composer-tools"><button id="context-button" type="button" popovertarget="context-popover">문맥 설정</button><button id="link-indicator" type="button" popovertarget="link-popover">Link 설정</button></div><div class="composer-send">
+<div class="composer-toolbar"><div class="composer-tools"><button id="context-button" type="button" popovertarget="context-popover">문맥 설정</button><button id="link-indicator" type="button" popovertarget="link-popover">Link 설정</button><label id="link-save-option" class="composer-save-option" title="체크하면 이번 답변을 원래 PDF 위치의 논문 노트와 주석으로 저장하도록 요청합니다."><input id="link-save-answer" type="checkbox"> 답변을 논문 노트에 저장</label></div><div class="composer-send">
         <section id="plan-controls" aria-label="앱에서 직접 요청" hidden><button id="send" class="primary wide" disabled>질문 보내기</button></section>
         <section id="manual-controls" aria-label="ChatGPT에서 직접 질문" hidden><button id="link-share" type="button" class="primary" disabled title="선택 문장과 질문을 준비 · Ctrl+Enter">질문 복사</button><button id="link-copy" type="button" hidden>질문 복사</button><button id="copy-manual" type="button" disabled hidden title="열려 있는 ChatGPT 대화에 이어서 붙여넣기 · Ctrl+Shift+Enter">질문 복사</button><button id="open-chatgpt" class="primary" disabled hidden>복사하고 ChatGPT 열기 ↗</button><a id="chatgpt-fallback" href="https://chatgpt.com/" target="_blank" rel="noreferrer" hidden>ChatGPT 직접 열기 ↗</a></section>
         <button id="cancel-answer" class="wide" hidden>응답 중지</button></div></div><div id="link-activity" class="link-activity" hidden><span id="link-activity-text" role="status"></span><button id="link-open-note" type="button" hidden>노트에서 답변 보기 ↗</button></div><div id="link-evidence" class="link-evidence" hidden><span id="link-trace" role="status"></span><div id="link-evidence-pages" aria-label="AI가 확인한 PDF 페이지"></div></div><p id="token-estimate" role="status">질문을 입력하면 문맥을 준비합니다.</p><p id="status" role="status" aria-live="polite">PDF를 열고 질문 도구를 선택하거나 궁금한 점을 입력하세요.</p>
@@ -46,7 +46,7 @@
     <aside id="chat-panel" class="chat-panel">
       <div class="chat-heading"><div><h2>대화</h2></div><div class="chat-actions"><button type="button" popovertarget="chat-library-popover">대화 목록</button><button id="new-chat" type="button">＋ 새 질문 기록</button></div></div>
       <div id="web-panel-tabs" class="web-panel-tabs" hidden><button id="web-tab" type="button" aria-pressed="true">ChatGPT 웹</button><button id="records-tab" type="button" aria-pressed="false">질문 기록</button></div>
-      <section id="chatgpt-workspace" hidden aria-label="앱 안의 ChatGPT 웹"><div class="web-toolbar"><button id="web-back" type="button" aria-label="ChatGPT 이전 페이지">←</button><button id="web-reload" type="button" aria-label="ChatGPT 새로고침">↻</button><button id="web-home" type="button">새 ChatGPT 대화</button><button id="web-external" type="button">외부 브라우저 ↗</button><span id="web-state" role="status">연결 준비 중</span></div><p class="web-instruction">왼쪽에서 질문 보내기 · 답변은 원문 노트로 저장 · 로그인과 모델은 ChatGPT에서 선택</p><div id="chatgpt-host"><p>ChatGPT 웹을 불러옵니다.</p></div></section>
+      <section id="chatgpt-workspace" hidden aria-label="앱 안의 ChatGPT 웹"><div class="web-toolbar"><button id="web-back" type="button" aria-label="ChatGPT 이전 페이지">←</button><button id="web-reload" type="button" aria-label="ChatGPT 새로고침">↻</button><button id="web-home" type="button">새 ChatGPT 대화</button><button id="web-external" type="button">외부 브라우저 ↗</button><span id="web-state" role="status">연결 준비 중</span></div><p class="web-instruction">왼쪽에서 질문 보내기 · 노트 저장은 체크 시 요청 · 로그인과 모델은 ChatGPT에서 선택</p><div id="chatgpt-host"><p>ChatGPT 웹을 불러옵니다.</p></div></section>
       <p id="document" class="document">PDF를 열고 궁금한 문장을 선택하세요</p>
 
 
@@ -71,8 +71,8 @@
   <dialog id="import-answer-dialog" aria-labelledby="import-answer-title"><form id="import-answer-form"><h2 id="import-answer-title">ChatGPT 답변 가져오기</h2><p class="settings-note">ChatGPT 답변의 복사 버튼을 누른 뒤 아래에 붙여넣으세요. 저장하면 다음 질문의 이전 대화 문맥에도 포함됩니다.</p><blockquote id="import-answer-question"></blockquote><label for="import-answer-text">답변 · 마크다운 지원</label><textarea id="import-answer-text" rows="10" maxlength="200000" required placeholder="여기에 Ctrl+V로 붙여넣으세요"></textarea><p id="import-answer-status" role="status"></p><div class="dialog-actions"><button id="import-answer-cancel" type="button">취소</button><button id="import-answer-save" type="submit" class="primary">대화에 저장</button></div></form></dialog>
   <section id="link-popover" class="workspace-popover link-popover" popover aria-labelledby="link-title">
     <span class="eyebrow">CHATGPT COMPANION · PREVIEW</span><h2 id="link-title">Paper Reader Link</h2>
-    <p>문장 또는 현재 페이지 질문을 ChatGPT에서 이어갑니다. 플러그인이 연결되어 있으면 답변이 원래 페이지의 논문 노트로 돌아옵니다.</p>
-    <label class="link-save-option"><input id="link-save-answer" type="checkbox" checked> 답변을 이 PC의 논문 노트에 저장하도록 허용</label>
+    <p>문장 또는 현재 페이지 질문을 ChatGPT에서 이어갑니다. 플러그인을 연결하고 답변 저장을 체크하면 원래 페이지에 논문 노트가 저장됩니다.</p>
+    <p>답변 저장은 질문창 옆의 ‘답변을 논문 노트에 저장’을 체크했을 때만 요청합니다.</p>
     <p>Windows 앱에서는 PDF 아래의 <strong>ChatGPT에 질문 보내기</strong>로 오른쪽 대화에 전송합니다. 로그인 후 입력창을 비워 두세요. 브라우저에서는 ‘질문 복사’를 누른 뒤 ChatGPT에 붙여넣으세요. 문장을 선택하지 않으면 현재 페이지를 사용합니다. 노트 자동 저장에는 Paper Reader Link 플러그인 연결이 필요합니다.</p>
     <p id="link-share-status" role="status">PDF에서 문장을 선택하고 질문을 입력하세요.</p>
     <details><summary>처음 연결하기</summary><ol><li>Paper Reader Link 서버를 Secure MCP Tunnel에 연결합니다.</li><li>ChatGPT의 플러그인에서 사용자 지정 MCP를 등록합니다.</li><li>대화에서 Paper Reader Link를 열고 선택 문장을 불러옵니다.</li></ol><p>연결 안내와 실행 파일은 함께 제공되는 Paper Reader Link 패키지에 있습니다. 공유 내용은 24시간 또는 앱 종료까지 유지됩니다.</p></details>

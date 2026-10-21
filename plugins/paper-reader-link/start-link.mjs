@@ -54,7 +54,7 @@ async function main(){
   console.log('Using saved Windows-encrypted credentials. Next launch needs no key entry.');
   console.log('Keep this window and Paper Reader open. Stop with Ctrl+C.\nIn ChatGPT > Plugins > Add custom MCP server, choose Tunnel and this tunnel ID.\nFor this private stdio server choose No authentication; the tunnel controls access.');
   const environment={...process.env,CONTROL_PLANE_API_KEY:key};key='';
-  try{await run(['run','--profile-dir',profileDirectory,'--profile','paper-reader-link','--open-web-ui'],environment);}
+  try{await run(['run','--config',path.join(profileDirectory,'paper-reader-link.yaml'),'--open-web-ui'],environment);}
   finally{delete environment.CONTROL_PLANE_API_KEY;}
 }
 try{await main();}
