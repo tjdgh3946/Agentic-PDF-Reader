@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp,writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
-import {questionContext,findNotes,notesMarkdown,notesFileName} from '../reading-tools.mjs';
+import {questionContext,hasNote,findNotes,notesMarkdown,notesFileName} from '../reading-tools.mjs';
 import {buildPrompt,pageWindow} from '../context.mjs';
 import {createSettings} from '../settings.mjs';
 
@@ -18,6 +18,14 @@ test('clearing a selection follows the current page, including selection-only pr
 });
 
 const note=(page,y,quote,body)=>({anchors:[{page,rects:[[.1,y,.4,.03]]}],quote,note:body,createdAt:'2026-10-10'});
+test('notes list, search and export exclude highlight-only and whitespace-only annotations',()=>{
+  const highlight=note(1,.1,'Highlight only',''),blank=note(1,.2,'Whitespace only',' \n\t'),written=note(2,.1,'Actual note','**My note**');
+  const items=[highlight,blank,written];assert.equal(hasNote(highlight),false);assert.equal(hasNote(blank),false);assert.equal(hasNote(written),true);
+  assert.deepEqual(findNotes(items),[written]);assert.equal(findNotes(items,'Highlight only').length,0);
+  const text=notesMarkdown('paper.pdf',items);assert.match(text,/저장된 주석 1개/);assert.ok(!text.includes('Highlight only'));assert.ok(!text.includes('Whitespace only'));
+  assert.equal(items.length,3);assert.equal(items[0].note,'','Filtering must not delete or modify PDF highlights');
+  highlight.note='Added later';assert.equal(findNotes(items).length,2);highlight.note='';assert.equal(findNotes(items).length,1);
+});
 test('notes search uses both the source and answer, exports in reading order without losing math',()=>{
   const formula=String.raw`\[\Theta(x,x') = \sum_p a_p b_p\]`;
   const items=[note(6,.1,'Training','finite width'),note(5,.5,'ＮＴＫ definition',formula),note(5,.2,'Introduction','커널 설명')];

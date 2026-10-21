@@ -75,7 +75,7 @@ try{
             const image=result.content?.find(item=>item.type==='image');
             const png=image?Buffer.from(image.data,'base64'):null;
             call.pngValid=!!png&&png.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]));
-            call.imageBytes=png?.length||0;call.image=result.structuredContent?.metadata;
+            call.imageBytes=png?.length||0;call.image=(result.structuredContent||JSON.parse(result.content.find(item=>item.type==='text').text)).metadata;
             if(!call.pngValid)call.isError=true;
           }
         }catch(error){call.isError=true;call.error=error.name;}

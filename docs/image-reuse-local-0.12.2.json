@@ -1,0 +1,212 @@
+{
+  "date": "2026-10-21T08:36:17.974Z",
+  "checks": [
+    {
+      "name": "full-page repeat twice",
+      "result": "pass",
+      "imageBlocks": [
+        1,
+        0,
+        0
+      ],
+      "imageRef": "image-0b08922e-faa0-4956-b5c8-5c9e32a87dfc"
+    },
+    {
+      "name": "high-resolution crop then repeat",
+      "result": "pass",
+      "region": [
+        0.58,
+        0.08,
+        0.27,
+        0.22
+      ],
+      "overview": {
+        "page": 9,
+        "region": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "width": 1545,
+        "height": 2000,
+        "zoom": 1,
+        "rotation": 0,
+        "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation"
+      },
+      "crop": {
+        "page": 9,
+        "region": [
+          0.58,
+          0.08,
+          0.27,
+          0.22
+        ],
+        "width": 1897,
+        "height": 2000,
+        "zoom": 4.545454545454545,
+        "rotation": 0,
+        "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation"
+      },
+      "imageBlocks": [
+        1,
+        0
+      ]
+    },
+    {
+      "name": "explicit context recovery",
+      "result": "pass",
+      "delivery": "resend"
+    }
+  ],
+  "trace": [
+    {
+      "tool": "render_pdf_page",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-21T08:36:27.878Z",
+      "image": {
+        "page": 9,
+        "region": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "width": 1545,
+        "height": 2000,
+        "zoom": 1,
+        "rotation": 0,
+        "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+        "imageRef": "image-0b08922e-faa0-4956-b5c8-5c9e32a87dfc",
+        "delivery": "image"
+      }
+    },
+    {
+      "tool": "render_pdf_page",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-21T08:36:30.788Z",
+      "image": {
+        "page": 9,
+        "region": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "width": 1545,
+        "height": 2000,
+        "zoom": 1,
+        "rotation": 0,
+        "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+        "imageRef": "image-0b08922e-faa0-4956-b5c8-5c9e32a87dfc",
+        "delivery": "reference"
+      }
+    },
+    {
+      "tool": "render_pdf_page",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-21T08:36:30.789Z",
+      "image": {
+        "page": 9,
+        "region": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "width": 1545,
+        "height": 2000,
+        "zoom": 1,
+        "rotation": 0,
+        "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+        "imageRef": "image-0b08922e-faa0-4956-b5c8-5c9e32a87dfc",
+        "delivery": "reference"
+      }
+    },
+    {
+      "tool": "render_pdf_page",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-21T08:36:30.796Z",
+      "image": {
+        "page": 9,
+        "region": [
+          0.58,
+          0.08,
+          0.27,
+          0.22
+        ],
+        "width": 1897,
+        "height": 2000,
+        "zoom": 4.545454545454545,
+        "rotation": 0,
+        "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+        "imageRef": "image-00ed4661-8fec-4b5a-b485-968be7a5205e",
+        "delivery": "image"
+      }
+    },
+    {
+      "tool": "render_pdf_page",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-21T08:36:31.145Z",
+      "image": {
+        "page": 9,
+        "region": [
+          0.58,
+          0.08,
+          0.27,
+          0.22
+        ],
+        "width": 1897,
+        "height": 2000,
+        "zoom": 4.545454545454545,
+        "rotation": 0,
+        "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+        "imageRef": "image-00ed4661-8fec-4b5a-b485-968be7a5205e",
+        "delivery": "reference"
+      }
+    },
+    {
+      "tool": "render_pdf_page",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-21T08:36:31.170Z",
+      "image": {
+        "page": 9,
+        "region": [
+          0.58,
+          0.08,
+          0.27,
+          0.22
+        ],
+        "width": 1897,
+        "height": 2000,
+        "zoom": 4.545454545454545,
+        "rotation": 0,
+        "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+        "imageRef": "image-00ed4661-8fec-4b5a-b485-968be7a5205e",
+        "delivery": "resend"
+      },
+      "reason": "Integration test: earlier image is unavailable in context."
+    }
+  ],
+  "totalRenderCalls": 3,
+  "pngPayloadsReturned": 3,
+  "note": "Six tool calls returned only three PNGs: overview, zoom crop, and deliberate explicit recovery. Source images use an isolated temporary profile with no user credentials."
+}

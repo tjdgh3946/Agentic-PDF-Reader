@@ -1,0 +1,339 @@
+{
+  "version": "0.12.1",
+  "mcpVersion": "0.3.1",
+  "date": "2026-10-21",
+  "automatedTests": {
+    "passed": 123,
+    "failed": 0,
+    "skipped": 0
+  },
+  "realPdfIntegration": "image-reuse-local-0.12.1.json",
+  "installer": {
+    "file": "Agentic-PDF-Reader-0.12.1-install.exe",
+    "sha256": "e0362dff7b3c54b71a0288487a4f7763aef02a0d7650cd52fd29a0c3547f3e53",
+    "installExitCode": 0,
+    "changedRuntimeFilesMatch": 8,
+    "mcpBundleMatches": true,
+    "managedTunnelAutoStarted": true
+  },
+  "notesUi": {
+    "isolatedStore": true,
+    "fixtureAnnotations": 3,
+    "fixtureEmptyHighlights": 2,
+    "countsBeforeClearAfterClearAfterRewrite": [
+      1,
+      0,
+      1
+    ],
+    "exportEnabled": [
+      true,
+      false,
+      true
+    ],
+    "pdfHighlightsPreserved": true,
+    "emptyHighlightClickOpensEditor": true,
+    "productionNotesUnchanged": 8,
+    "screenshot": "../outputs/notes-only-filter-0.12.1.jpg"
+  },
+  "actualChatGPT": {
+    "conversation": "https://chatgpt.com/c/6ad87033-2b7c-83ee-a029-1eefb031b1d8",
+    "flow": "In-app browser copy/paste against installed EXE server; not a new native IPC send test.",
+    "selectionId": "5a267121-d7f7-4f04-9baa-d26230a0d23d",
+    "firstPhase": {
+      "page": 9,
+      "region": [
+        0.58,
+        0.08,
+        0.27,
+        0.22
+      ],
+      "renderDeliveries": [
+        "image",
+        "reference",
+        "image",
+        "reference"
+      ],
+      "pngReturns": 2,
+      "referenceReturns": 2,
+      "resend": 0,
+      "zoom": 4.545454545454545,
+      "width": 1897,
+      "height": 2000,
+      "modelConfirmedDeliveryCounts": true,
+      "modelReadPixels": false
+    },
+    "recovery": {
+      "modelAttempts": 2,
+      "first": "Model reported image response processing error.",
+      "second": "Server returned resend/imageReturned:true; model reported PNG arrived as a string and could not read pixels.",
+      "result": "Web ChatGPT visual interpretation remains unverified; do not describe this as a passed visual E2E test."
+    },
+    "saved": false,
+    "historyError": false,
+    "screenshot": "../outputs/image-reuse-chatgpt-0.12.1.jpg"
+  },
+  "directConnectorDiagnostic": {
+    "initialAttempt": "Transient connection failed before reaching app.",
+    "textInspectRetry": "pass",
+    "imageRecoveryRetry": {
+      "pass": true,
+      "contentImageBlocks": 1,
+      "mimeType": "image/png",
+      "base64Characters": 394860,
+      "width": 1897,
+      "height": 2000
+    },
+    "repeat": {
+      "contentImageBlocks": 0,
+      "delivery": "reference",
+      "sameImageRef": true
+    },
+    "visuallyRead": {
+      "horizontalAxis": "t, 0 to 4000",
+      "verticalAxis": "||g_t||_{p^in}, 0.0 to 0.5",
+      "legend": [
+        "n=100 green dotted",
+        "n=1000 red dotted",
+        "n=10000 violet dotted",
+        "n=infinity blue solid"
+      ],
+      "observation": "Finite-width curves decay faster initially; n=10000 is close to the infinite-width curve."
+    },
+    "scope": "Actual PNG read by this Codex conversation through the connected Paper Reader Link tool, separately from Web ChatGPT failure."
+  },
+  "recentTrace": [
+    {
+      "tool": "render_pdf_page",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-21T07:57:08.676Z",
+      "image": {
+        "page": 9,
+        "region": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "width": 1545,
+        "height": 2000,
+        "zoom": 1,
+        "rotation": 0,
+        "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+        "imageRef": "image-9ea159f8-4302-4206-8f4d-d7c617a7c888",
+        "delivery": "reference"
+      }
+    },
+    {
+      "tool": "render_pdf_page",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-21T07:57:15.602Z",
+      "image": {
+        "page": 9,
+        "region": [
+          0.58,
+          0.08,
+          0.27,
+          0.22
+        ],
+        "width": 1897,
+        "height": 2000,
+        "zoom": 4.545454545454545,
+        "rotation": 0,
+        "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+        "imageRef": "image-19ffbd30-ed4c-4450-b7b9-3971810f715a",
+        "delivery": "image"
+      }
+    },
+    {
+      "tool": "render_pdf_page",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-21T07:57:24.562Z",
+      "image": {
+        "page": 9,
+        "region": [
+          0.58,
+          0.08,
+          0.27,
+          0.22
+        ],
+        "width": 1897,
+        "height": 2000,
+        "zoom": 4.545454545454545,
+        "rotation": 0,
+        "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+        "imageRef": "image-19ffbd30-ed4c-4450-b7b9-3971810f715a",
+        "delivery": "reference"
+      }
+    },
+    {
+      "tool": "search_pdf",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-21T07:57:35.070Z"
+    },
+    {
+      "tool": "read_pdf",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-21T07:57:40.065Z",
+      "characters": 77,
+      "passages": [
+        {
+          "passageId": "p9.11",
+          "start": 465,
+          "end": 542
+        }
+      ]
+    },
+    {
+      "tool": "read_pdf",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-21T07:57:42.318Z",
+      "characters": 373,
+      "passages": [
+        {
+          "passageId": "p9.14",
+          "start": 811,
+          "end": 1184
+        }
+      ]
+    },
+    {
+      "tool": "read_pdf",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-21T07:57:44.710Z",
+      "characters": 638,
+      "passages": [
+        {
+          "passageId": "p9.17",
+          "start": 2090,
+          "end": 2728
+        }
+      ]
+    },
+    {
+      "tool": "render_pdf_page",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-21T07:58:47.198Z",
+      "image": {
+        "page": 9,
+        "region": [
+          0.58,
+          0.08,
+          0.27,
+          0.22
+        ],
+        "width": 1897,
+        "height": 2000,
+        "zoom": 4.545454545454545,
+        "rotation": 0,
+        "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+        "imageRef": "image-19ffbd30-ed4c-4450-b7b9-3971810f715a",
+        "delivery": "resend"
+      },
+      "reason": "Earlier PNG pixels are unavailable in current context; resend once to inspect axes, legend and curve colors."
+    },
+    {
+      "tool": "inspect_pdf",
+      "state": "complete",
+      "pages": [],
+      "at": "2026-10-21T07:59:27.190Z"
+    },
+    {
+      "tool": "render_pdf_page",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-21T07:59:38.358Z",
+      "image": {
+        "page": 9,
+        "region": [
+          0.58,
+          0.08,
+          0.27,
+          0.22
+        ],
+        "width": 1897,
+        "height": 2000,
+        "zoom": 4.545454545454545,
+        "rotation": 0,
+        "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+        "imageRef": "image-19ffbd30-ed4c-4450-b7b9-3971810f715a",
+        "delivery": "resend"
+      },
+      "reason": "Image transport diagnostic after successful text request; previous recovery reported processing error."
+    },
+    {
+      "tool": "render_pdf_page",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-21T08:00:02.626Z",
+      "image": {
+        "page": 9,
+        "region": [
+          0.58,
+          0.08,
+          0.27,
+          0.22
+        ],
+        "width": 1897,
+        "height": 2000,
+        "zoom": 4.545454545454545,
+        "rotation": 0,
+        "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+        "imageRef": "image-19ffbd30-ed4c-4450-b7b9-3971810f715a",
+        "delivery": "resend"
+      },
+      "reason": "Retry after transient image transport processing error; earlier pixels unavailable."
+    },
+    {
+      "tool": "render_pdf_page",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-21T08:00:29.482Z",
+      "image": {
+        "page": 9,
+        "region": [
+          0.58,
+          0.08,
+          0.27,
+          0.22
+        ],
+        "width": 1897,
+        "height": 2000,
+        "zoom": 4.545454545454545,
+        "rotation": 0,
+        "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+        "imageRef": "image-19ffbd30-ed4c-4450-b7b9-3971810f715a",
+        "delivery": "reference"
+      }
+    }
+  ]
+}

@@ -2,6 +2,7 @@
 // Run: npx electron scripts/web-send-dom-check.mjs
 import {app,BrowserWindow} from 'electron';
 import assert from 'node:assert/strict';
+import {imageRecoveryQuestion} from '../link-question.mjs';
 import {composerAction,createWebSender} from '../web-panel-send.mjs';
 
 async function check(){
@@ -42,7 +43,16 @@ try{
   assert.equal((await inspect('inspect')).hasDraft,true,'A typed plugin name is ordinary draft text');
   await contents.executeJavaScript(`document.querySelector('[role="textbox"]').innerHTML='<p><span contenteditable="false">Unsent attachment or quotation</span></p>'`);
   assert.equal((await inspect('inspect')).hasDraft,true,'Other non-editable content must not be discarded');
-  console.log(JSON.stringify({result:'pass',consecutiveSends:2,pluginPreserved:true,multilineAcknowledged:true,realDraftProtected:true}));
+  await assert.rejects(send({text:'이미지 재확인',requestId:'blocked-recovery'}),/작성 중/);
+  await contents.executeJavaScript(`document.querySelector('[role="textbox"]').innerHTML=${JSON.stringify('<p>'+mention+' </p>')}`);
+  const selection={selectionId:'11111111-1111-4111-8111-111111111111',fileName:'ntk.pdf',pages:[9],pdfAvailable:true,question:'Figure 3(c)를 읽어주세요.',quote:'',allowSave:false};
+  const question=imageRecoveryQuestion(selection);
+  assert.equal((await send({text:question,requestId:'same-chat-image-recovery'})).sent,true);
+  assert.equal((await send({text:question,requestId:'same-chat-image-recovery'})).duplicate,true);
+  assert.equal(await contents.executeJavaScript('document.querySelectorAll("[data-message-author-role=user]").length'),3);
+  assert.equal(await contents.executeJavaScript('document.querySelectorAll("form [data-prompt-link-href]").length'),1);
+  assert.ok((await contents.executeJavaScript('document.querySelector("#messages").innerText')).includes('content_items'));
+  console.log(JSON.stringify({result:'pass',consecutiveSends:3,pluginPreserved:true,multilineAcknowledged:true,realDraftProtected:true,recoveryAttachmentProtected:true,sameConversationRecovery:true,recoveryDuplicateSuppressed:true}));
 }catch(error){console.error(error);process.exitCode=1;}
 finally{window.destroy();app.quit();}
 }

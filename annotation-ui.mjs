@@ -1,5 +1,5 @@
 import {renderMarkdown} from './markdown.bundle.mjs';
-import {findNotes,notesMarkdown,notesFileName} from './reading-tools.mjs';
+import {hasNote,findNotes,notesMarkdown,notesFileName} from './reading-tools.mjs';
 import {capturePage,contentBox,resolveRects} from './annotation-geometry.mjs';
 import {evidenceLabel} from './pdf-evidence.mjs';
 const $=id=>document.getElementById(id);
@@ -14,7 +14,7 @@ export function createAnnotationUI({frame,api,getViewer,getFileName}){
   $('annotations-close').onclick=()=>setPanel(false);
   $('annotation-search').oninput=drawList;
   $('annotations-export').onclick=()=>{
-    if(!items.length)return;
+    if(!items.some(hasNote))return;
     const url=URL.createObjectURL(new Blob([notesMarkdown(getFileName(),items)],{type:'text/markdown;charset=utf-8'}));
     const link=document.createElement('a');link.href=url;link.download=notesFileName(getFileName());link.click();
     setTimeout(()=>URL.revokeObjectURL(url),1000);status('이 논문의 전체 노트를 Markdown 파일로 내보냈습니다.');
@@ -25,6 +25,7 @@ export function createAnnotationUI({frame,api,getViewer,getFileName}){
     mark?.scrollIntoView({block:'center',inline:'nearest'});
   }
   function focusAnnotation(item){
+    if(!hasNote(item)){activeId=item.id;redraw();drawList();status('하이라이트를 저장했습니다. 노트 내용을 적으면 논문 노트에 표시됩니다.');return;}
     $('annotation-search').value='';
     activeId=item.id;setPanel(true);redraw();drawList();
     const row=[...$('annotation-list').children].find(row=>row.dataset.annotationId===item.id);
@@ -38,11 +39,11 @@ export function createAnnotationUI({frame,api,getViewer,getFileName}){
       if(doc.defaultView.getSelection()?.toString().trim() || event.target.closest?.('button,a,input,select,textarea'))return;
       const page=event.target.closest?.('.pdfViewer .page[data-page-number]'),viewer=getViewer();if(!page || !viewer)return;
       const box=contentBox(page),x=(event.clientX-box.left)/box.width,y=(event.clientY-box.top)/box.height;
-      const item=[...items].reverse().find(item=>item.note && item.anchors.some(anchor=>anchor.page===Number(page.dataset.pageNumber) && resolveRects(anchor,item,page,viewer.pdfViewer?.pagesRotation||0).some(rect=>{
+      const item=[...items].reverse().find(item=>item.anchors.some(anchor=>anchor.page===Number(page.dataset.pageNumber) && resolveRects(anchor,item,page,viewer.pdfViewer?.pagesRotation||0).some(rect=>{
         const [left,top,width,height]=rect;
         return x>=left && x<=left+width && y>=top && y<=top+height;
       })));
-      if(item)focusAnnotation(item);
+      if(item){if(hasNote(item))focusAnnotation(item);else openEditor(item);}
     });
   }
   function redraw(){
@@ -64,7 +65,7 @@ export function createAnnotationUI({frame,api,getViewer,getFileName}){
           mark.style.left=x*100+'%';mark.style.top=y*100+'%';mark.style.width=w*100+'%';mark.style.height=h*100+'%';
           layer.append(mark);
         }
-        if(item.note && rects.length){
+        if(hasNote(item) && rects.length){
           const [x,y,w,h]=rects[rects.length-1],marker=doc.createElement('button');
           marker.type='button';marker.className='reader-note-marker'+(item.id===activeId?' is-active':'');marker.textContent='✎';
           marker.dataset.annotationId=item.id;
@@ -76,13 +77,14 @@ export function createAnnotationUI({frame,api,getViewer,getFileName}){
     }
   }
   function drawList(){
-    $('annotation-count').textContent=String(items.length);const list=$('annotation-list');list.replaceChildren();
-    $('annotation-panel-count').textContent=String(items.length);
+    const notes=items.filter(hasNote);
+    $('annotation-count').textContent=String(notes.length);const list=$('annotation-list');list.replaceChildren();
+    $('annotation-panel-count').textContent=String(notes.length);
     $('annotation-document').textContent=documentId?getFileName():'PDF를 열면 이 문서의 노트가 표시됩니다.';
     $('annotation-document').title=documentId?getFileName():'';
-    $('annotations-export').disabled=!items.length;
+    $('annotations-export').disabled=!notes.length;
     const visible=findNotes(items,$('annotation-search').value);
-    if(!visible.length){const empty=document.createElement('div');empty.className='notes-empty';const title=document.createElement('strong'),hint=document.createElement('p');title.textContent=items.length?'일치하는 노트가 없습니다':'읽으며 남기는 기록';hint.textContent=items.length?'원문이나 답변의 다른 단어로 검색해 보세요.':'PDF에서 문장을 선택해 노트를 추가하세요. ChatGPT에서 돌아온 답변도 함께 모입니다.';empty.append(title,hint);list.append(empty);}
+    if(!visible.length){const empty=document.createElement('div');empty.className='notes-empty';const title=document.createElement('strong'),hint=document.createElement('p');title.textContent=notes.length?'일치하는 노트가 없습니다':'읽으며 남기는 기록';hint.textContent=notes.length?'원문이나 답변의 다른 단어로 검색해 보세요.':'PDF에서 문장을 선택해 노트를 추가하세요. 내용이 있는 노트와 ChatGPT에서 저장한 답변만 모입니다.';empty.append(title,hint);list.append(empty);}
     for(const item of visible){
       const row=document.createElement('article');row.className='annotation-item'+(item.id===activeId?' is-active':'');row.dataset.annotationId=item.id;row.tabIndex=-1;
       const pageNote=item.anchors[0].kind==='page-note';
@@ -126,6 +128,9 @@ export function createAnnotationUI({frame,api,getViewer,getFileName}){
   function openEditor(item){
     if(!item && !selection){status('PDF에서 먼저 문장을 선택하세요.');return;}
     editing=item||null;
+    $('annotation-title').textContent=item&&!hasNote(item)?'하이라이트 · 노트':'논문 노트';
+    $('annotation-delete').hidden=!item;
+    $('annotation-delete').textContent=item&&hasNote(item)?'주석 삭제':'하이라이트 삭제';
     $('annotation-quote').textContent=item?.quote||selection.quote;
     document.querySelector('label[for="annotation-color"]').textContent=(item||selection).anchors[0].kind==='page-note'?'노트 표시 색상':'하이라이트 색상';
     $('annotation-color').value=item?.color||'yellow';$('annotation-note').value=item?.note||'';
@@ -135,6 +140,12 @@ export function createAnnotationUI({frame,api,getViewer,getFileName}){
   $('annotation-preview').classList.add('markdown-body');
   $('annotation-note').addEventListener('input',()=>renderMarkdown($('annotation-preview'),$('annotation-note').value));
   $('annotation-cancel').onclick=()=>$('annotation-dialog').close();
+  $('annotation-delete').onclick=async()=>{
+    if(!editing||saving||!confirm('이 하이라이트와 노트를 삭제할까요?'))return;
+    const id=documentId,current=revision,item=editing;saving=true;
+    try{await api('/api/annotations/delete',{documentId:id,id:item.id});if(current!==revision)return;items=items.filter(value=>value.id!==item.id);$('annotation-dialog').close();redraw();drawList();status('주석을 삭제했습니다.');}
+    catch(error){$('annotation-editor-status').textContent=error.message;}finally{saving=false;}
+  };
   $('annotation-form').onsubmit=async event=>{
     event.preventDefault();if(saving || !documentId)return;
     const item=editing||selection;if(!item)return;
@@ -144,7 +155,7 @@ export function createAnnotationUI({frame,api,getViewer,getFileName}){
       const saved=await api('/api/annotations/upsert',{documentId:id,item:{id:editing?.id,quote:item.quote,note:$('annotation-note').value,color:$('annotation-color').value,anchors:item.anchors,rotation:item.rotation||0}});
       if(current!==revision)return;
       const index=items.findIndex(value=>value.id===saved.id);if(index>=0)items[index]=saved;else items.push(saved);
-      frame.contentWindow.getSelection()?.removeAllRanges();$('annotation-dialog').close();focusAnnotation(saved);status('노트를 이 PC에 저장했습니다. 원본 PDF 파일은 수정하지 않습니다.');
+      frame.contentWindow.getSelection()?.removeAllRanges();$('annotation-dialog').close();focusAnnotation(saved);status(hasNote(saved)?'노트를 이 PC에 저장했습니다. 원본 PDF 파일은 수정하지 않습니다.':'하이라이트를 저장했습니다. 노트 내용이 있는 항목만 논문 노트에 표시됩니다.');
     }catch(error){$('annotation-editor-status').textContent=error.message;}
     finally{saving=false;$('annotation-save').disabled=false;}
   };
@@ -152,7 +163,7 @@ export function createAnnotationUI({frame,api,getViewer,getFileName}){
     $('context').hidden=true;if(!documentId || !selection || saving)return;
     const id=documentId,current=revision,chosen=selection;
     saving=true;
-    try{const saved=await api('/api/annotations/upsert',{documentId:id,item:{...chosen,note:'',color:'yellow'}});if(current!==revision)return;items.push(saved);redraw();drawList();setPanel(true);status('하이라이트를 이 PC에 저장했습니다.');}
+    try{const saved=await api('/api/annotations/upsert',{documentId:id,item:{...chosen,note:'',color:'yellow'}});if(current!==revision)return;items.push(saved);redraw();drawList();status('하이라이트를 저장했습니다. 노트 내용이 있는 항목만 논문 노트에 표시됩니다.');}
     catch(error){fail(error);}finally{saving=false;}
   };
   $('add-note').onclick=()=>{$('context').hidden=true;openEditor();};
@@ -170,12 +181,12 @@ export function createAnnotationUI({frame,api,getViewer,getFileName}){
       const id=documentId,current=revision;
       const result=await api('/api/annotations?documentId='+encodeURIComponent(id));
       if(current!==revision || saving)return false;
-      items=result;drawList();redraw();status(items.length+'개 저장됨 · PDF의 주석 아이콘을 눌러 답변을 확인하세요.');
+      items=result;drawList();redraw();status(items.filter(hasNote).length+'개 노트 · PDF의 주석 아이콘을 눌러 답변을 확인하세요.');
       return true;
     },
     frameLoaded,
     redraw,
     reset(){revision++;documentId='';items=[];selection=null;editing=null;activeId='';$('annotation-search').value='';drawList();status('선택한 문장과 답변을 이곳에 모아두세요.');if($('annotation-dialog').open)$('annotation-dialog').close();},
-    async ready(id){const current=++revision;documentId=id;items=[];drawList();try{const result=await api('/api/annotations?documentId='+encodeURIComponent(id));if(current!==revision)return;items=result;drawList();redraw();status(items.length+'개 저장됨 · PDF 문장을 우클릭하여 추가하세요.');}catch(error){if(current===revision)fail(error);}}
+    async ready(id){const current=++revision;documentId=id;items=[];drawList();try{const result=await api('/api/annotations?documentId='+encodeURIComponent(id));if(current!==revision)return;items=result;drawList();redraw();status(items.filter(hasNote).length+'개 노트 · 하이라이트를 클릭해 노트를 추가·수정할 수 있습니다.');}catch(error){if(current===revision)fail(error);}}
   };
 }

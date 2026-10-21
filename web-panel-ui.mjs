@@ -36,5 +36,6 @@ export function createWebPanelUI({status}) {
     window.addEventListener('resize',schedule);
   }
   async function show(){showWeb=true;render();await sync();await command('focus');}
-  return {available:!!bridge,canSend:typeof bridge?.sendWebQuestion==='function',setMode(value){mode=value;render();},show,async send(text,requestId){await show();try{return await bridge.sendWebQuestion({text,requestId});}catch(error){throw new Error(error.message.replace(/^Error invoking remote method '[^']+': (?:Error: )?/,''));}}};
+  const cleanError=error=>new Error(error.message.replace(/^Error invoking remote method '[^']+': (?:Error: )?/,''));
+  return {available:!!bridge,canSend:typeof bridge?.sendWebQuestion==='function',setMode(value){mode=value;render();},show,async send(text,requestId){await show();try{return await bridge.sendWebQuestion({text,requestId});}catch(error){throw cleanError(error);}}};
 }

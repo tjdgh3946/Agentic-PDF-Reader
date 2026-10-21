@@ -525,6 +525,7 @@ function updateSend() {
   const anchor=annotationUI.selectionSnapshot();
   $('link-share').disabled=requestMode!=='manual' || !canAsk || (selected && anchor?.quote!==selected) || savingSettings || !!linkUI?.busy;
   $('link-share').title=!viewer?.pdfDocument?'PDF를 먼저 열어주세요.':!$('question').value.trim()?'질문을 입력하거나 위의 질문 도구를 선택하세요.':`선택 문장 또는 현재 페이지 질문을 ${webPanelUI.canSend?'오른쪽 ChatGPT로 전송':'복사'} · Ctrl+Enter`;
+  linkUI?.updateRecovery();
   $('settings-save').disabled = working || savingSettings || !!answerController || openingChatGPT;
 }
 function applyMode(mode) {

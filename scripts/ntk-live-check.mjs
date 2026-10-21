@@ -27,9 +27,9 @@ try{
   const data=image.content.find(c=>c.type==='image');
   if(!data || data.mimeType!=='image/png')throw Error('Actual PNG content missing');
   const output=path.resolve(directory,'../outputs/NTK-Figure3-from-MCP.png');await mkdir(path.dirname(output),{recursive:true});await writeFile(output,Buffer.from(data.data,'base64'));
-  console.log('render metadata',JSON.stringify(image.structuredContent),'image bytes',Buffer.from(data.data,'base64').length,'saved',output);
+  console.log('render metadata',JSON.stringify(image.structuredContent||JSON.parse(image.content.find(c=>c.type==='text').text)),'image bytes',Buffer.from(data.data,'base64').length,'saved',output);
   const crop=await call('render_pdf_page',{...args,page,region:[.12,.09,.75,.2]});
   const cropped=crop.content.find(c=>c.type==='image');if(!cropped)throw Error('Cropped PNG content missing');
   const cropPath=path.resolve(directory,'../outputs/NTK-Figure3-crop-from-MCP.png');await writeFile(cropPath,Buffer.from(cropped.data,'base64'));
-  console.log('crop metadata',JSON.stringify(crop.structuredContent),'saved',cropPath);
+  console.log('crop metadata',JSON.stringify(crop.structuredContent||JSON.parse(crop.content.find(c=>c.type==='text').text)),'saved',cropPath);
 }finally{await client.close();}

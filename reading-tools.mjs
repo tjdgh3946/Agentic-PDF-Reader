@@ -20,18 +20,20 @@ export function pageNote(page,rotation=0){
   return {quote:`p. ${page} · 페이지 질문`,rotation,anchors:[{page,space:'page',kind:'page-note',rects:[[.92,.04,.03,.025]]}]};
 }
 
+export const hasNote=item=>typeof item.note==='string'&&item.note.trim().length>0;
 export function findNotes(items,query=''){
   const words=query.trim().normalize('NFKC').toLocaleLowerCase().split(/\s+/).filter(Boolean);
-  return items.filter(item=>{const text=[item.quote,item.note,...item.anchors.map(a=>'p. '+a.page)].join(' ').normalize('NFKC').toLocaleLowerCase();return words.every(word=>text.includes(word));})
+  return items.filter(hasNote).filter(item=>{const text=[item.quote,item.note,...item.anchors.map(a=>'p. '+a.page)].join(' ').normalize('NFKC').toLocaleLowerCase();return words.every(word=>text.includes(word));})
     .sort((a,b)=>a.anchors[0].page-b.anchors[0].page || a.anchors[0].rects[0][1]-b.anchors[0].rects[0][1] || a.createdAt.localeCompare(b.createdAt));
 }
 
 export function notesMarkdown(fileName,items){
   const title=String(fileName||'PDF').replace(/[\r\n]/g,' ');
-  return [`# ${title} · 논문 노트`,`원문: ${title}\n\n저장된 주석 ${items.length}개`,...findNotes(items).map(item=>[
+  const notes=findNotes(items);
+  return [`# ${title} · 논문 노트`,`원문: ${title}\n\n저장된 주석 ${notes.length}개`,...notes.map(item=>[
     `## p. ${item.anchors.map(a=>a.page).join(', ')}`,
     item.quote.split(/\r?\n/).map(line=>'> '+line).join('\n'),
-    item.note||'_형광펜 표시_',
+    item.note,
     ...(item.evidence?.pages?.length?['AI가 읽은 페이지: '+item.evidence.pages.map(p=>'p. '+p.page+' ('+(p.text&&p.image?'본문·이미지':p.image?'이미지':'본문')+')').join(', ')+(item.evidence.truncated?' · 일부 기록':'')]:[]),
     '---'
   ].join('\n\n'))].join('\n\n')+'\n';

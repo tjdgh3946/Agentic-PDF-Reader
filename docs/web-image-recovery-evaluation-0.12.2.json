@@ -1,0 +1,338 @@
+{
+  "version": "0.12.2",
+  "mcpVersion": "0.3.2",
+  "date": "2026-10-21",
+  "automatedTests": {
+    "passed": 127,
+    "failed": 0,
+    "skipped": 0
+  },
+  "chromiumRegression": {
+    "script": "scripts/web-send-dom-check.mjs",
+    "consecutiveSends": 2,
+    "pluginPreserved": true,
+    "multilineAcknowledged": true,
+    "realDraftProtected": true,
+    "recoveryDraftProtected": true,
+    "recoveryComposerReady": true,
+    "recoverySend": true
+  },
+  "installer": {
+    "installedVersion": "0.12.2",
+    "runtimeSourcesMatch": 54,
+    "mcpBundleMatches": true,
+    "privateEntries": 0,
+    "installExitCode": 0,
+    "mcpCatalog": {
+      "server": {
+        "name": "paper-reader-link",
+        "version": "0.3.2"
+      },
+      "tools": 11,
+      "experimentalAliasPresent": false,
+      "imageRecoveryAdvice": true
+    },
+    "file": "Agentic-PDF-Reader-0.12.2-install.exe",
+    "sha256": "b925b99c41dfadcac5c1c3623fada1788c2017fdd605aec4e75c5374988ac314",
+    "finalRuntimeSourcesRechecked": 54
+  },
+  "realPdfIntegration": "image-reuse-local-0.12.2.json",
+  "originalPdf": {
+    "file": "1806.07572v4.pdf",
+    "sha256": "e052eb972f646747ac4554a294eb62874077e59a5f585f459e2dbd5cb2a0975d",
+    "unchanged": true,
+    "writtenNotesPreserved": 8,
+    "totalAnnotations": 8
+  },
+  "diagnosis": {
+    "observed": "An existing ChatGPT conversation receives only text/metadata or a multimodal placeholder, while a fresh conversation reads the same native PNG result.",
+    "hostInternalCause": "Unknown; not established by repository code or official documentation.",
+    "existingConversation": "https://chatgpt.com/c/6ad87033-2b7c-83ee-a029-1eefb031b1d8",
+    "ruledOut": [
+      {
+        "change": "Omit structuredContent, retain text plus native image.",
+        "result": "Old conversation still could not see pixels; fresh conversation read them."
+      },
+      {
+        "change": "Register a new image tool alias and refresh/reselect the plugin.",
+        "result": "Old conversation still could not see pixels."
+      },
+      {
+        "change": "Return native image content only, metadata in _meta; direct single call.",
+        "result": "Old conversation received Tool returned multimodal content placeholder, could not read the visual code."
+      }
+    ],
+    "experimentalChangesRemoved": true,
+    "standardMcpImageFormatRetained": true
+  },
+  "blindVisualTest": {
+    "conversation": "https://chatgpt.com/c/6ad87583-fd34-83ee-93e1-67d0554938a5",
+    "fixture": "NTK-visual-probe.pdf, separate copy of NTK with raster-only marker above Figure 3(c)",
+    "code": "XCLKJKG",
+    "colorsLeftToRight": [
+      "green",
+      "blue",
+      "orange",
+      "purple",
+      "red"
+    ],
+    "page": 9,
+    "region": [
+      0.58,
+      0.08,
+      0.27,
+      0.22
+    ],
+    "textExtractionContainsCode": false,
+    "expectedValueIncludedInPrompt": false,
+    "modelCode": "XCLKJKG",
+    "modelColorsLeftToRight": [
+      "green",
+      "blue",
+      "orange",
+      "purple",
+      "red"
+    ],
+    "codeMatch": true,
+    "colorOrderMatch": true,
+    "screenshot": "../outputs/web-visual-blind-probe-0.12.2.jpg"
+  },
+  "installedRecoveryFlow": {
+    "mode": "In-app browser against installed EXE localhost. Browser recovery button copied a fresh share; agent opened a new ChatGPT conversation, selected the plugin and pasted/sent. Native EXE navigation/send path was tested separately in Chromium, not by native computer-use.",
+    "oldSelectionId": "16e08b58-5078-43a2-a653-55c2ba511e6d",
+    "newSelectionId": "e4eeb7f7-cc05-43d8-bf86-d0d57d1848f2",
+    "newSelectionCreated": true,
+    "sameDocument": true,
+    "originalErrorReproduced": true,
+    "recoveryButtonLabel": "새 대화용 질문 복사",
+    "conversation": "https://chatgpt.com/c/6ad87b7e-901c-83e8-ae90-2586b6c531a9",
+    "serverImageDeliveries": {
+      "resend": 1,
+      "image": 3
+    },
+    "pixelInterpretation": "Model identified the green/red/violet dotted curves and blue solid infinite-width curve, and connected finite-width convergence to NTK inflation. An image recovery resend and additional crops were needed.",
+    "mathReview": "Model initially misread the vertical p^in distribution label as prin. Independent review supplied the correct notation; the model then corrected it to ||g_t||_{p^{in}} and the L2 norm sqrt(E[||g_t(x)||^2]). This correction is not counted as blind image recognition.",
+    "saved": false,
+    "trace": [
+      {
+        "tool": "read_pdf",
+        "state": "complete",
+        "pages": [
+          9
+        ],
+        "at": "2026-10-21T08:45:11.506Z",
+        "characters": 8,
+        "passages": [
+          {
+            "passageId": "p9.12",
+            "start": 544,
+            "end": 552
+          }
+        ]
+      },
+      {
+        "tool": "read_pdf",
+        "state": "complete",
+        "pages": [
+          8
+        ],
+        "at": "2026-10-21T08:45:12.048Z",
+        "characters": 45,
+        "passages": [
+          {
+            "passageId": "p8.15",
+            "start": 2910,
+            "end": 2955
+          }
+        ]
+      },
+      {
+        "tool": "render_pdf_page",
+        "state": "complete",
+        "pages": [
+          9
+        ],
+        "at": "2026-10-21T08:45:14.108Z",
+        "image": {
+          "page": 9,
+          "region": [
+            0.58,
+            0.08,
+            0.27,
+            0.22
+          ],
+          "width": 1897,
+          "height": 2000,
+          "zoom": 4.545454545454545,
+          "rotation": 0,
+          "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+          "imageRef": "image-8a47964f-ff35-4b12-9538-1aae93eba955",
+          "delivery": "resend"
+        },
+        "reason": "Earlier render response carried no accessible image content; retry once to obtain actual pixels."
+      },
+      {
+        "tool": "render_pdf_page",
+        "state": "complete",
+        "pages": [
+          9
+        ],
+        "at": "2026-10-21T08:45:23.434Z",
+        "image": {
+          "page": 9,
+          "region": [
+            0.61,
+            0.11,
+            0.19,
+            0.13
+          ],
+          "width": 2000,
+          "height": 1771,
+          "zoom": 6.811145510835914,
+          "rotation": 0,
+          "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+          "imageRef": "image-7b62869a-eced-47c7-a542-756e22244541",
+          "delivery": "image"
+        }
+      },
+      {
+        "tool": "expand_pdf",
+        "state": "complete",
+        "pages": [
+          9
+        ],
+        "at": "2026-10-21T08:45:35.573Z",
+        "characters": 373,
+        "passages": [
+          {
+            "passageId": "p9.14",
+            "start": 811,
+            "end": 1184
+          }
+        ],
+        "reason": "Need interpretation of Figure 3(c) and width-dependent convergence from immediately following explanatory paragraph."
+      },
+      {
+        "tool": "search_pdf",
+        "state": "complete",
+        "pages": [
+          8,
+          9
+        ],
+        "at": "2026-10-21T08:45:35.951Z"
+      },
+      {
+        "tool": "render_pdf_page",
+        "state": "complete",
+        "pages": [
+          9
+        ],
+        "at": "2026-10-21T08:45:36.330Z",
+        "image": {
+          "page": 9,
+          "region": [
+            0.77,
+            0.105,
+            0.19,
+            0.1
+          ],
+          "width": 2000,
+          "height": 1362,
+          "zoom": 6.811145510835914,
+          "rotation": 0,
+          "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+          "imageRef": "image-58f78c05-2c33-417c-9a7f-0a5299aa7d67",
+          "delivery": "image"
+        }
+      },
+      {
+        "tool": "search_pdf",
+        "state": "complete",
+        "pages": [],
+        "at": "2026-10-21T08:45:36.422Z"
+      },
+      {
+        "tool": "read_pdf",
+        "state": "complete",
+        "pages": [
+          9
+        ],
+        "at": "2026-10-21T08:45:45.078Z",
+        "characters": 638,
+        "passages": [
+          {
+            "passageId": "p9.17",
+            "start": 2090,
+            "end": 2728
+          }
+        ]
+      },
+      {
+        "tool": "read_pdf",
+        "state": "complete",
+        "pages": [
+          8
+        ],
+        "at": "2026-10-21T08:45:46.646Z",
+        "characters": 405,
+        "passages": [
+          {
+            "passageId": "p8.10",
+            "start": 1328,
+            "end": 1733
+          }
+        ]
+      },
+      {
+        "tool": "read_pdf",
+        "state": "complete",
+        "pages": [
+          9
+        ],
+        "at": "2026-10-21T08:45:46.655Z",
+        "characters": 304,
+        "passages": [
+          {
+            "passageId": "p9.16",
+            "start": 1785,
+            "end": 2089
+          }
+        ]
+      },
+      {
+        "tool": "render_pdf_page",
+        "state": "complete",
+        "pages": [
+          9
+        ],
+        "at": "2026-10-21T08:47:53.781Z",
+        "image": {
+          "page": 9,
+          "region": [
+            0.58,
+            0.1,
+            0.13,
+            0.16
+          ],
+          "width": 1256,
+          "height": 2000,
+          "zoom": 6.250000000000001,
+          "rotation": 0,
+          "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+          "imageRef": "image-d54e49ac-b36f-404d-b7a5-55965faa8312",
+          "delivery": "image"
+        }
+      }
+    ],
+    "buttonScreenshot": "../outputs/image-recovery-button-0.12.2.jpg",
+    "figureScreenshot": "../outputs/ntk-figure-web-recovered-0.12.2.jpg",
+    "mathCorrectionScreenshot": "../outputs/ntk-axis-correction-0.12.2.jpg"
+  },
+  "materialLimitations": [
+    "The old ChatGPT conversation image delivery problem remains reproducible. This release provides opt-in recovery through a fresh conversation; it does not modify ChatGPT internals.",
+    "Old conversation text is not copied to the new conversation. The PDF, current question and save preference are shared; existing PDF notes remain readable.",
+    "Image return metadata is not proof that the model saw pixels. One reasoned resend is allowed before recovery; visual interpretation can still contain OCR mistakes."
+  ],
+  "finalActiveSelectionId": "8d08b842-1957-4747-ad8b-277781c2496b",
+  "finalInstalledOrigin": "http://127.0.0.1:50516"
+}

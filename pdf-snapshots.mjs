@@ -5,7 +5,8 @@ import {createPassageReader,CONTEXT_LIMITS} from './pdf-passages.mjs';
 export const PDF_LIMITS={bytes:64*1024*1024,pages:1000,text:12_000_000,snapshots:3,totalBytes:192*1024*1024};
 export function renderRegion(region=[0,0,1,1]){
   if(!Array.isArray(region)||region.length!==4||!region.every(Number.isFinite)||region[0]<0||region[1]<0||region[2]<.02||region[3]<.02||region[0]+region[2]>1.000001||region[1]+region[3]>1.000001)throw new UserError('영역은 [x,y,width,height] 0~1 좌표이며 폭·높이는 0.02 이상이어야 합니다.');
-  return region;
+  const [x,y,w,h]=region.map(n=>Math.round(n*10000)/10000);
+  return [x,y,Math.min(w,1-x),Math.min(h,1-y)];
 }
 export function createPdfSnapshots({renderer,now=Date.now,queryOptions}={}){
   const records=new Map();let closed=false,registration=Promise.resolve();

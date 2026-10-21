@@ -328,3 +328,5 @@ body.reading-focus #chat-panel,body.reading-focus #panel-resizer{display:none}
 .composer-help summary{cursor:pointer}.composer-help p{margin:7px 0;line-height:1.6}
 @media(max-height:760px){.reader>.reading-composer{max-height:38%}.reading-composer #question{height:40px;min-height:40px;padding-block:1px}}
 @media(max-width:800px){.reader>.reading-composer{max-height:42%}}
+
+.link-evidence-actions{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 10px}.link-evidence-actions #link-recover{border:0;background:transparent;color:var(--accent,#52664b);text-decoration:underline;text-underline-offset:3px;margin-top:3px}

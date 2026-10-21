@@ -1,0 +1,179 @@
+{
+  "version": "0.12.3",
+  "mcpVersion": "0.3.3",
+  "date": "2026-10-21T09:14:49.311Z",
+  "automatedTests": {
+    "passed": 126,
+    "failed": 0
+  },
+  "chromium": {
+    "consecutiveSends": 3,
+    "pluginPreserved": true,
+    "recoveryAttachmentProtected": true,
+    "sameConversationRecovery": true,
+    "recoveryDuplicateSuppressed": true
+  },
+  "installer": {
+    "file": "Agentic-PDF-Reader-0.12.3-install.exe",
+    "sha256": "aa323c7b88d730c0820dc43c186d6a319d1ca0ebc7adef73d28a4d1e601955e4",
+    "installExitCode": 0,
+    "runtimeSourcesMatched": 54,
+    "mcpBundleMatched": true,
+    "privateEntries": 0
+  },
+  "diagnosis": {
+    "conversation": "https://chatgpt.com/c/6ad87033-2b7c-83ee-a029-1eefb031b1d8",
+    "observedEnvelope": {
+      "content": "string",
+      "content_items": "array of text/image blocks"
+    },
+    "repair": "Explicitly forward raw content_items (or standard content array) image blocks to the available image helper. Keep the existing conversation.",
+    "evidence": "The same previously failing web conversation reported this raw envelope and then read Figure 3(c) plus a raster-only blind marker. No host internals were modified.",
+    "transientInitializationError": "The first diagnosis call failed with MCP not initialized; the next call succeeded. This separate connection condition is not claimed fixed."
+  },
+  "blindVisualTest": {
+    "selectionId": "ea6fbaec-105e-459c-b616-c3f4e00e2f49",
+    "file": "NTK-visual-probe.pdf",
+    "page": 9,
+    "region": [
+      0.58,
+      0.08,
+      0.27,
+      0.22
+    ],
+    "expectedCode": "XCLKJKG",
+    "modelCode": "XCLKJKG",
+    "colorOrder": [
+      "green",
+      "blue",
+      "orange",
+      "purple",
+      "red"
+    ],
+    "colorOrderMatch": true,
+    "expectedAnswerInPrompt": false,
+    "codeAbsentFromExtractedText": true,
+    "textExtractionCheckedIn": "web-image-recovery-evaluation-0.12.2.json",
+    "screenshot": "../outputs/existing-chat-blind-0.12.3.jpg"
+  },
+  "installedWebTest": {
+    "selectionId": "1b8735f5-d138-4f9e-89cd-fa0f0841bfa1",
+    "origin": "http://127.0.0.1:54625",
+    "mode": "In-app browser with installed EXE localhost; copy/paste into the existing ChatGPT conversation. Native IPC sender tested separately with real Chromium.",
+    "trace": [
+      {
+        "tool": "search_pdf",
+        "state": "complete",
+        "pages": [
+          9
+        ],
+        "at": "2026-10-21T09:14:28.126Z"
+      },
+      {
+        "tool": "search_pdf",
+        "state": "complete",
+        "pages": [
+          8
+        ],
+        "at": "2026-10-21T09:14:30.142Z"
+      },
+      {
+        "tool": "read_pdf",
+        "state": "complete",
+        "pages": [
+          8
+        ],
+        "at": "2026-10-21T09:14:40.427Z",
+        "characters": 117,
+        "passages": [
+          {
+            "passageId": "p8.3",
+            "start": 156,
+            "end": 273
+          }
+        ]
+      },
+      {
+        "tool": "read_pdf",
+        "state": "complete",
+        "pages": [
+          9
+        ],
+        "at": "2026-10-21T09:14:42.599Z",
+        "characters": 638,
+        "passages": [
+          {
+            "passageId": "p9.17",
+            "start": 2090,
+            "end": 2728
+          }
+        ]
+      },
+      {
+        "tool": "render_pdf_page",
+        "state": "complete",
+        "pages": [
+          9
+        ],
+        "at": "2026-10-21T09:14:49.032Z",
+        "image": {
+          "page": 9,
+          "region": [
+            0.58,
+            0.08,
+            0.27,
+            0.22
+          ],
+          "width": 1897,
+          "height": 2000,
+          "zoom": 4.545454545454545,
+          "rotation": 0,
+          "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+          "imageRef": "image-44a1889a-4412-49b3-9c6d-2fe6277d567c",
+          "delivery": "image"
+        }
+      },
+      {
+        "tool": "render_pdf_page",
+        "state": "complete",
+        "pages": [
+          8
+        ],
+        "at": "2026-10-21T09:14:58.328Z",
+        "image": {
+          "page": 8,
+          "region": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "width": 1545,
+          "height": 2000,
+          "zoom": 1,
+          "rotation": 0,
+          "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+          "imageRef": "image-d4794aea-4159-4f7a-acc5-10f4de1a4bc7",
+          "delivery": "image"
+        }
+      }
+    ],
+    "saved": false,
+    "answer": "Read Figure 1 and Figure 3(c) colors, widths and line styles; explained kernel inflation using bounded source paragraphs and learning-rate caveat, PDF pp.8–9.",
+    "screenshot": "../outputs/existing-chat-ntk-installed-0.12.3.jpg",
+    "recoveryButton": {
+      "label": "이미지 재확인 질문 복사",
+      "sameSelection": true,
+      "sameQuestion": true,
+      "sameConversationInstruction": true,
+      "saveFalse": true,
+      "screenshot": "../outputs/existing-chat-recovery-button-0.12.3.jpg",
+      "scope": "Browser button copied follow-up; no navigation or fresh share. Native sender path verified separately in Chromium."
+    }
+  },
+  "originalPdf": {
+    "sha256": "e052eb972f646747ac4554a294eb62874077e59a5f585f459e2dbd5cb2a0975d",
+    "unchanged": true,
+    "annotationCount": 8
+  }
+}

@@ -4,6 +4,7 @@ import path from 'node:path';
 import {UserError} from './auth.mjs';
 import {validAnchor} from './annotation-geometry.mjs';
 import {recordEvidence} from './pdf-evidence.mjs';
+import {renderRegion} from './pdf-snapshots.mjs';
 
 const DAY=24*60*60*1000;
 const notePages=item=>[...new Set(item.anchors.map(anchor=>anchor.page))].sort((a,b)=>a-b);
@@ -96,6 +97,28 @@ export function createPaperLink({annotations,discoveryPath,getOrigin,pdfs,onSave
     revision++;
     return record.historyUpdated;
   }
+  async function imageResult(record,args){
+    if(args.resend!==undefined&&typeof args.resend!=='boolean')throw new UserError('이미지 재전송 옵션을 확인하세요.');
+    if(args.resend&&(typeof args.reason!=='string'||!args.reason.trim()||args.reason.length>180))throw new UserError('이미지를 다시 받아야 하는 이유를 180자 이내로 적으세요. 확대에는 더 작은 region을 지정하세요.');
+    const region=renderRegion(args.region),key=JSON.stringify([args.page,region]),existing=record.images.get(key);
+    let previous;
+    if(existing){
+      previous=existing.pending?await existing.pending:existing;
+      if(!args.resend)return {metadata:previous.metadata,imageRef:previous.imageRef,delivery:'reference',imageReturned:false,advice:'This image was already returned for this selectionId; no PNG is repeated. Use the earlier image. For more detail request a smaller region in PAGE coordinates. If the earlier image is unavailable in conversation context, use resend:true with a specific reason.'};
+    }
+    if(!existing&&record.images.size>=32)throw new UserError('이 공유의 이미지 영역은 최대 32개입니다. 필요한 자료만 새로 공유하세요.');
+    const imageRef=existing?.imageRef||'image-'+randomUUID(),entry={imageRef};
+    // Store pending metadata for coalescing; discard PNG bytes after delivery.
+    let complete,fail;entry.pending=new Promise((resolve,reject)=>{complete=resolve;fail=reject;});entry.pending.catch(()=>{});
+    record.images.set(key,entry);
+    try{
+      const value=await pdfs.render(record.snapshotId,args.page,region);
+      const metadata={...value.metadata,region};
+      const delivered={metadata,imageRef};if(record.images.get(key)===entry)record.images.set(key,delivered);
+      complete(delivered);
+      return {...value,metadata,imageRef,delivery:args.resend?'resend':'image',imageReturned:true};
+    }catch(error){if(record.images.get(key)===entry){if(previous)record.images.set(key,previous);else record.images.delete(key);}fail(error);throw error;}
+  }
   async function readTool(method,args){
     const record=await serial(()=>{if(!enabled)throw new UserError('Paper Reader Link 연결이 꺼져 있습니다.',409);const item=getRecord(args.selectionId);if(!item.snapshotId)throw new UserError('이 질문에는 PDF 전체가 공유되지 않았습니다. AI가 문맥 찾기를 선택해 다시 공유하세요.',409);if(activeReads>=3)throw new UserError('PDF 작업이 진행 중입니다. 잠시 후 다시 시도하세요.',429);activeReads++;lastContactAt=new Date(now()).toISOString();return item;});
     const event={tool:method,state:'running',pages:[],at:new Date(now()).toISOString()};
@@ -107,13 +130,13 @@ export function createPaperLink({annotations,discoveryPath,getOrigin,pdfs,onSave
       if(method==='search_pdf')value=await pdfs.search(record.snapshotId,args);
       if(method==='read_pdf')value=pdfs.read(record.snapshotId,args);
       if(method==='expand_pdf')value=pdfs.expand(record.snapshotId,args);
-      if(method==='render_pdf_page')value=await pdfs.render(record.snapshotId,args.page,args.region);
+      if(method==='render_pdf_page')value=await imageResult(record,args);
       if(!enabled || getRecord(record.selectionId)!==record)throw new UserError('PDF 공유가 종료되었습니다.',410);
       event.state='complete';
       event.pages=method==='query_pdf'?[...new Set(value.rows.map(row=>Number(row.page_no)).filter(n=>Number.isInteger(n)&&n>=1&&n<=pdfs.inspect(record.snapshotId).pageCount))]:method==='search_pdf'?[...new Set(value.matches.map(p=>p.page))]:['read_pdf','expand_pdf'].includes(method)?[...new Set(value.pages.map(p=>p.page))]:method==='render_pdf_page'?[args.page]:[];
-      if(['read_pdf','expand_pdf','render_pdf_page'].includes(method))recordEvidence(record.evidence,method,value,args);
+      if(['read_pdf','expand_pdf'].includes(method)||method==='render_pdf_page'&&value.imageReturned)recordEvidence(record.evidence,method,value,args);
       if(['read_pdf','expand_pdf'].includes(method)){event.characters=value.characters;event.passages=value.pages.map(p=>({passageId:p.passageId,start:p.start,end:p.end}));if(args.reason)event.reason=args.reason;}
-      if(method==='render_pdf_page')event.image={region:value.metadata.region,width:value.metadata.width,height:value.metadata.height};
+      if(method==='render_pdf_page'){event.image={...value.metadata,imageRef:value.imageRef,delivery:value.delivery};if(args.resend)event.reason=args.reason;}
       revision++;return {selectionId:record.selectionId,...value};
     }catch(error){event.state='error';revision++;throw error;}
     finally{activeReads--;}
@@ -153,7 +176,7 @@ export function createPaperLink({annotations,discoveryPath,getOrigin,pdfs,onSave
       const selection=validateSelection(value);prune();
       if(records.size>=100)throw new UserError('공유 문장이 100개입니다. Link 연결을 해제한 뒤 다시 시작하세요.',409);
       await enable();
-      const timestamp=now(),selectionId=randomUUID(),record={...selection,selectionId,timestamp,createdAt:new Date(timestamp).toISOString(),expiresAt:new Date(timestamp+DAY).toISOString(),saved:null,trace:[],evidence:{snapshotId:selection.snapshotId,pages:[],truncated:false}};
+      const timestamp=now(),selectionId=randomUUID(),record={...selection,selectionId,timestamp,createdAt:new Date(timestamp).toISOString(),expiresAt:new Date(timestamp+DAY).toISOString(),saved:null,trace:[],images:new Map(),evidence:{snapshotId:selection.snapshotId,pages:[],truncated:false}};
       if(selection.snapshotId){if(typeof selection.snapshotId!=='string'||!/^[a-f\d]{64}$/.test(selection.snapshotId)||!pdfs)throw new UserError('PDF 고정본 ID를 확인하세요.');pdfs.pin(selection.snapshotId,selection.documentId,selectionId);}
       records.set(selectionId,record);revision++;return snapshot(record);
     }),
