@@ -58,6 +58,23 @@ test('idle SQL workers stop and rebuild the same search without invalidating que
   await wait(60);assert.equal(index.resident,false);index.close();await assert.rejects(index.query(sql,['Theorem']),/종료/);
 });
 
+test('immutable query cache survives idle eviction, isolates bindings and results, and respects close',async t=>{
+  const index=createQueryIndex(texts,{idleTimeout:20});t.after(()=>index.close());
+  const sql='SELECT raw_text FROM pages WHERE page_no=?',params=[1],pending=index.query(sql,params);params[0]=2;
+  const first=await pending;assert.equal(first.rows[0].raw_text,texts[0]);first.rows[0].raw_text='changed';
+  await wait(60);assert.equal(index.resident,false);
+  const cached=await index.query(sql,[1]);assert.equal(cached.rows[0].raw_text,texts[0]);assert.equal(index.resident,false,'Cache hit must not rebuild the index');
+  assert.equal((await index.query(sql,[2])).rows[0].raw_text,texts[1]);
+  index.close();await assert.rejects(index.query(sql,[1]),/종료/);
+});
+
+test('snapshot registration and paragraph reads do not start an unused SQL process',async t=>{
+  const pdfs=createPdfSnapshots({renderer:{load:async()=>({documentId:'abc123',pages:texts}),release(){},close(){}}});t.after(()=>pdfs.close());
+  const loaded=await pdfs.register(Buffer.from('%PDF-1.7 test'),'abc123','test.pdf');
+  assert.equal(pdfs.resources().searchWorkers,0);assert.equal(pdfs.read(loaded.snapshotId,{passageId:'p1.1'}).pages[0].text,texts[0]);
+  assert.equal(pdfs.resources().searchWorkers,0);await pdfs.search(loaded.snapshotId,{query:'kernel'});assert.equal(pdfs.resources().searchWorkers,1);
+});
+
 async function fixture(t){
   const base=fileURLToPath(new URL('../../../work/',import.meta.url));await mkdir(base,{recursive:true});
   const directory=await mkdtemp(path.join(base,'pdf-test-'));
@@ -76,7 +93,7 @@ test('PDF snapshot stays fixed across document changes and is erased on revoke',
   await link.share({documentId:'def456',fileName:'other.pdf',...pageNote(1),question:'Other question',context:'',allowSave:false});
   assert.equal((await link.call('inspect_pdf',{selectionId:shared.selectionId})).pageCount,2);
   const saved=await link.call('save_annotation',{selectionId:shared.selectionId,note:'Original document answer'});assert.equal(saved.saved,true);
-  assert.match(linkQuestion(shared),/query_pdf/);assert.ok(!linkQuestion(shared).includes('Theorem 2'));
+  assert.match(linkQuestion(shared),/search_pdf/);assert.ok(!linkQuestion(shared).includes('Theorem 2'));
   await link.setEnabled(false);
   assert.throws(()=>pdfs.inspect(shared.snapshotId),/만료/);
 });

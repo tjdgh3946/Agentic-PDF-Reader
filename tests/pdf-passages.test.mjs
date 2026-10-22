@@ -1,13 +1,36 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {extractPdfText} from '../pdf-text.mjs';
-import {createPassageReader} from '../pdf-passages.mjs';
+import {createPassageReader,statementLabel,isParagraphHeading} from '../pdf-passages.mjs';
 import {createPdfSnapshots} from '../pdf-snapshots.mjs';
 import {createLinkMcpServer} from '../link/mcp-server.mjs';
 import {Client} from '@modelcontextprotocol/sdk/client/index.js';
 import {InMemoryTransport} from '@modelcontextprotocol/sdk/inMemory.js';
 
 const id='a'.repeat(64),otherId='b'.repeat(64);
+
+test('statement lookup distinguishes exact numbered labels from cross-references and numbered prose',()=>{
+  assert.equal(statementLabel('Proposition 1. For a network...'),'proposition 1');
+  assert.equal(statementLabel('Theorem 1.1 (Limit).'),'theorem 1.1');
+  assert.equal(statementLabel('By Proposition 1 we have...'),null);
+  assert.equal(statementLabel('"Proposition 1"',{query:true}),'proposition 1');
+  assert.equal(statementLabel('proof of Proposition 1',{query:true}),null);
+  assert.equal(statementLabel('Proposition 1'+' '.repeat(190)+'AND proof',{query:true}),null);
+  assert.equal(isParagraphHeading('3   Kernel gradient'),true);
+  assert.equal(isParagraphHeading('Abstract'),true);
+  assert.equal(isParagraphHeading('Theorem 1.'),true);
+  assert.equal(isParagraphHeading('Theorem 1. The kernel converges.'),false);
+  assert.equal(isParagraphHeading('3 x = y'),false);
+});
+
+test('named statements outrank short cross-references while respecting explicit page scopes',async t=>{
+  const pages=['Proposition 1. This is the original statement. '+ 'Detailed assumptions. '.repeat(20),'Proof: By Proposition 1 we obtain the result.'];
+  const pdfs=createPdfSnapshots({renderer:{load:async()=>({documentId:'abc123',pages}),release(){},close(){}}});t.after(()=>pdfs.close());
+  const snapshot=await pdfs.register(Buffer.from('%PDF-1.7 test'),'abc123','test.pdf');
+  const result=await pdfs.search(snapshot.snapshotId,{query:'"Proposition 1"',limit:1});assert.equal(result.matches[0].page,1);assert.equal(result.ranking,'statement-first');
+  const scoped=await pdfs.search(snapshot.snapshotId,{query:'"Proposition 1"',pages:[2],limit:1});assert.equal(scoped.matches[0].page,2);assert.equal(scoped.ranking,undefined);
+  const proof=await pdfs.search(snapshot.snapshotId,{query:'"Proposition 1" AND proof',limit:1});assert.equal(proof.matches[0].page,2);assert.equal(proof.ranking,undefined);
+});
 test('PDF geometry adds paragraph boundaries without rewriting extracted text',()=>{
   const items=[{str:'Theorem 2',hasEOL:true,transform:[10,0,0,10,20,100]},{str:'Assume smoothness.',hasEOL:true,transform:[10,0,0,10,20,80]},{str:'Then NTK converges.',hasEOL:true,transform:[10,0,0,10,20,69]},{str:'Proof follows.',hasEOL:true,transform:[10,0,0,10,20,45]}];
   const {text,breaks}=extractPdfText(items);

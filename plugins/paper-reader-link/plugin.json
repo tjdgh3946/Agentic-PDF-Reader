@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "paper-reader-link",
-  "version": "0.4.1",
+  "version": "0.4.4",
   "description": "Read explicitly shared PDFs and their existing Reader notes in ChatGPT, and optionally save answers as anchored notes.",
   "extensions": {
     "com.openai": {

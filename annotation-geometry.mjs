@@ -101,7 +101,7 @@ export function quoteMatches(text,quote,{partial=false,start}={}){
   // A legacy selection may continue across page boundaries. Only accept exact
   // overlaps touching an edge of both the quote and this page's text stream.
   const length=Math.min(text.length,quote.length);
-  if(quote.includes(text) && text.length>=16)return [{start:0,end:text.length}];
+  if(quote.includes(text) && text.length>=22)return [{start:0,end:text.length}];
   for(let size=length;size>=16;size--){
     if(text.endsWith(quote.slice(0,size)))return [{start:text.length-size,end:text.length}];
     if(text.startsWith(quote.slice(-size)))return [{start:0,end:size}];
@@ -126,4 +126,26 @@ export function resolveRects(anchor,item,page,rotation){
     if(score<distance){distance=score;best=rects;}
   }
   return best||fallback;
+}
+// Group first-line anchors in page coordinates so zoom cannot change membership.
+export function groupNoteMarkers(entries){
+  const groups=[];
+  for(const entry of [...entries].sort((a,b)=>a.page-b.page||a.y-b.y||a.x-b.x)){
+    let group=groups.find(group=>group.page===entry.page&&Math.abs(group.y-entry.y)<=Math.min(group.height,entry.height)*.55);
+    if(!group){group={page:entry.page,y:entry.y,height:entry.height,entries:[]};groups.push(group);}
+    if(!group.entries.some(other=>other.item.id===entry.item.id))group.entries.push(entry);
+  }
+  return groups;
+}
+
+// Keep note icons within the visible viewer rail; stack nearby notes without overlap.
+export function noteMarkerTop(preferred,occupied,height){
+  const minimum=11,maximum=Math.max(minimum,height-11),base=Math.max(minimum,Math.min(maximum,preferred));
+  let position=base;
+  for(let step=0;step<=occupied.length+1;step++){
+    const candidates=step?[base+step*22,base-step*22]:[base];
+    const available=candidates.find(value=>value>=minimum&&value<=maximum&&occupied.every(other=>Math.abs(other-value)>=16));
+    if(available!==undefined){position=available;break;}
+  }
+  occupied.push(position);return position;
 }

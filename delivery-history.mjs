@@ -10,6 +10,7 @@ export function deliveryEvent(method,value,time){
     items.push(item);
   }
   if(['search_pdf','query_pdf'].includes(method)){const data=JSON.stringify(method==='search_pdf'?value.matches:value.rows,null,2);items.push({kind:'search',delivery:'text',text:data,characters:data.length,pages:method==='search_pdf'?[...new Set(value.matches.map(p=>p.page))]:[]});}
+  if(method==='search_pdf'&&value.reading)for(const p of value.reading.pages)items.push({kind:'text',delivery:p.delivery,page:p.page,passageId:p.passageId,start:p.start,end:p.end,ref:p.textRef,...(p.text!==undefined?{text:p.text}:{}),characters:p.text?.length||0});
   return {event:{id:randomUUID(),at:new Date(time).toISOString(),method,state:'complete',items},image};
 }
 export function validDelivery(event){

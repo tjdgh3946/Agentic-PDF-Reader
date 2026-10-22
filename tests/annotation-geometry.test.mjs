@@ -1,6 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {normalizeRect,rotateRect,legacyRect,quoteMatches,validAnchor,capturePage,resolveRects} from '../annotation-geometry.mjs';
+import {normalizeRect,rotateRect,legacyRect,quoteMatches,validAnchor,capturePage,resolveRects,groupNoteMarkers} from '../annotation-geometry.mjs';
+
+test('notes on the same line share a marker while adjacent lines and pages stay distinct',()=>{
+  const entry=(id,page,x,y,height=.02)=>({item:{id},page,x,y,height});
+  const entries=[entry('next',1,.1,.23),entry('right',1,.6,.202),entry('other-page',2,.1,.2),entry('left',1,.1,.2)];
+  const groups=groupNoteMarkers(entries);
+  assert.deepEqual(groups.map(group=>group.entries.map(entry=>entry.item.id)),[['left','right'],['next'],['other-page']]);
+  assert.equal(entries[0].item.id,'next'); // Layout must not reorder stored notes.
+});
+
+test('duplicate anchors do not inflate a line count and a chain cannot absorb the next line',()=>{
+  const entry=(id,y)=>({item:{id},page:1,x:.1,y,height:.02});
+  const groups=groupNoteMarkers([entry('a',.2),entry('a',.201),entry('b',.209),entry('c',.218)]);
+  assert.deepEqual(groups.map(group=>group.entries.map(entry=>entry.item.id)),[['a','b'],['c']]);
+  assert.deepEqual(groupNoteMarkers([]),[]);
+});
 
 const near=(actual,expected)=>actual.forEach((value,i)=>assert.ok(Math.abs(value-expected[i])<1e-10,`${actual} != ${expected}`));
 test('content coordinates stay on the same text through zoom, scrolling and panel resize',()=>{

@@ -1,0 +1,97 @@
+{
+  "version": "0.14.7",
+  "date": "2026-10-22T03:55:13.986Z",
+  "scope": "Local engine/MCP timings, not ChatGPT generation or public tunnel latency. Real NTK extraction plus a synthetic 950-page workload repeating public NTK text. Temporary AES archive with a test-only key wrapping adapter.",
+  "workloads": {
+    "ntk": {
+      "pages": 19,
+      "characters": 64452,
+      "registerMs": 69.65380000000005,
+      "workerStartedAtRegistration": true,
+      "quality": {
+        "medianMs": 0.8498999999999342,
+        "p95Ms": 1.1549999999999727,
+        "samples": 5
+      },
+      "inspect": {
+        "medianMs": 0.006300000000010186,
+        "p95Ms": 0.09309999999993579,
+        "samples": 20
+      },
+      "firstSearchMs": 2.596900000000005,
+      "repeatSearch": {
+        "medianMs": 0.42799999999999727,
+        "p95Ms": 0.8383000000000038,
+        "samples": 20
+      },
+      "variedSearch": {
+        "medianMs": 0.4413999999999305,
+        "p95Ms": 1.1221000000000458,
+        "samples": 20
+      },
+      "bm25": {
+        "medianMs": 0.17719999999985703,
+        "p95Ms": 1.040200000000027,
+        "samples": 20
+      },
+      "rank": {
+        "medianMs": 0.17020000000002256,
+        "p95Ms": 0.3369000000000142,
+        "samples": 20
+      },
+      "repeatAfterIdleMs": 76.70540000000005,
+      "novelAfterIdleMs": 67.30410000000006,
+      "mcpSearchWithDurableArchive": {
+        "medianMs": 4.315200000000004,
+        "p95Ms": 11.24720000000002,
+        "samples": 10
+      },
+      "referenceGuardsPreserved": true
+    },
+    "synthetic950": {
+      "pages": 950,
+      "characters": 3222600,
+      "registerMs": 433.9363000000001,
+      "workerStartedAtRegistration": true,
+      "quality": {
+        "medianMs": 40.46810000000005,
+        "p95Ms": 49.821699999999964,
+        "samples": 5
+      },
+      "inspect": {
+        "medianMs": 0.023000000000138243,
+        "p95Ms": 0.08010000000012951,
+        "samples": 20
+      },
+      "firstSearchMs": 3.7654999999999745,
+      "repeatSearch": {
+        "medianMs": 2.5668000000000575,
+        "p95Ms": 3.531300000000101,
+        "samples": 20
+      },
+      "variedSearch": {
+        "medianMs": 1.6572000000001026,
+        "p95Ms": 3.8161999999997533,
+        "samples": 20
+      },
+      "bm25": {
+        "medianMs": 1.5623000000000502,
+        "p95Ms": 2.182299999999941,
+        "samples": 20
+      },
+      "rank": {
+        "medianMs": 2.7306000000003223,
+        "p95Ms": 4.518099999999777,
+        "samples": 20
+      },
+      "repeatAfterIdleMs": 421.73380000000043,
+      "novelAfterIdleMs": 443.25700000000006,
+      "mcpSearchWithDurableArchive": {
+        "medianMs": 13.944999999999709,
+        "p95Ms": 20.809299999999894,
+        "samples": 10
+      },
+      "referenceGuardsPreserved": true
+    }
+  }
+}

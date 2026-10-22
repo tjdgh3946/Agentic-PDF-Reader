@@ -5,7 +5,7 @@ import path from 'node:path';
 // Only explicitly shared material is cached. The random AES key is wrapped by
 // Electron safeStorage (Windows DPAPI); neither PDF bytes nor prompts are plaintext.
 export function createShareArchive(directory,secureStorage){
-  let key,blocked=false,queue=Promise.resolve();
+  let key,blocked=false,queue=Promise.resolve(),cleanupSignature=null;
   const valid=id=>typeof id==='string'&&/^[a-f\d]{64}$/.test(id);
   const atomic=async(file,bytes)=>{await writeFile(file+'.tmp',bytes,{mode:0o600});await rename(file+'.tmp',file);};
   async function unlock(){
@@ -44,7 +44,7 @@ export function createShareArchive(directory,secureStorage){
       const file=path.join(directory,id+'.enc');
       try{await stat(file);return;}catch(error){if(error.code!=='ENOENT')throw error;}
       if(!Buffer.isBuffer(bytes)||bytes.length>64*1024*1024||createHash('sha256').update(bytes).digest('hex')!==id)throw Error('공유 PDF 검증 오류');
-      await atomic(file,await encrypt(bytes));
+      await atomic(file,await encrypt(bytes));cleanupSignature=null;
     }),
     readPdf:id=>serial(async()=>{
       if(!valid(id))throw Error('공유 PDF ID 오류');
@@ -59,7 +59,7 @@ export function createShareArchive(directory,secureStorage){
       const files=await Promise.all((await readdir(directory)).filter(name=>/^[a-f\d]{64}\.image\.enc$/.test(name)).map(async name=>({name,...await stat(path.join(directory,name))})));
       let size=files.reduce((n,file)=>n+file.size,0);
       for(const old of files.sort((a,b)=>a.mtimeMs-b.mtimeMs)){if(size+bytes.length+28<=32*1024*1024)break;await unlink(path.join(directory,old.name));size-=old.size;}
-      await atomic(file,await encrypt(bytes));
+      await atomic(file,await encrypt(bytes));cleanupSignature=null;
     }),
     readImage:id=>serial(async()=>{
       if(!valid(id))throw Error('전달 이미지 ID 오류');
@@ -71,14 +71,17 @@ export function createShareArchive(directory,secureStorage){
       const bytes=Buffer.from(JSON.stringify({version:1,records}));if(bytes.length>16*1024*1024)throw Error('공유 복원 캐시 한도 초과');
       await atomic(path.join(directory,'shares.enc'),await encrypt(bytes));
       const keep=new Set(records.map(record=>record.snapshotId).filter(valid));
-      for(const file of await readdir(directory))if(/^[a-f\d]{64}\.enc$/.test(file)&&!keep.has(file.slice(0,64)))await unlink(path.join(directory,file));
       const images=new Set(records.flatMap(record=>(record.deliveries||[]).flatMap(event=>(event.items||[]).map(item=>item.sha256))).filter(valid));
-      for(const file of await readdir(directory))if(/^[a-f\d]{64}\.image\.enc$/.test(file)&&!images.has(file.slice(0,64)))await unlink(path.join(directory,file));
+      const signature=JSON.stringify([[...keep].sort(),[...images].sort()]);
+      if(signature!==cleanupSignature){
+        for(const file of await readdir(directory))if(/^[a-f\d]{64}\.enc$/.test(file)?!keep.has(file.slice(0,64)):/^[a-f\d]{64}\.image\.enc$/.test(file)&&!images.has(file.slice(0,64)))await unlink(path.join(directory,file));
+        cleanupSignature=signature;
+      }
     }),
     clear:()=>serial(async()=>{
       await mkdir(directory,{recursive:true});
       for(const file of await readdir(directory))if(/^(?:[a-f\d]{64}(?:\.image)?\.enc|shares\.enc|key\.bin)(?:\.tmp)?$/.test(file))await unlink(path.join(directory,file));
-      key?.fill(0);key=null;blocked=false;
+      key?.fill(0);key=null;blocked=false;cleanupSignature=null;
     }),
     flush:()=>queue
   };

@@ -1,0 +1,186 @@
+{
+  "version": "0.14.8",
+  "date": "2026-10-22T04:14:30.747Z",
+  "scope": "Actual NTK PDF.js extraction and pixels. Differential engine/SQLite/MCP tests against pre-optimization installed source, in an isolated profile/store. Does not test actual ChatGPT generation or public tunnel behavior.",
+  "checks": [
+    {
+      "name": "search order, pages, excerpts, limits and text quality match before optimization",
+      "passed": true,
+      "details": {
+        "comparisons": 270
+      }
+    },
+    {
+      "name": "every paragraph preserves UTF-16 ranges, Unicode/math, clipping and expansion cursors",
+      "passed": true
+    },
+    {
+      "name": "prepared statements and result cache preserve SQL binding/null/BigInt/truncation semantics",
+      "passed": true
+    },
+    {
+      "name": "quality heuristic matches old engine on all NTK pages and damaged/Unicode boundary cases",
+      "passed": true
+    },
+    {
+      "name": "SQL errors do not poison later calls; forbidden access remains denied",
+      "passed": true
+    },
+    {
+      "name": "combined search/read matches the former two-call source and budget exactly",
+      "passed": true
+    },
+    {
+      "name": "concurrent cache hits keep independent response objects and snapshot source",
+      "passed": true
+    },
+    {
+      "name": "forced idle eviction, timeout and recovery preserve search correctness",
+      "passed": true
+    },
+    {
+      "name": "Figure 3 overview/crop/zoom pixels, duplicate reference and resend are unchanged",
+      "passed": false,
+      "error": "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:\n\n  assert.ok(bitmap(y).equals(bitmap(resend)))\n\n    at file:///C:/Users/jsh/Documents/Codex/2026-10-12/https-github-com-tjdgh3946-agentic-pdf/Agentic-PDF-Reader/scripts/ntk-side-effects-check.mjs:113:116\n    at async check (file:///C:/Users/jsh/Documents/Codex/2026-10-12/https-github-com-tjdgh3946-agentic-pdf/Agentic-PDF-Reader/scripts/ntk-side-effects-check.mjs:21:50)\n    at async file:///C:/Users/jsh/Documents/Codex/2026-10-12/https-github-com-tjdgh3946-agentic-pdf/Agentic-PDF-Reader/scripts/ntk-side-effects-check.mjs:105:5"
+    },
+    {
+      "name": "real MCP schema forwards merged reads without duplicating source in text envelopes",
+      "passed": true
+    },
+    {
+      "name": "cached NTK SQL cannot bypass text budgets and reference-only reads remain available",
+      "passed": true
+    },
+    {
+      "name": "restart restores the same NTK share, references and encrypted source/image history",
+      "passed": true
+    },
+    {
+      "name": "revocation blocks even warm cached queries and does not modify the original PDF",
+      "passed": true
+    }
+  ],
+  "counts": {
+    "searches": 270,
+    "paragraphReads": 1716,
+    "expansions": 857,
+    "sqlComparisons": 122,
+    "qualityComparisons": 25,
+    "pixelComparisons": 1
+  },
+  "referenceVersion": "0.14.6",
+  "pdf": {
+    "sha256": "e052eb972f646747ac4554a294eb62874077e59a5f585f459e2dbd5cb2a0975d",
+    "pages": 19,
+    "characters": 64452,
+    "paragraphs": 429
+  },
+  "statementLocations": [
+    {
+      "passageId": "p5.8",
+      "page": 5,
+      "preview": "Proposition 1.   For a network of depth   L   at initialization, with a Lipschitz nonlinearity   σ , and in the\nlimit as   n 1 , ..., n L − 1   → ∞ , the output functions   f θ,k ,"
+    },
+    {
+      "passageId": "p5.11",
+      "page": 5,
+      "preview": "Theorem 1.   For a network of depth   L   at initialization, with a Lipschitz nonlinearity   σ , and in the\nlimit as the layers width   n 1 , ..., n L − 1   → ∞ , the NTK   Θ ( L )"
+    },
+    {
+      "passageId": "p6.5",
+      "page": 6,
+      "preview": "Theorem 2.   Assume that   σ   is a Lipschitz, twice differentiable nonlinearity function, with bounded\nsecond derivative. For any   T   such that the integral   ∫   T \n0   ‖ d t ‖"
+    },
+    {
+      "passageId": "p6.9",
+      "page": 6,
+      "preview": "Proposition 2.   For a non-polynomial Lipschitz nonlinearity   σ , for any input dimension   n 0 , the\nrestriction of the limiting NTK   Θ ( L )"
+    },
+    {
+      "passageId": "p11.16",
+      "page": 11,
+      "preview": "Proposition 1.   For a network of depth   L   at initialization, with a Lipschitz nonlinearity   σ , and in the\nlimit as   n 1 , ..., n L − 1   → ∞   sequentially, the output funct"
+    },
+    {
+      "passageId": "p12.11",
+      "page": 12,
+      "preview": "Theorem 1.   For a network of depth   L   at initialization, with a Lipschitz nonlinearity   σ , and in the\nlimit as the layers width   n 1 , ..., n L − 1   → ∞   sequentially, the"
+    },
+    {
+      "passageId": "p13.20",
+      "page": 13,
+      "preview": "Theorem 2.   Assume that   σ   is a Lipschitz, twice differentiable nonlinearity function, with bounded\nsecond derivative. For any   T   such that the integral   ∫   T \n0   ‖ d t ‖"
+    },
+    {
+      "passageId": "p17.11",
+      "page": 17,
+      "preview": "Proposition 2.   For a non-polynomial Lipschitz nonlinearity   σ , for any input dimension   n 0 , the\nrestriction of the limiting NTK   Θ ( L )"
+    }
+  ],
+  "retrievalCases": [
+    {
+      "query": "kernel",
+      "passageId": "p3.11",
+      "page": 3,
+      "characters": 19,
+      "paragraphComplete": true,
+      "continuesAfter": false,
+      "hasExpansionCursor": true,
+      "sourcePreview": "3   Kernel gradient"
+    },
+    {
+      "query": "\"Theorem 1\"",
+      "passageId": "p18.6",
+      "page": 18,
+      "characters": 128,
+      "paragraphComplete": true,
+      "continuesAfter": false,
+      "hasExpansionCursor": true,
+      "sourcePreview": "1. Observe that for any   L   ≥   1 , using the notation of Theorem 1, we have \nΘ ( L +1)   =  ˙ Σ ( L ) Θ ( L )   + Σ ( L +1) ."
+    },
+    {
+      "query": "\"Theorem 2\"",
+      "passageId": "p15.28",
+      "page": 15,
+      "characters": 122,
+      "paragraphComplete": true,
+      "continuesAfter": false,
+      "hasExpansionCursor": true,
+      "sourcePreview": "The goal of this section is to prove Lemma 1, which is a key ingredient in the proof of Theorem 2.\nLet us first recall it:"
+    },
+    {
+      "query": "\"Proposition 1\"",
+      "passageId": "p18.8",
+      "page": 18,
+      "characters": 166,
+      "paragraphComplete": true,
+      "continuesAfter": false,
+      "hasExpansionCursor": true,
+      "sourcePreview": "2. By definition, with the notation of Proposition 1 we have \nΣ ( L +1)   ( x, x ′ ) =   E f   ∼N   ( 0, Σ ( L ) )  [ σ   ( f   ( x ))   σ   ( f   ( x ′ ))] +   β 2 ."
+    },
+    {
+      "query": "inflation",
+      "passageId": "p9.17",
+      "page": 9,
+      "characters": 512,
+      "paragraphComplete": false,
+      "continuesAfter": true,
+      "hasExpansionCursor": true,
+      "sourcePreview": "A surprising observation is that smaller networks appear to converge faster than wider ones. This may\nbe explained by the inflation of the NTK observed in our first experiment. Ind"
+    }
+  ],
+  "tradeoffs": [
+    "The first uncached search pays index construction after lazy registration.",
+    "SQL worker retention is 5 minutes instead of 30 seconds; memory can stay resident longer. Cache size remains bounded.",
+    "A first search hit is not guaranteed relevant or complete: its exact text and clipping/cursors are preserved.",
+    "Model answer quality/latency and actual ChatGPT compaction are outside these engine checks."
+  ],
+  "passed": false,
+  "semanticReview": {
+    "risksFound": [
+      "Auto-reading a first lexical hit can return a heading or an appendix cross-reference instead of the requested statement."
+    ],
+    "fixedIn": "0.14.9",
+    "note": "Data-integrity comparisons passed; this did not establish semantic sufficiency of a first hit."
+  }
+}

@@ -20,3 +20,21 @@ test('native browser bounds stay inside window content and handle app zoom',()=>
   assert.equal(webPanelBounds({x:Infinity,y:0,width:400,height:600},{width:1400,height:950}),null);
   assert.equal(webPanelBounds({x:1400,y:0,width:400,height:600},{width:1400,height:950}),null);
 });
+
+
+test('left nonmodal note editor preserves ChatGPT while actual overlapping or modal UI remains protected',async()=>{
+  const {webPanelObstructed}=await import('../web-panel-ui.mjs');
+  const host={x:640,y:100,right:1280,bottom:800},bounds={x:8,y:100,right:624,bottom:800},base={host,notesOpen:false,resizing:false,readingFocus:false};
+  assert.equal(webPanelObstructed({...base,overlays:[{readerEditor:true,modal:false,bounds}]}),false);
+  assert.equal(webPanelObstructed({...base,overlays:[{readerEditor:true,modal:false,bounds:{...bounds,right:700}}]}),true);
+  assert.equal(webPanelObstructed({...base,overlays:[{readerEditor:true,modal:true,bounds}]}),true);
+  assert.equal(webPanelObstructed({...base,overlays:[{readerEditor:false,modal:false,bounds}]}),true);
+  for(const key of ['notesOpen','resizing','readingFocus'])assert.equal(webPanelObstructed({...base,[key]:true,overlays:[]}),true);
+});
+
+test('small margin note markers stay separated and inside the page near its edges',async()=>{
+  const {noteMarkerTop}=await import('../annotation-geometry.mjs');const occupied=[];
+  for(let i=0;i<10;i++)noteMarkerTop(799,occupied,800);
+  assert.equal(new Set(occupied).size,10);assert.ok(occupied.every(value=>value>=11&&value<=789));
+  for(let i=0;i<occupied.length;i++)for(let j=i+1;j<occupied.length;j++)assert.ok(Math.abs(occupied[i]-occupied[j])>=22);
+});

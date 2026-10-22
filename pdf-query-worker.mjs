@@ -2,7 +2,7 @@ import {DatabaseSync,constants as C} from 'node:sqlite';
 
 // Separate OS process: a synchronous SQLite query can be terminated at the deadline.
 // No files, identity, settings, or network endpoints are passed to this process.
-let db;
+let db;const statements=new Map();
 const tables=new Set(['pages','page_fts','page_fts_data','page_fts_idx','page_fts_content','page_fts_docsize','page_fts_config','paragraphs','paragraph_fts','paragraph_fts_data','paragraph_fts_idx','paragraph_fts_content','paragraph_fts_docsize','paragraph_fts_config']);
 const functions=new Set(['match','bm25','snippet','highlight','substr','substring','length','lower','upper','trim','ltrim','rtrim','replace','instr','coalesce','ifnull','nullif','abs','round','min','max','count','sum','avg','total','like','glob']);
 function authorize(action,a,b,database){
@@ -38,7 +38,9 @@ process.on('message',({id,sql,params,pages,passages})=>{
       db.setAuthorizer(authorize);
       process.send({ready:true});return;
     }
-    const statement=db.prepare(sql);statement.setReadBigInts(true);
+    let statement=statements.get(sql);
+    if(statement)statements.delete(sql);else{statement=db.prepare(sql);statement.setReadBigInts(true);}
+    statements.set(sql,statement);if(statements.size>32)statements.delete(statements.keys().next().value);
     const bindings=Array.isArray(params)?params:[params||{}];
     const rows=[];let chars=0,truncated=false;
     for(const value of statement.iterate(...bindings)){
@@ -54,6 +56,8 @@ process.on('message',({id,sql,params,pages,passages})=>{
     }
     process.send({id,value:{rows,truncated,maxCharacters:4000,advice:truncated?'Output limited; narrow the query. Use search_pdf/read_pdf/expand_pdf for bounded exact evidence.':undefined}});
   }catch(error){
+    // A failed FTS iterator can retain its error state; never reuse that statement.
+    statements.delete(sql);
     const matchHelp=/\bMATCH\b/i.test(sql||'') && /fts5|no such column/i.test(error.message)
       ? ' MATCH 매개변수는 FTS5 문법입니다. 하이픈·구두점이 있는 검색어는 큰따옴표로 감싸세요(예: "non-polynomial"). SQL 매개변수 바인딩만으로 FTS 문법이 이스케이프되지는 않습니다.' : '';
     process.send({id,error:'SQL 실행 실패: '+error.message+matchHelp});

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp,readFile,readdir,writeFile} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import {createHash} from 'node:crypto';
 import {createShareArchive} from '../share-archive.mjs';
 import {createPaperLink} from '../paper-link.mjs';
 import {createPdfSnapshots} from '../pdf-snapshots.mjs';
@@ -93,6 +94,61 @@ test('text references save context; missing evidence expands; budget extension r
   const extra=await f.first.link.call('search_pdf',{selectionId:f.shared.selectionId,query:'assumptions',reason:'Locate assumptions needed to verify the theorem.'});assert.ok(extra.matches.length);
   assert.equal((await f.first.link.call('read_pdf',args)).characters,0,'References remain accessible after budget exhaustion');
   await assert.rejects(f.first.link.call('read_pdf',{...args,reread:true}),/이유/);
+});
+
+test('single-call search/read preserves exact bounded source, recovery, budgets, evidence and durable history',async t=>{
+  const f=await fixture(t),args={selectionId:f.shared.selectionId,query:'kernel',readTop:true,limit:1,maxCharacters:256};
+  const found=await f.first.link.call('search_pdf',args),source=found.reading;
+  assert.equal(source.characters,256);assert.equal(source.pages[0].paragraphComplete,false);assert.ok(source.pages[0].after);
+  assert.equal(found.contextUsage.textCharacters,source.characters+found.matches[0].excerpt.length);
+  const history=f.first.link.deliveries('abc123',args.selectionId).events.at(-1);
+  assert.deepEqual(history.items.map(item=>item.kind),['search','text']);assert.equal(history.items[1].text,source.pages[0].text);
+  const repeat=await f.first.link.call('search_pdf',args);assert.equal(repeat.reading.characters,0);assert.equal(repeat.reading.pages[0].textRef,source.pages[0].textRef);
+  const retry=repeat.contextRecovery.retry;assert.equal(retry.tool,'read_pdf');assert.equal(retry.arguments.passageId,found.matches[0].passageId);
+  assert.equal((await f.first.link.call(retry.tool,retry.arguments)).pages[0].text,source.pages[0].text);
+  const empty=await f.first.link.call('search_pdf',{...args,query:'notinthepdf'});assert.equal(empty.reading,null);
+  await f.first.link.call('save_annotation',{selectionId:args.selectionId,note:'Answer from the bounded source.'});assert.equal(f.notes[0].evidence.pages[0].text,true);
+  await f.first.link.close();f.first.pdfs.close();const next=await f.boot();
+  const restored=await next.link.call('search_pdf',args);assert.equal(restored.reading.characters,0);assert.equal(restored.contextRecovery.retry.tool,'read_pdf');
+});
+
+test('heading fast reads and recovered headings both require content before a section explanation',async t=>{
+  const f=await fixture(t,{pages:['3   Kernel gradient\n\nA kernel measures similarities between inputs. This paragraph explains the actual section contents.']}),selectionId=f.shared.selectionId;
+  const first=await f.first.link.call('search_pdf',{selectionId,query:'kernel',readTop:true,limit:1});
+  assert.equal(first.readingAssessment.kind,'heading');assert.equal(first.reading.readingAssessment.kind,'heading');
+  const reference=await f.first.link.call('read_pdf',{selectionId,passageId:first.reading.pages[0].passageId});
+  const retry=reference.contextRecovery.retry,recovered=await f.first.link.call(retry.tool,retry.arguments);
+  assert.equal(recovered.readingAssessment.kind,'heading');
+  const next=recovered.readingAssessment.next,expanded=await f.first.link.call(next.tool,next.arguments);
+  assert.match(expanded.pages[0].text,/actual section contents/);assert.equal(expanded.readingAssessment,undefined);
+});
+
+test('search/read cannot bypass exhausted budgets through a warm SQL cache',async t=>{
+  const f=await fixture(t),args={selectionId:f.shared.selectionId,query:'kernel',readTop:true,limit:1};
+  await f.first.link.call('search_pdf',args);
+  for(let i=0;i<8;i++)await f.first.link.call('query_pdf',{selectionId:args.selectionId,sql:'SELECT substr(raw_text,1,2950) AS text FROM pages WHERE page_no=1'});
+  await assert.rejects(f.first.link.call('search_pdf',args),/예산/);
+  const reference=await f.first.link.call('search_pdf',{...args,reason:'Locate the already-read passage; previous exact source is missing.'});
+  assert.equal(reference.reading.characters,0);assert.equal(reference.contextRecovery.retry.arguments.selectionId,args.selectionId);
+  await f.first.link.setEnabled(false);await assert.rejects(f.first.link.call('search_pdf',args),/꺼져/);
+});
+
+test('optimized text coverage preserves Unicode and exact damage thresholds',()=>{
+  assert.equal(textQuality(['𐐀'.repeat(39)]).status,'limited');
+  assert.equal(textQuality(['𐐀'.repeat(40)]).status,'searchable');
+  assert.equal(textQuality(['a'.repeat(196)+'�'.repeat(4)]).damagedTextPageCount,0);
+  assert.equal(textQuality(['a'.repeat(195)+'�'.repeat(4)]).damagedTextPageCount,1);
+});
+
+test('archive cleanup skips stable membership without retaining newly written orphans',async t=>{
+  const f=await fixture(t),archive=f.first.archive,records=[{snapshotId:f.shared.snapshotId,deliveries:[]}];
+  await archive.save(records);await archive.save(records);
+  const orphan=Buffer.from('orphan encrypted content'),id=createHash('sha256').update(orphan).digest('hex');
+  await archive.putPdf(id,orphan);await archive.save(records);
+  assert.ok(!(await readdir(path.join(f.directory,'cache'))).includes(id+'.enc'));
+  await archive.putImage(id,orphan);await archive.save(records);
+  assert.ok(!(await readdir(path.join(f.directory,'cache'))).includes(id+'.image.enc'));
+  assert.deepEqual(await archive.readPdf(f.shared.snapshotId),bytes);
 });
 
 test('image budget keeps references usable and permits a justified new zoom',async t=>{

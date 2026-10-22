@@ -1,0 +1,109 @@
+{
+  "version": "0.14.9",
+  "date": "2026-10-22T04:18:31.984Z",
+  "scope": "Local engine/MCP timings, not ChatGPT generation or public tunnel latency. Real NTK extraction plus a synthetic 950-page workload repeating public NTK text. Temporary AES archive with a test-only key wrapping adapter.",
+  "workloads": {
+    "ntk": {
+      "pages": 19,
+      "characters": 64452,
+      "registerMs": 4.184600000000046,
+      "workerStartedAtRegistration": false,
+      "quality": {
+        "medianMs": 0.050299999999992906,
+        "p95Ms": 0.15250000000003183,
+        "samples": 5
+      },
+      "inspect": {
+        "medianMs": 0.002200000000016189,
+        "p95Ms": 0.07300000000009277,
+        "samples": 20
+      },
+      "firstSearchMs": 80.42759999999998,
+      "repeatSearch": {
+        "medianMs": 0.024200000000064392,
+        "p95Ms": 0.13170000000002346,
+        "samples": 20
+      },
+      "variedSearch": {
+        "medianMs": 0.26130000000000564,
+        "p95Ms": 0.6378999999999451,
+        "samples": 20
+      },
+      "bm25": {
+        "medianMs": 0.2887000000000626,
+        "p95Ms": 1.2922999999999547,
+        "samples": 20
+      },
+      "rank": {
+        "medianMs": 0.2685000000000173,
+        "p95Ms": 0.3991000000000895,
+        "samples": 20
+      },
+      "repeatAfterIdleMs": 0.06999999999993634,
+      "novelAfterIdleMs": 116.85250000000019,
+      "mcpSearchWithDurableArchive": {
+        "medianMs": 3.1048000000000684,
+        "p95Ms": 8.746099999999842,
+        "samples": 10
+      },
+      "singleCallSearchRead": {
+        "toolCalls": 1,
+        "sourceCharacters": 512,
+        "boundedSource": true,
+        "duplicateRecovery": true
+      },
+      "referenceGuardsPreserved": true
+    },
+    "synthetic950": {
+      "pages": 950,
+      "characters": 3222600,
+      "registerMs": 54.77940000000012,
+      "workerStartedAtRegistration": false,
+      "quality": {
+        "medianMs": 1.5289999999999964,
+        "p95Ms": 1.698699999999917,
+        "samples": 5
+      },
+      "inspect": {
+        "medianMs": 0.0006000000000767614,
+        "p95Ms": 0.010599999999840293,
+        "samples": 20
+      },
+      "firstSearchMs": 353.6291000000001,
+      "repeatSearch": {
+        "medianMs": 0.022699999999986176,
+        "p95Ms": 0.10810000000014952,
+        "samples": 20
+      },
+      "variedSearch": {
+        "medianMs": 1.3215999999999894,
+        "p95Ms": 3.495400000000018,
+        "samples": 20
+      },
+      "bm25": {
+        "medianMs": 0.9277000000001863,
+        "p95Ms": 1.4896000000003369,
+        "samples": 20
+      },
+      "rank": {
+        "medianMs": 1.3933000000001812,
+        "p95Ms": 2.260899999999765,
+        "samples": 20
+      },
+      "repeatAfterIdleMs": 0.08820000000014261,
+      "novelAfterIdleMs": 338.93179999999984,
+      "mcpSearchWithDurableArchive": {
+        "medianMs": 7.069500000000062,
+        "p95Ms": 7.798399999999674,
+        "samples": 10
+      },
+      "singleCallSearchRead": {
+        "toolCalls": 1,
+        "sourceCharacters": 512,
+        "boundedSource": true,
+        "duplicateRecovery": true
+      },
+      "referenceGuardsPreserved": true
+    }
+  }
+}

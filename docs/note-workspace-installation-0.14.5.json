@@ -1,0 +1,18 @@
+{
+  "version": "0.14.5",
+  "date": "2026-10-22T03:21:47.564Z",
+  "installedSourceFiles": 60,
+  "mismatch": [],
+  "existingAnnotationFiles": 3,
+  "changedNotes": [],
+  "testsPassed": 162,
+  "checks": {
+    "visibleAt150Percent": true,
+    "svgPencil": true,
+    "leftViewerRail": true,
+    "penClickOpensEditor": true
+  },
+  "scope": "Installed app localhost UI in in-app browser; existing local note was opened without saving; native ChatGPT rendering not captured.",
+  "screenshot": "note-pen-visible-installed-0.14.5.jpg",
+  "installerSha256": "1a854417ba079dc9fa5d87be1512b1b3cd1c1ea01ed22a574772b4f2831df11d"
+}

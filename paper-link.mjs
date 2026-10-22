@@ -6,6 +6,7 @@ import {validAnchor} from './annotation-geometry.mjs';
 import {recordEvidence} from './pdf-evidence.mjs';
 import {renderRegion} from './pdf-snapshots.mjs';
 import {sourceRecoveryGuide} from './link-question.mjs';
+import {isParagraphHeading} from './pdf-passages.mjs';
 import {deliveryEvent,validDelivery,appendDelivery,DELIVERY_LIMIT,TOTAL_DELIVERY_LIMIT,IMAGE_CACHE_LIMIT} from './delivery-history.mjs';
 
 function contextRecovery(method,args,sourceIncluded,missingReferences){
@@ -17,6 +18,7 @@ function contextRecovery(method,args,sourceIncluded,missingReferences){
 }
 
 const DAY=24*60*60*1000;
+const contextBudgetError=()=>new UserError('이 질문의 기본 자료 예산(본문·검색 24,000자 / 이미지 8개)을 사용했습니다. 이미 읽은 자료로 답하거나, 부족한 근거를 reason에 구체적으로 적어 추가 요청하세요.',409);
 const notePages=item=>[...new Set(item.anchors.map(anchor=>anchor.page))].sort((a,b)=>a-b);
 const preview=(text,length)=>Array.from(text).slice(0,length).join('');
 const searchText=text=>text.normalize('NFKC').replace(/\s+/gu,' ').trim().toLowerCase();
@@ -180,6 +182,23 @@ export function createPaperLink({annotations,discoveryPath,getOrigin,pdfs,onSave
       return {...value,metadata,imageRef,delivery:args.resend?'resend':'image',imageReturned:true};
     }catch(error){if(record.images.get(key)===entry){if(previous)record.images.set(key,previous);else record.images.delete(key);}fail(error);throw error;}
   }
+  function deliverText(record,method,args,value,used){
+    const additions=[];
+    value={...value,pages:value.pages.map(page=>{
+      const key=JSON.stringify([page.passageId,page.start,page.end]),prior=record.textReads.get(key);
+      if(prior&&!args.reread){const {text,...reference}=page;return {...reference,textRef:prior,delivery:'reference'};}
+      const textRef=prior||'text-'+randomUUID();additions.push([key,textRef]);return {...page,textRef,delivery:args.reread?'reread':'text'};
+    })};value.characters=value.pages.reduce((total,page)=>total+(page.text?.length||0),0);
+    if(value.characters&&used>=24000&&!args.reason)throw contextBudgetError();
+    if(new Set([...record.textReads.keys(),...additions.map(([key])=>key)]).size>256)throw new UserError('읽기 이력 한도에 도달했습니다. 질문을 새로 공유하세요.',409);
+    for(const [key,textRef] of additions)record.textReads.set(key,textRef);
+    const missing=value.pages.filter(page=>page.delivery==='reference').map(page=>page.textRef);
+    if(missing.length)value.contextRecovery=contextRecovery(method,args,value.characters>0,missing);
+    value.advice=missing.length?'REFERENCE RANGES CONTAIN NO SOURCE TEXT. If exact earlier source is missing or uncertain, execute contextRecovery.retry before answering.':'Read the exact source; expand only missing evidence using before/after cursors and reason.';
+    const source=value.pages[0];
+    if(source?.text&&source.paragraphComplete&&isParagraphHeading(source.text))value.readingAssessment={kind:'heading',warning:'Heading only. It is not evidence for the section contents. To explain those contents read the following paragraph; a literal title translation can use the title itself.',...(source.after?{next:{tool:'expand_pdf',arguments:{selectionId:record.selectionId,cursor:source.after,maxCharacters:args.maxCharacters??1600,reason:'Only a heading was returned; read the following paragraph for its content.'}}}:{})};
+    return value;
+  }
   async function readTool(method,args){
     const record=await serial(()=>{if(!enabled)throw new UserError('Paper Reader Link 연결이 꺼져 있습니다.',409);const item=getRecord(args.selectionId);if(!item.snapshotId)throw new UserError('이 질문에는 PDF 전체가 공유되지 않았습니다. AI가 문맥 찾기를 선택해 다시 공유하세요.',409);if(activeReads>=3)throw new UserError('PDF 작업이 진행 중입니다. 잠시 후 다시 시도하세요.',429);activeReads++;lastContactAt=new Date(now()).toISOString();return item;});
     const event={tool:method,state:'running',pages:[],at:new Date(now()).toISOString()};
@@ -189,8 +208,9 @@ export function createPaperLink({annotations,discoveryPath,getOrigin,pdfs,onSave
       if(args.reason!==undefined&&(typeof args.reason!=='string'||!args.reason.trim()||args.reason.length>180))throw new UserError('추가 자료가 필요한 이유를 180자 이내로 적으세요.');
       if(args.reread!==undefined&&typeof args.reread!=='boolean')throw new UserError('원문 재읽기 옵션을 확인하세요.');
       if(args.reread&&!args.reason)throw new UserError('원문을 다시 읽어야 하는 이유를 reason에 적으세요.');
+      if(method==='search_pdf'&&args.readTop!==undefined&&typeof args.readTop!=='boolean')throw new UserError('검색 문단 읽기 옵션을 확인하세요.');
       const usage=record.usage??={textCharacters:0,imageCount:0};
-      const budgetError=()=>new UserError('이 질문의 기본 자료 예산(본문·검색 24,000자 / 이미지 8개)을 사용했습니다. 이미 읽은 자료로 답하거나, 부족한 근거를 reason에 구체적으로 적어 추가 요청하세요.',409);
+      const budgetError=contextBudgetError;
       const imageReference=method==='render_pdf_page'&&!args.resend&&record.images.has(JSON.stringify([args.page,renderRegion(args.region)]));
       if(method==='render_pdf_page'&&usage.imageCount>=8&&!imageReference&&!args.reason)throw budgetError();
       if(['search_pdf','query_pdf'].includes(method)&&usage.textCharacters>=24000&&!args.reason)throw budgetError();
@@ -202,29 +222,28 @@ export function createPaperLink({annotations,discoveryPath,getOrigin,pdfs,onSave
       if(method==='expand_pdf')value=pdfs.expand(record.snapshotId,args);
       if(method==='render_pdf_page')value=await imageResult(record,args);
       if(!enabled || getRecord(record.selectionId)!==record)throw new UserError('PDF 공유가 종료되었습니다.',410);
-      if(['read_pdf','expand_pdf'].includes(method)){
-        const additions=[];
-        value={...value,pages:value.pages.map(page=>{
-          const key=JSON.stringify([page.passageId,page.start,page.end]),prior=record.textReads.get(key);
-          if(prior&&!args.reread){const {text,...reference}=page;return {...reference,textRef:prior,delivery:'reference'};}
-          const textRef=prior||'text-'+randomUUID();additions.push([key,textRef]);return {...page,textRef,delivery:args.reread?'reread':'text'};
-        })};value.characters=value.pages.reduce((total,page)=>total+(page.text?.length||0),0);
-        if(value.characters&&usage.textCharacters>=24000&&!args.reason)throw budgetError();
-        if(new Set([...record.textReads.keys(),...additions.map(([key])=>key)]).size>256)throw new UserError('읽기 이력 한도에 도달했습니다. 질문을 새로 공유하세요.',409);
-        for(const [key,textRef] of additions)record.textReads.set(key,textRef);
-        const missing=value.pages.filter(page=>page.delivery==='reference').map(page=>page.textRef);
-        if(missing.length)value.contextRecovery=contextRecovery(method,args,value.characters>0,missing);
-        value.advice=missing.length?'REFERENCE RANGES CONTAIN NO SOURCE TEXT. A textRef is not evidence. If the exact earlier text is missing or uncertain, execute contextRecovery.retry before answering. Mixed responses still omit the referenced ranges.':'Read the returned exact source before answering. To obtain missing adjacent evidence use before/after cursors with expand_pdf and a reason.';
+      if(['read_pdf','expand_pdf'].includes(method))value=deliverText(record,method,args,value,usage.textCharacters);
+      if(method==='search_pdf'&&args.readTop){
+        const hit=value.matches[0];value={...value,reading:null};
+        if(hit){
+          const readArgs={selectionId:record.selectionId,passageId:hit.passageId,maxCharacters:args.maxCharacters,reason:args.reason};
+          const used=usage.textCharacters+value.matches.reduce((n,item)=>n+item.excerpt.length,0);
+          value.reading=deliverText(record,'read_pdf',readArgs,pdfs.read(record.snapshotId,readArgs),used);
+          if(value.reading.contextRecovery)value.contextRecovery=value.reading.contextRecovery;
+          if(value.reading.readingAssessment)value.readingAssessment=value.reading.readingAssessment;
+        }
       }
       if(['read_pdf','expand_pdf'].includes(method))usage.textCharacters+=value.characters;
-      if(method==='search_pdf')usage.textCharacters+=value.matches.reduce((n,item)=>n+item.excerpt.length,0);
+      if(method==='search_pdf')usage.textCharacters+=value.matches.reduce((n,item)=>n+item.excerpt.length,0)+(value.reading?.characters||0);
       if(method==='query_pdf')usage.textCharacters+=JSON.stringify(value.rows).length;
       if(method==='render_pdf_page'&&value.imageReturned)usage.imageCount++;
       value={...value,contextUsage:{...usage,textBudget:24000,imageBudget:8,requiresReason:usage.textCharacters>=24000||usage.imageCount>=8,scope:'this selectionId only; previous ChatGPT messages are not deleted'}};
       event.state='complete';
-      event.pages=method==='query_pdf'?[...new Set(value.rows.map(row=>Number(row.page_no)).filter(n=>Number.isInteger(n)&&n>=1&&n<=pdfs.inspect(record.snapshotId).pageCount))]:method==='search_pdf'?[...new Set(value.matches.map(p=>p.page))]:['read_pdf','expand_pdf'].includes(method)?[...new Set(value.pages.map(p=>p.page))]:method==='render_pdf_page'?[args.page]:[];
+      const pageCount=method==='query_pdf'?pdfs.inspect(record.snapshotId).pageCount:0;
+      event.pages=method==='query_pdf'?[...new Set(value.rows.map(row=>Number(row.page_no)).filter(n=>Number.isInteger(n)&&n>=1&&n<=pageCount))]:method==='search_pdf'?[...new Set(value.matches.map(p=>p.page))]:['read_pdf','expand_pdf'].includes(method)?[...new Set(value.pages.map(p=>p.page))]:method==='render_pdf_page'?[args.page]:[];
       if(['read_pdf','expand_pdf'].includes(method)||method==='render_pdf_page'&&value.imageReturned)recordEvidence(record.evidence,method,value,args);
       if(['read_pdf','expand_pdf'].includes(method)){event.characters=value.characters;event.passages=value.pages.map(p=>({passageId:p.passageId,start:p.start,end:p.end}));if(args.reason)event.reason=args.reason;}
+      if(value.reading){recordEvidence(record.evidence,'read_pdf',value.reading,args);event.characters=value.reading.characters;event.passages=value.reading.pages.map(p=>({passageId:p.passageId,start:p.start,end:p.end}));}
       if(method==='render_pdf_page'){event.image={...value.metadata,imageRef:value.imageRef,delivery:value.delivery};if(args.resend)event.reason=args.reason;}
       await recordDelivery(record,method,args,value);
       if(!enabled||records.get(record.selectionId)!==record)throw new UserError('PDF 공유가 종료되었습니다.',410);

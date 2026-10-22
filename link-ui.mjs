@@ -34,7 +34,7 @@ export function createLinkUI({api,prepare,onAnnotations,status,updateSend,getDoc
     updateRecovery();
     $('link-evidence').hidden=!trace.length&&!pending.length;
     const labels={inspect_pdf:'문서 확인',query_pdf:'SQL 검색',search_pdf:'문단 검색',read_pdf:'문단 읽기',expand_pdf:'앞뒤 문맥 확장',render_pdf_page:'이미지 확인',list_annotations:'논문 노트 검색',read_annotation:'논문 노트 읽기'};
-    $('link-trace').textContent=trace.slice(-4).map(event=>`${event.tool==='render_pdf_page'&&event.image?.delivery==='reference'?'이미지 참조만':event.tool==='render_pdf_page'&&event.image?.delivery==='resend'?'이미지 재전송':['read_pdf','expand_pdf'].includes(event.tool)&&event.characters===0?'본문 참조만':event.tool==='render_pdf_page'&&event.image?.zoom>1?'영역 확대':labels[event.tool]} ${event.state==='running'?'중…':event.state==='error'?'실패':'완료'}`).join(' → ');
+    $('link-trace').textContent=trace.slice(-4).map(event=>`${event.tool==='render_pdf_page'&&event.image?.delivery==='reference'?'이미지 참조만':event.tool==='render_pdf_page'&&event.image?.delivery==='resend'?'이미지 재전송':['read_pdf','expand_pdf'].includes(event.tool)&&event.characters===0?'본문 참조만':event.tool==='render_pdf_page'&&event.image?.zoom>1?'영역 확대':event.tool==='search_pdf'&&event.characters!==undefined?(event.characters===0?'문단 검색·본문 참조만':'문단 검색·읽기'):labels[event.tool]} ${event.state==='running'?'중…':event.state==='error'?'실패':'완료'}`).join(' → ');
     const pages=[...new Set(trace.flatMap(event=>event.pages))].sort((a,b)=>a-b);
     $('link-evidence-pages').replaceChildren(...pages.map(page=>{const button=document.createElement('button');button.type='button';button.textContent='p. '+page;button.title='근거 페이지로 이동';button.onclick=()=>onPage?.(page);return button;}));
   }

@@ -1,3 +1,10 @@
+export function webPanelObstructed({overlays,notesOpen,resizing,readingFocus,host}){
+  return notesOpen||resizing||readingFocus||overlays.some(overlay=>{
+    if(!overlay.readerEditor||overlay.modal)return true;
+    const box=overlay.bounds;
+    return box.right>host.x&&box.x<host.right&&box.bottom>host.y&&box.y<host.bottom;
+  });
+}
 export function createWebPanelUI({status}) {
   const $=id=>document.getElementById(id),bridge=window.paperDesktop;
   let mode=null,showWeb=true,scheduled=false,lastLayout='';
@@ -5,7 +12,8 @@ export function createWebPanelUI({status}) {
   async function sync(){
     if(!bridge)return;
     const rect=$('chatgpt-host').getBoundingClientRect();
-    const blocked=!!document.querySelector('dialog[open],:popover-open') || !$('annotation-panel').hidden || document.body.classList.contains('resizing-panels') || document.body.classList.contains('reading-focus');
+    const overlays=[...document.querySelectorAll('dialog[open],:popover-open')].map(node=>({readerEditor:node.id==='annotation-dialog'&&node.dataset.readerEditor==='true',modal:node.matches(':modal'),bounds:node.getBoundingClientRect()}));
+    const blocked=webPanelObstructed({overlays,notesOpen:!$('annotation-panel').hidden,resizing:document.body.classList.contains('resizing-panels'),readingFocus:document.body.classList.contains('reading-focus'),host:rect});
     const input={visible:mode==='manual' && showWeb && !blocked,x:rect.x,y:rect.y,width:rect.width,height:rect.height};
     const key=JSON.stringify(input);if(key===lastLayout)return;lastLayout=key;
     try{await bridge.setWebPanel(input);}catch{lastLayout='';$('web-state').textContent='웹 연결 실패 · 브라우저로 열 수 있습니다.';}

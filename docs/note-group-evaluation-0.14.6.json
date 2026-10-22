@@ -1,0 +1,27 @@
+{
+  "version": "0.14.6",
+  "date": "2026-10-22T03:31:59.756Z",
+  "scope": "In-app browser, real Reader/PDF.js with isolated synthetic notes on public NTK PDF; right pane is an explicitly labelled bridge/layout fixture, not a captured native ChatGPT session.",
+  "fixture": {
+    "sameLineNotes": 3,
+    "nextLineNotes": 1,
+    "highlightOnly": 1
+  },
+  "checks": {
+    "sameLineGrouped": true,
+    "nextLineSeparate": true,
+    "highlightOnlyExcluded": true,
+    "keyboardSelectsSecondNote": true,
+    "onlySecondNoteTemporarilyEmphasized": true,
+    "escapeClosesAndRestoresMarkerFocus": true,
+    "selectionOpensCorrectEditor": true,
+    "chatLayoutVisibleDuringEditing": true,
+    "chatDraftPreserved": true,
+    "zoom150GroupStable": true,
+    "pageChangeClosesListAndHidesOffscreenMarkers": true,
+    "popupStaysInsideViewer": true,
+    "popupAvoidsSourceLine": true
+  },
+  "testsPassed": 164,
+  "screenshot": "note-group-preview-0.14.6.jpg"
+}

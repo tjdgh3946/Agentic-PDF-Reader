@@ -1,0 +1,29 @@
+{
+  "version": "0.14.3",
+  "date": "2026-10-22T03:10:03.281Z",
+  "scope": "In-app browser with isolated real Reader/PDF.js and synthetic notes. The right pane is an explicitly labelled layout fixture implementing the real desktop bridge contract; this is not a captured native ChatGPT session.",
+  "checks": {
+    "editorIsNonmodal": true,
+    "editorWithinPdfPane": true,
+    "noteListClosesOnEdit": true,
+    "chatPanelVisibleDuringEdit": true,
+    "chatPanelVisibleAfterSave": true,
+    "chatTabSelectionPreserved": true,
+    "chatDraftPreserved": true,
+    "chatRemainsInteractiveWhileEditing": true,
+    "escapeClosesOnlyEditor": true,
+    "noteDraftRestored": true,
+    "penClickOpensLeftEditor": true,
+    "smallIconsInPageMargin": true,
+    "nearbyMarkersSeparated": true
+  },
+  "editorBounds": {
+    "left": 8,
+    "right": 701,
+    "chatLeft": 717
+  },
+  "markerCssPixels": 12,
+  "previousMarkerCssPixels": 22,
+  "testsPassed": 162,
+  "screenshot": "note-editor-chat-preserved-0.14.3.jpg"
+}

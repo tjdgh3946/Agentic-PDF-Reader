@@ -1,6 +1,18 @@
 import {UserError} from './auth.mjs';
 
 export const CONTEXT_LIMITS={readCharacters:1600,maxReadCharacters:4000,searchHits:3,maxSearchHits:5,searchExcerptCharacters:220,queryCharacters:4000};
+const statementPattern='(Theorem|Proposition|Lemma|Corollary|Definition)\\s+(\\d+(?:\\.\\d+)*)';
+export function statementLabel(text,{query=false}={}){
+  const normalized=(query?text:text.slice(0,180)).replace(/\s+/g,' ').trim();
+  const match=new RegExp(query?'^"?'+statementPattern+'"?$':'^'+statementPattern+'(?=[.\\s(:]|$)','i').exec(normalized);
+  return match?match[1].toLowerCase()+' '+match[2]:null;
+}
+export function isParagraphHeading(text){
+  const value=text.replace(/\s+/g,' ').trim();if(value.length>120)return false;
+  if(/^(?:Abstract|Introduction|Conclusion(?:s)?|References|Acknowledgements?)$/i.test(value))return true;
+  if(new RegExp('^'+statementPattern+'\\.?$','i').test(value))return true;
+  return !/[.!?。！？]$/.test(value)&&/^\d+(?:\.\d+)*\s+\p{L}{3}/u.test(value)&&!/[=<>∫∑]/.test(value);
+}
 export function buildPassages(pages,breaks=[]){
   const passages=[];
   pages.forEach((text,index)=>{

@@ -19,9 +19,16 @@ export function validateQuery(sql,params=[]){
   return {sql,params};
 }
 
-export function createQueryIndex(pages,{timeout=1500,idleTimeout=30000,passages=[]}={}){
+export function createQueryIndex(pages,{timeout=1500,idleTimeout=300000,passages=[]}={}){
   let worker=null,ready=null,closed=false,serial=Promise.resolve(),id=0,idleTimer,queued=0;
   const pending=new Map();
+  // Results belong to one immutable snapshot. Cache data, never authorization,
+  // evidence delivery state or failed queries. Retain it through idle eviction.
+  const results=new Map();let cachedCharacters=0;
+  const remember=(key,value)=>{const data=JSON.stringify(value);if(data.length>5000)return;
+    results.set(key,data);cachedCharacters+=key.length+data.length;
+    while(results.size>64||cachedCharacters>192000){const oldest=results.keys().next().value;cachedCharacters-=oldest.length+results.get(oldest).length;results.delete(oldest);}
+  };
   function idle(){clearTimeout(idleTimer);if(closed||queued||pending.size||!worker)return;idleTimer=setTimeout(()=>{if(!queued&&!pending.size)stop();},idleTimeout);idleTimer.unref?.();}
   function start(){
     if(closed)throw new UserError('PDF 공유가 종료되었습니다.',410);
@@ -46,11 +53,14 @@ export function createQueryIndex(pages,{timeout=1500,idleTimeout=30000,passages=
   function stop(){clearTimeout(idleTimer);const old=worker;worker=null;ready=null;old?.kill();for(const item of pending.values()){clearTimeout(item.timer);item.reject(new UserError('SQL 작업이 중단되었습니다. 다시 검색하세요.',408));}pending.clear();}
   return {
     ready:start,
-    query(sql,params){const input=validateQuery(sql,params);queued++;clearTimeout(idleTimer);const job=serial.then(async()=>{
+    query(sql,params){const checked=validateQuery(sql,params),input={sql:checked.sql,params:Array.isArray(checked.params)?[...checked.params]:{...checked.params}},key=JSON.stringify([input.sql,input.params]);queued++;clearTimeout(idleTimer);const job=serial.then(async()=>{
+      if(closed)throw new UserError('PDF 공유가 종료되었습니다.',410);
+      if(results.has(key)){const data=results.get(key);results.delete(key);results.set(key,data);return JSON.parse(data);}
       await start();if(closed)throw new UserError('PDF 공유가 종료되었습니다.',410);
-      return new Promise((resolve,reject)=>{const request=++id;const timer=setTimeout(()=>{pending.delete(request);reject(new UserError('SQL 검색 제한 시간 1.5초를 넘었습니다. 검색 범위를 줄이세요.',408));stop();},timeout);pending.set(request,{resolve,reject,timer});worker.send({id:request,...input});});
+      const value=await new Promise((resolve,reject)=>{const request=++id;const timer=setTimeout(()=>{pending.delete(request);reject(new UserError('SQL 검색 제한 시간 1.5초를 넘었습니다. 검색 범위를 줄이세요.',408));stop();},timeout);pending.set(request,{resolve,reject,timer});worker.send({id:request,...input});});
+      remember(key,value);return value;
     }).finally(()=>{queued--;idle();});serial=job.catch(()=>{});return job;},
     get resident(){return !!worker;},
-    close(){closed=true;stop();}
+    close(){closed=true;stop();results.clear();cachedCharacters=0;}
   };
 }

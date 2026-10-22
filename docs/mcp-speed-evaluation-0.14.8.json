@@ -1,0 +1,93 @@
+{
+  "version": "0.14.8",
+  "mcpVersion": "0.4.3",
+  "scope": "Local engine/MCP timings, not ChatGPT generation or public tunnel latency. Real NTK extraction plus a synthetic 950-page workload repeating public NTK text. Temporary AES archive with a test-only key wrapping adapter.",
+  "method": "One before/after run on the same PC/runtime/input. Per-workload median/p95 for repeated local calls; optimized benchmark rerun after tests completed to avoid concurrent test load. No model generation or external tunnel timing.",
+  "workloads": {
+    "ntk": {
+      "pages": 19,
+      "characters": 64452,
+      "registerMs": {
+        "before": 69.654,
+        "after": 2.688
+      },
+      "registerPlusFirstSearchMs": {
+        "before": 72.251,
+        "after": 65.606
+      },
+      "repeatedSearchMedianMs": {
+        "before": 0.428,
+        "after": 0.027
+      },
+      "repeatedAfterForcedIdleMs": {
+        "before": 76.705,
+        "after": 0.123
+      },
+      "novelAfterForcedIdleMs": {
+        "before": 67.304,
+        "after": 82.192
+      },
+      "mcpSearchDurableMedianMs": {
+        "before": 4.315,
+        "after": 2.109
+      },
+      "singleCallSearchRead": {
+        "sourceCharacters": 512,
+        "boundedSource": true,
+        "duplicateRecovery": true,
+        "toolCalls": 1
+      }
+    },
+    "synthetic950": {
+      "pages": 950,
+      "characters": 3222600,
+      "registerMs": {
+        "before": 433.936,
+        "after": 26.75
+      },
+      "registerPlusFirstSearchMs": {
+        "before": 437.702,
+        "after": 353.464
+      },
+      "repeatedSearchMedianMs": {
+        "before": 2.567,
+        "after": 0.012
+      },
+      "repeatedAfterForcedIdleMs": {
+        "before": 421.734,
+        "after": 0.096
+      },
+      "novelAfterForcedIdleMs": {
+        "before": 443.257,
+        "after": 330.737
+      },
+      "mcpSearchDurableMedianMs": {
+        "before": 13.945,
+        "after": 1.949
+      },
+      "singleCallSearchRead": {
+        "sourceCharacters": 512,
+        "boundedSource": true,
+        "duplicateRecovery": true,
+        "toolCalls": 1
+      }
+    }
+  },
+  "caveats": [
+    "Index construction moves to the first SQL/search request; registration alone is not the full first-search cost.",
+    "The 950-page workload repeats extracted NTK text; it is not an independently rendered 950-page PDF.",
+    "Idle rebuild was forced with a 25ms test timeout; production SQL idle retention is now 5 minutes, renderer retention unchanged.",
+    "Rank sorting was evaluated; existing BM25 ordering was retained because this workload did not show a reliable gain."
+  ],
+  "testsPassed": 174,
+  "packageValidation": {
+    "files": 60,
+    "mismatches": []
+  },
+  "installer": {
+    "file": "Agentic-PDF-Reader-0.14.8-install.exe",
+    "sha256": "8708a671cf561366f8b6d12928724ffebf7ce1be0c67ad4611ceb24c9571f68d",
+    "installed": false
+  },
+  "existingInstalledVersion": "0.14.6"
+}

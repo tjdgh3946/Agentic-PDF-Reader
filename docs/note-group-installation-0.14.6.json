@@ -1,0 +1,11 @@
+{
+  "version": "0.14.6",
+  "date": "2026-10-22T03:33:16.005Z",
+  "installedSourceFiles": 60,
+  "mismatch": [],
+  "existingAnnotationFiles": 3,
+  "changedNotes": [],
+  "localhostReady": true,
+  "testsPassed": 164,
+  "installerSha256": "2a42921757aa9bfeaed5ecb97b4a079bdb69ecf329570ead21bdbc6b29ef232f"
+}
