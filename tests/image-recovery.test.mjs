@@ -31,3 +31,16 @@ test('MCP image response guides wrappers that expose content as text and blocks 
   }
   assert.deepEqual(selectBlocks({content:'metadata only'}),[]);
 });
+
+
+test('MCP reference envelopes refuse summary-based inference and expose the recovery call for both source types',async t=>{
+  const {sourceRecoveryGuide}=await import('../link-question.mjs');
+  const retry={tool:'read_pdf',arguments:{selectionId:selection.selectionId,passageId:'p9.17',maxCharacters:256,reread:true,reason:'Earlier exact source is unavailable.'}};
+  const server=createLinkMcpServer({htmlPath:'',call:async()=>({pages:[{page:9,textRef:'text-fixture',delivery:'reference'}],characters:0,contextRecovery:{sourceIncluded:false,missingReferences:['text-fixture'],instruction:sourceRecoveryGuide,retry}})});
+  const client=new Client({name:'context-loss-regression',version:'1'}),[a,b]=InMemoryTransport.createLinkedPair();await server.connect(a);await client.connect(b);t.after(()=>client.close());
+  const result=await client.callTool({name:'read_pdf',arguments:{selectionId:selection.selectionId,passageId:'p9.17'}});
+  assert.match(result.content[0].text,/REFERENCE ONLY/);assert.match(result.content[0].text,/before answering/);assert.match(result.content[0].text,/without guessing/);
+  assert.deepEqual(result.structuredContent.contextRecovery.retry,retry);
+  assert.ok(linkQuestion(selection).includes(sourceRecoveryGuide));
+  const tools=(await client.listTools()).tools;for(const name of ['read_pdf','expand_pdf','render_pdf_page'])assert.match(tools.find(x=>x.name===name).description,/contextRecovery.retry/);
+});

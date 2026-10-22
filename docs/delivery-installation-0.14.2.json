@@ -1,0 +1,157 @@
+{
+  "version": "0.14.2",
+  "date": "2026-10-22T02:40:44.953Z",
+  "scope": "Final installed EXE via local MCP client. Actual ChatGPT model receipt/memory is not asserted.",
+  "origin": "http://127.0.0.1:52259",
+  "selectionId": "ee9dce4d-2340-425d-8ce4-c57811434019",
+  "documentId": "c32bc6a38538db58933d1fad27303652",
+  "checks": {
+    "deliveries": true,
+    "exactText": true,
+    "unchangedNotes": true,
+    "historyRestoredAfterRealRestart": true,
+    "originalPngRestoredFromDpapiCache": true,
+    "installedSourcesMatch": true
+  },
+  "noteCount": 8,
+  "events": [
+    {
+      "id": "483a4b14-4334-42cf-84eb-35ce945064b7",
+      "at": "2026-10-22T02:40:44.268Z",
+      "method": "read_pdf",
+      "state": "complete",
+      "items": [
+        {
+          "kind": "text",
+          "delivery": "text",
+          "page": 9,
+          "passageId": "p9.17",
+          "start": 2090,
+          "end": 2346,
+          "ref": "text-82fdf30a-395f-400e-992c-464f60c1d46f",
+          "characters": 256
+        }
+      ]
+    },
+    {
+      "id": "34b7c918-2e59-4c27-a4b0-c80f652404f6",
+      "at": "2026-10-22T02:40:44.287Z",
+      "method": "read_pdf",
+      "state": "complete",
+      "items": [
+        {
+          "kind": "text",
+          "delivery": "reference",
+          "page": 9,
+          "passageId": "p9.17",
+          "start": 2090,
+          "end": 2346,
+          "ref": "text-82fdf30a-395f-400e-992c-464f60c1d46f",
+          "characters": 0
+        }
+      ]
+    },
+    {
+      "id": "f3e73c66-4ef5-4fae-a834-8a8c6fb11923",
+      "at": "2026-10-22T02:40:44.307Z",
+      "method": "read_pdf",
+      "state": "complete",
+      "reason": "Local delivery-history verification: restore the intentionally discarded source.",
+      "items": [
+        {
+          "kind": "text",
+          "delivery": "reread",
+          "page": 9,
+          "passageId": "p9.17",
+          "start": 2090,
+          "end": 2346,
+          "ref": "text-82fdf30a-395f-400e-992c-464f60c1d46f",
+          "characters": 256
+        }
+      ]
+    },
+    {
+      "id": "8503285d-4828-41f3-a18e-1e242ea40af6",
+      "at": "2026-10-22T02:40:44.711Z",
+      "method": "render_pdf_page",
+      "state": "complete",
+      "items": [
+        {
+          "kind": "image",
+          "delivery": "image",
+          "ref": "image-42bf0f06-b7eb-401a-ae5e-14065bba915d",
+          "page": 9,
+          "region": [
+            0.575,
+            0.075,
+            0.28,
+            0.23
+          ],
+          "width": 1881,
+          "height": 2000,
+          "zoom": 4.347826086956522,
+          "rotation": 0,
+          "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+          "sha256": "fc85fbdb0fa426d1885ea652090c9c510c2db9005f00f9fb486907a54668d18b",
+          "bytes": 286248
+        }
+      ]
+    },
+    {
+      "id": "c9487afe-dec8-40ba-8950-16fcb6cc5ee2",
+      "at": "2026-10-22T02:40:44.756Z",
+      "method": "render_pdf_page",
+      "state": "complete",
+      "items": [
+        {
+          "kind": "image",
+          "delivery": "reference",
+          "ref": "image-42bf0f06-b7eb-401a-ae5e-14065bba915d",
+          "page": 9,
+          "region": [
+            0.575,
+            0.075,
+            0.28,
+            0.23
+          ],
+          "width": 1881,
+          "height": 2000,
+          "zoom": 4.347826086956522,
+          "rotation": 0,
+          "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation"
+        }
+      ]
+    },
+    {
+      "id": "eef59c23-bbc8-40da-8f01-ed2ac2c227ac",
+      "at": "2026-10-22T02:40:44.890Z",
+      "method": "render_pdf_page",
+      "state": "complete",
+      "reason": "Local delivery-history verification: restore the intentionally discarded PNG.",
+      "items": [
+        {
+          "kind": "image",
+          "delivery": "resend",
+          "ref": "image-42bf0f06-b7eb-401a-ae5e-14065bba915d",
+          "page": 9,
+          "region": [
+            0.575,
+            0.075,
+            0.28,
+            0.23
+          ],
+          "width": 1881,
+          "height": 2000,
+          "zoom": 4.347826086956522,
+          "rotation": 0,
+          "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+          "sha256": "fc85fbdb0fa426d1885ea652090c9c510c2db9005f00f9fb486907a54668d18b",
+          "bytes": 286248
+        }
+      ]
+    }
+  ],
+  "installerSha256": "2874e14546b11a6d66131acf95e736f897858c7f53df9f10b6a9b32b23b5c888",
+  "sourceFiles": 60,
+  "restartedOrigin": "http://127.0.0.1:58415"
+}

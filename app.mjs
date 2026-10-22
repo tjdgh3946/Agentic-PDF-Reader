@@ -5,6 +5,7 @@ import {pageWindow,historyFor,buildPrompt} from './context.mjs';
 import {createAnnotationUI} from './annotation-ui.mjs';
 import {createWebPanelUI} from './web-panel-ui.mjs';
 import {createLinkUI} from './link-ui.mjs';
+import {createDeliveryUI} from './delivery-ui.mjs';
 import {questionContext,readingQuestion,pageNote} from './reading-tools.mjs';
 import {waitForPdfLayout} from './reading-restore.mjs';
 const $ = id => document.getElementById(id);
@@ -25,6 +26,7 @@ let pdfSearchAvailable=false;
 const searchingPDF=()=>pdfSearch && pdfSearchAvailable && requestMode==='manual' && manualDelivery==='link';
 const status = message => { $('status').textContent = message; };
 const webPanelUI=createWebPanelUI({status});
+const deliveryUI=createDeliveryUI({api,getDocumentId:()=>documentId,onPage:page=>{if(viewer){viewer.page=page;frame.focus();}}});
 $('desktop-setup-settings').hidden=!window.paperDesktop?.openSetup;
 $('desktop-setup-open').onclick=()=>window.paperDesktop?.openSetup().catch(error=>status('인증 설정을 열지 못했습니다. '+error.message));
 function currentContext(){return questionContext({selection:selected,startPage:selectedPage,endPage:selectedEndPage,currentPage:viewer?.page,total:viewer?.pdfDocument?.numPages,window:pdfWindow});}
@@ -107,7 +109,7 @@ function resetDocument() {
   clearTimeout(readingTimer);
   pageImageTask?.cancel();
   annotationUI.reset();
-  detachChat();documentId='';
+  detachChat();documentId='';deliveryUI.documentChanged();
   docGeneration++; textCache = new Map(); selected = ''; selectedPage = ''; selectedEndPage=''; busy = false;
   $('question').value='';updateQuestionPreview();
   $('selection').textContent = 'PDF에서 문장을 선택하고 우클릭하세요.';
@@ -118,7 +120,7 @@ async function documentReady() {
   resetDocument();
   fileName = fileName || viewer._docFilename || 'PDF 문서';
   $('document').textContent = `${fileName} · ${viewer.pdfDocument.numPages}페이지`;
-  documentId=viewer.pdfDocument.fingerprints[0];
+  documentId=viewer.pdfDocument.fingerprints[0];deliveryUI.documentChanged();
   annotationUI.ready(documentId);
   updateReadingContext();
   const generation=docGeneration;

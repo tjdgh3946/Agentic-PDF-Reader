@@ -1,0 +1,154 @@
+{
+  "version": "0.14.1",
+  "date": "2026-10-22T02:15:45.136Z",
+  "scope": "Existing ChatGPT conversation via in-app browser and final installed EXE hosted MCP. First exact source/image payloads were seeded outside ChatGPT and withheld. This simulates lost evidence; actual internal context compaction was not forced. Model received no follow-up instructions between reference and recovery.",
+  "checks": {
+    "seedWithheldFromModel": true,
+    "referenceReturnedZeroCharacters": true,
+    "modelRereadSame512CharacterRange": true,
+    "modelSuppliedRereadReason": true,
+    "imageReferenceFirst": true,
+    "modelResentSameRegionAndRef": true,
+    "modelSuppliedResendReason": true,
+    "onlyOneRecoveryPerSource": true,
+    "noNewAnnotation": true,
+    "installedSourcesMatch": true
+  },
+  "noteCount": 8,
+  "seed": {
+    "selectionId": "ee9dce4d-2340-425d-8ce4-c57811434019",
+    "date": "2026-10-22T02:14:25.641Z",
+    "firstPayloadsWithheldFromChatGPT": true,
+    "textRef": "text-93e260e8-5aa0-4709-9ca1-8dfaeac1ffa5",
+    "textSha256": "5649431d6b96ced33e6cf2964f5376b23d4e668893f458d1464f253009bf7e93",
+    "imageRef": "image-41a6739e-81cf-4f1b-bbeb-9d8567f9917b",
+    "imageSha256": "67340cab8c1757c87d14bcfb1e4d87bf4f343ce0127e718deff58b2f5c32b85e"
+  },
+  "trace": [
+    {
+      "tool": "read_pdf",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-22T02:14:25.013Z",
+      "characters": 512,
+      "passages": [
+        {
+          "passageId": "p9.17",
+          "start": 2090,
+          "end": 2602
+        }
+      ]
+    },
+    {
+      "tool": "render_pdf_page",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-22T02:14:25.036Z",
+      "image": {
+        "page": 9,
+        "region": [
+          0.58,
+          0.08,
+          0.27,
+          0.22
+        ],
+        "width": 1897,
+        "height": 2000,
+        "zoom": 4.545454545454545,
+        "rotation": 0,
+        "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+        "imageRef": "image-41a6739e-81cf-4f1b-bbeb-9d8567f9917b",
+        "delivery": "image"
+      }
+    },
+    {
+      "tool": "read_pdf",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-22T02:14:50.934Z",
+      "characters": 0,
+      "passages": [
+        {
+          "passageId": "p9.17",
+          "start": 2090,
+          "end": 2602
+        }
+      ]
+    },
+    {
+      "tool": "render_pdf_page",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-22T02:14:51.284Z",
+      "image": {
+        "page": 9,
+        "region": [
+          0.58,
+          0.08,
+          0.27,
+          0.22
+        ],
+        "width": 1897,
+        "height": 2000,
+        "zoom": 4.545454545454545,
+        "rotation": 0,
+        "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+        "imageRef": "image-41a6739e-81cf-4f1b-bbeb-9d8567f9917b",
+        "delivery": "reference"
+      }
+    },
+    {
+      "tool": "render_pdf_page",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-22T02:14:59.040Z",
+      "image": {
+        "page": 9,
+        "region": [
+          0.58,
+          0.08,
+          0.27,
+          0.22
+        ],
+        "width": 1897,
+        "height": 2000,
+        "zoom": 4.545454545454545,
+        "rotation": 0,
+        "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+        "imageRef": "image-41a6739e-81cf-4f1b-bbeb-9d8567f9917b",
+        "delivery": "resend"
+      },
+      "reason": "Earlier exact source is unavailable or uncertain in current conversation context; recover it before answering."
+    },
+    {
+      "tool": "read_pdf",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-22T02:14:59.434Z",
+      "characters": 512,
+      "passages": [
+        {
+          "passageId": "p9.17",
+          "start": 2090,
+          "end": 2602
+        }
+      ],
+      "reason": "Earlier exact source is unavailable or uncertain in current conversation context; recover it before answering."
+    }
+  ],
+  "screenshot": "context-recovery-chatgpt-0.14.1.jpg",
+  "testsPassed": 155,
+  "installerSha256": "db534ebc3961ff1253d6a08ce130752ab18a264803f65de52007c732eb19916a"
+}

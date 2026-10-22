@@ -10,7 +10,7 @@
 </head>
 <body>
   <header>
-    <div class="app-brand"><strong>Agentic PDF Reader<span>0.14.0</span></strong><small>읽던 자리에서, 문맥과 함께 질문하기</small></div>
+    <div class="app-brand"><strong>Agentic PDF Reader<span>0.14.2</span></strong><small>읽던 자리에서, 문맥과 함께 질문하기</small></div>
     <section class="header-usage" aria-label="계정 사용량">
       <button class="usage-trigger" type="button" popovertarget="usage-popover" aria-label="계정 및 사용량 상세 보기">
         <span id="header-avatar" class="account-avatar" aria-hidden="true">P</span>
@@ -19,7 +19,7 @@
       </button>
       <p id="usage-account-warning" class="usage-warning" hidden>다른 Codex 계정의 사용량 · 상세 확인</p>
     </section>
-    <nav><button id="storage-notice-open" popovertarget="storage-popover" hidden>저장·복구 안내</button><button id="settings-open">환경 설정</button><button id="annotations-toggle" type="button" aria-controls="annotation-panel" aria-expanded="false">논문 노트 <span id="annotation-count">0</span></button><button id="open" class="primary">PDF 열기</button><input id="file" type="file" accept="application/pdf,.pdf" hidden></nav>
+    <nav><button id="storage-notice-open" popovertarget="storage-popover" hidden>저장·복구 안내</button><button id="settings-open">환경 설정</button><button id="delivery-open" type="button" aria-haspopup="dialog">자료 전달 기록</button><button id="annotations-toggle" type="button" aria-controls="annotation-panel" aria-expanded="false">논문 노트 <span id="annotation-count">0</span></button><button id="open" class="primary">PDF 열기</button><input id="file" type="file" accept="application/pdf,.pdf" hidden></nav>
   </header>
   <section id="usage-popover" class="usage-card" popover aria-label="계정 사용량 상세">
     <div class="usage-heading-row"><strong id="usage-heading">계정 및 사용량</strong><button type="button" popovertarget="usage-popover" popovertargetaction="hide" aria-label="사용량 상세 닫기">×</button></div>
@@ -55,6 +55,14 @@
 
     </aside>
   </main>
+  <dialog id="delivery-dialog" aria-labelledby="delivery-title">
+    <header class="delivery-header"><div><span class="delivery-eyebrow">READER · 도구 결과 반환 이력</span><h2 id="delivery-title">자료 전달 기록</h2></div><button id="delivery-close" type="button" aria-label="자료 전달 기록 닫기">닫기</button></header>
+    <p class="delivery-intro">Reader가 반환한 본문·검색 결과·PNG와 참조 응답을 확인합니다. 최종 수신 여부나 모델이 실제로 읽었는지를 증명하는 기록은 아닙니다.</p>
+    <div class="delivery-memory"><strong>ChatGPT의 현재 기억 상태</strong><span>Reader에서 확인할 수 없음</span><p>과거에 반환한 자료가 지금 모델 문맥에 남아 있는지는 알 수 없습니다.</p></div>
+    <div class="delivery-controls"><label>공유 질문<select id="delivery-share" aria-label="자료 전달 기록의 공유 질문"></select></label><label>표시 종류<select id="delivery-filter"><option value="all">전체 기록</option><option value="text">본문·검색 결과</option><option value="image">이미지</option><option value="reference">참조만 반환</option><option value="recovery">재읽기·재전송</option></select></label><button id="delivery-refresh" type="button">새로고침</button></div>
+    <p id="delivery-counts" class="delivery-counts"></p><p id="delivery-status" role="status"></p>
+    <div id="delivery-list" aria-label="Reader 자료 반환 목록"></div><p id="delivery-retention"></p>
+  </dialog>
   <section id="context-popover" class="workspace-popover" popover><h2>질문 문맥</h2><details class="composer-help"><summary>질문 도구·전송 도움말</summary><p id="reading-tools-hint" class="reading-tools-hint"></p><p id="visual-context-hint" class="context-hint" hidden>현재 요청에는 추출한 텍스트만 포함됩니다. 수식·그림은 위의 ‘페이지 PNG’로 저장해 ChatGPT에 함께 첨부하세요.</p></details><label for="manual-delivery">ChatGPT 전달 방식</label><select id="manual-delivery" aria-label="ChatGPT 전달 방식"><option value="link">ChatGPT Link</option><option value="clipboard">복사 후 붙여넣기</option></select>      <div class="mode-line"><strong id="mode-title">설정 확인 중</strong><span>· 자동 저장</span></div>        <details class="question-preview"><summary>질문 마크다운 미리보기</summary><div id="question-markdown-preview" class="markdown-body"></div></details>
       <section id="pdf-search-option"><label class="link-save-option"><input id="pdf-search" type="checkbox"> AI가 문맥 찾기 · PDF 전체/이미지</label><p id="pdf-search-description" class="context-hint">질문 당시 PDF를 공유해 검색과 이미지 읽기를 허용합니다.</p></section><div id="context-options-manual"><div class="context-options">
         <div><label for="pdf-window">PDF 문맥 범위 (window)</label><select id="pdf-window"><option value="auto">Auto · 질문에 맞게</option><option value="selection">선택 문장만</option><option value="page">선택 / 현재 페이지</option><option value="near1" selected>앞뒤 1페이지 포함</option><option value="near2">앞뒤 2페이지 포함</option><option value="all">전체 문서</option></select>

@@ -4,7 +4,7 @@ Paper Reader에서 선택한 문장을 ChatGPT 대화로 가져오고, 답변을
 
 ## 처음 연결하기
 
-1. 기존 Paper Reader 창을 종료한 뒤, **Agentic PDF Reader 0.14.0 EXE** 또는 저장소의 `npm run desktop`으로 실행합니다. 이전 버전이 실행 중이면 새 EXE도 기존 창을 활성화하므로 먼저 종료해야 합니다. 다른 PC에서 준비할 파일은 [개발 인수인계](../../docs/DEVELOPMENT-HANDOFF.md)를 참고하세요.
+1. 기존 Paper Reader 창을 종료한 뒤, **Agentic PDF Reader 0.14.2 EXE** 또는 저장소의 `npm run desktop`으로 실행합니다. 이전 버전이 실행 중이면 새 EXE도 기존 창을 활성화하므로 먼저 종료해야 합니다. 다른 PC에서 준비할 파일은 [개발 인수인계](../../docs/DEVELOPMENT-HANDOFF.md)를 참고하세요.
 2. [OpenAI Platform 터널 설정](https://platform.openai.com/settings/organization/tunnels)에 로그인하여 터널을 생성합니다. 사용할 **ChatGPT 워크스페이스를 연결**하고 터널 ID를 기록합니다. 생성에는 Tunnels **Read + Manage**, 실행에는 **Read + Use** 권한이 필요합니다.
 3. Platform에서 터널 실행용 API 키를 준비합니다. 이 키는 **채팅에 붙여넣지 마세요**. Link 연결용이며 모델 요청 코드는 포함하지 않습니다.
 4. 이 폴더의 **Start-Link.cmd**를 실행합니다. Node.js 20 이상이 필요합니다. 처음 한 번만 터널 ID와 실행 키를 입력합니다. 키는 숨김 입력으로 받아 Windows DPAPI(CurrentUser)로 암호화해 `%LOCALAPPDATA%\PaperReaderLink\credentials.json`에 저장합니다. 다음 실행부터 같은 Windows 계정에서 자동으로 불러옵니다. 기존 터널 프로필의 ID도 재사용합니다. 창을 닫으면 연결이 종료됩니다.
@@ -81,3 +81,6 @@ ChatGPT를 기본 모드로 사용합니다. 앱에서 직접 요청하는 방�
 `imageReturned:true`는 서버의 PNG 반환 기록이며 모델의 판독 완료를 뜻하지 않습니다. JavaScript/exec 결과에서 `content`가 문자열이면 `content_items`의 이미지 블록을 확인하세요. 표준 MCP는 `content` 배열입니다. 실제 `type:image` 블록을 실행 도구의 `image(block)` 함수로 표시해야 합니다. 원본 결과가 남아 있으면 먼저 표시하고, 없을 때만 이유를 적어 한 번 재전송하세요. Reader의 **이미지 다시 읽기**는 기존 대화를 유지합니다. 반복 재전송이나 텍스트만으로 색상 추측은 금지합니다.
 
 MCP 초기화 완료 알림: 앱과 Start-Link 실행기는 공식 `--mcp.stdio-send-initialized-notification` 옵션으로 성공한 초기화의 완료 알림을 즉시 보냅니다. 뒤늦은 중복 알림은 터널이 억제합니다. 재초기화 직후 다른 도구가 끼면서 발생하는 409를 방지하며, 초기화 절차 자체와 기존 공유 범위·인증 검사는 유지합니다.
+
+
+MCP 0.4.1은 참조 응답에 실행 가능한 contextRecovery.retry를 제공합니다. 이전 정확한 원문/픽셀을 볼 수 없거나 확실하지 않으면 답변 전에 재읽기·재전송하며, 복구 실패 시 추측하지 않도록 안내합니다. 최신 도구 설명을 받으려면 관리 → 도구 새로 고침을 사용할 수 있습니다. 기존 대화에도 새 서버의 참조 응답은 즉시 적용됩니다.

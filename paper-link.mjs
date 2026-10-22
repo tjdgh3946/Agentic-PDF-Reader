@@ -5,6 +5,16 @@ import {UserError} from './auth.mjs';
 import {validAnchor} from './annotation-geometry.mjs';
 import {recordEvidence} from './pdf-evidence.mjs';
 import {renderRegion} from './pdf-snapshots.mjs';
+import {sourceRecoveryGuide} from './link-question.mjs';
+import {deliveryEvent,validDelivery,appendDelivery,DELIVERY_LIMIT,TOTAL_DELIVERY_LIMIT,IMAGE_CACHE_LIMIT} from './delivery-history.mjs';
+
+function contextRecovery(method,args,sourceIncluded,missingReferences){
+  const keys=method==='render_pdf_page'?['selectionId','page','region']:method==='expand_pdf'?['selectionId','cursor','maxCharacters']:['selectionId','passageId','pages','maxCharacters'];
+  const parameters=Object.fromEntries(keys.filter(key=>args[key]!==undefined).map(key=>[key,args[key]]));
+  parameters[method==='render_pdf_page'?'resend':'reread']=true;
+  parameters.reason='Earlier exact source is unavailable or uncertain in current conversation context; recover it before answering.';
+  return {sourceIncluded,missingReferences,requiredIf:'Earlier exact source is inaccessible or availability is uncertain; a summary is insufficient.',instruction:sourceRecoveryGuide,retry:{tool:method,arguments:parameters},onFailure:'Report unavailable evidence; do not guess or repeat recovery in a loop.'};
+}
 
 const DAY=24*60*60*1000;
 const notePages=item=>[...new Set(item.anchors.map(anchor=>anchor.page))].sort((a,b)=>a-b);
@@ -65,9 +75,23 @@ export function createPaperLink({annotations,discoveryPath,getOrigin,pdfs,onSave
   const records=new Map();let enabled=false,token='',revision=0,lastContactAt=null,queue=Promise.resolve();
   let activeReads=0,archiveError=null,restoring,closePromise;
   const hydration=new Map();
+  const deliveredImages=new Map();
+  function trimImages(){
+    const keep=new Set([...records.values()].flatMap(record=>(record.deliveries||[]).flatMap(event=>event.items.map(item=>item.sha256).filter(Boolean))));
+    for(const id of deliveredImages.keys())if(!keep.has(id))deliveredImages.delete(id);
+    let size=[...deliveredImages.values()].reduce((n,bytes)=>n+bytes.length,0);
+    while(size>IMAGE_CACHE_LIMIT){const id=deliveredImages.keys().next().value;size-=deliveredImages.get(id).length;deliveredImages.delete(id);}
+  }
+  async function recordDelivery(record,method,args,value){
+    if(!['read_pdf','expand_pdf','render_pdf_page','search_pdf','query_pdf'].includes(method))return;
+    const {event,image}=deliveryEvent(method,value,now());if(args.reason)event.reason=args.reason;
+    appendDelivery(records,record,event);
+    if(image){deliveredImages.set(image.sha256,image.bytes);try{await archive?.putImage?.(image.sha256,image.bytes);}catch{event.imageCacheWarning=true;}}
+    trimImages();
+  }
   const expiryTimer=setInterval(()=>{if(enabled)serial(async()=>{prune();await persist();}).catch(()=>{});},60000);expiryTimer.unref?.();
   const serial=fn=>{const result=queue.then(fn);queue=result.catch(()=>{});return result;};
-  const prune=()=>{for(const [id,record] of records)if(now()-record.timestamp>=DAY){records.delete(id);if(record.snapshotId)pdfs?.unpin(record.snapshotId,id);}};
+  const prune=()=>{for(const [id,record] of records)if(now()-record.timestamp>=DAY){records.delete(id);if(record.snapshotId)pdfs?.unpin(record.snapshotId,id);}trimImages();};
   const archived=()=>[...records.values()].map(({images,textReads,trace,...record})=>({...record,images:[...images].filter(([,entry])=>!entry.pending),textReads:[...textReads],trace:[]}));
   async function persist(){if(!archive)return;try{await archive.save(archived());archiveError=[...records.values()].some(record=>record.cacheFailure)?'공유 PDF 복원 캐시 저장 실패 · 재시작 후 다시 공유해야 합니다.':null;}catch{archiveError='공유 복원 캐시 저장 실패 · 현재 실행 중에는 사용할 수 있지만 재시작 후에는 다시 공유해야 할 수 있습니다.';}}
   async function restore(){
@@ -80,7 +104,7 @@ export function createPaperLink({annotations,discoveryPath,getOrigin,pdfs,onSave
           validateSelection(item);
           if(!/^[a-f\d-]{36}$/i.test(item.selectionId)||!Number.isFinite(item.timestamp)||item.timestamp>now()||now()-item.timestamp>=DAY)continue;
           if(item.snapshotId&&!/^[a-f\d]{64}$/.test(item.snapshotId))continue;
-          const record={...item,trace:[],images:new Map(item.images||[]),textReads:new Map(item.textReads||[]),needsHydration:!!item.snapshotId,restored:true};
+          const record={...item,trace:[],deliveries:(item.deliveries||[]).filter(validDelivery).slice(-DELIVERY_LIMIT),images:new Map(item.images||[]),textReads:new Map(item.textReads||[]),needsHydration:!!item.snapshotId,restored:true};
           restored.push(record);
         }
         for(const record of restored)records.set(record.selectionId,record);
@@ -118,7 +142,7 @@ export function createPaperLink({annotations,discoveryPath,getOrigin,pdfs,onSave
   }
   async function disable({preserve=false}={}){
     if(preserve)await persist();else await archive?.clear();
-    const oldToken=token;enabled=false;token='';records.clear();lastContactAt=null;revision++;
+    const oldToken=token;enabled=false;token='';records.clear();deliveredImages.clear();lastContactAt=null;revision++;
     pdfs?.reset();
     try{const connection=JSON.parse(await readFile(discoveryPath,'utf8'));if(connection.token===oldToken)await unlink(discoveryPath);}
     catch(error){if(error.code!=='ENOENT')throw error;}
@@ -141,7 +165,7 @@ export function createPaperLink({annotations,discoveryPath,getOrigin,pdfs,onSave
     let previous;
     if(existing){
       previous=existing.pending?await existing.pending:existing;
-      if(!args.resend)return {metadata:previous.metadata,imageRef:previous.imageRef,delivery:'reference',imageReturned:false,advice:'This image was already returned for this selectionId; no PNG is repeated. Use the earlier image. For more detail request a smaller region in PAGE coordinates. If the earlier image is unavailable in conversation context, use resend:true with a specific reason.'};
+      if(!args.resend)return {metadata:previous.metadata,imageRef:previous.imageRef,delivery:'reference',imageReturned:false,contextRecovery:contextRecovery('render_pdf_page',{...args,region},false,[previous.imageRef]),advice:'NO IMAGE PIXELS IN THIS RESPONSE. A reference proves earlier delivery, not current visual access. If earlier pixels are missing or uncertain, execute contextRecovery.retry before describing the figure. A smaller region is for zoom, not recovery.'};
     }
     if(!existing&&record.images.size>=32)throw new UserError('이 공유의 이미지 영역은 최대 32개입니다. 필요한 자료만 새로 공유하세요.');
     const imageRef=existing?.imageRef||'image-'+randomUUID(),entry={imageRef};
@@ -188,7 +212,9 @@ export function createPaperLink({annotations,discoveryPath,getOrigin,pdfs,onSave
         if(value.characters&&usage.textCharacters>=24000&&!args.reason)throw budgetError();
         if(new Set([...record.textReads.keys(),...additions.map(([key])=>key)]).size>256)throw new UserError('읽기 이력 한도에 도달했습니다. 질문을 새로 공유하세요.',409);
         for(const [key,textRef] of additions)record.textReads.set(key,textRef);
-        value.advice='Repeated exact passage ranges return a textRef without text. Use earlier source. If it is no longer in conversation context, set reread:true with reason. To obtain missing adjacent evidence use before/after cursors with expand_pdf and a reason.';
+        const missing=value.pages.filter(page=>page.delivery==='reference').map(page=>page.textRef);
+        if(missing.length)value.contextRecovery=contextRecovery(method,args,value.characters>0,missing);
+        value.advice=missing.length?'REFERENCE RANGES CONTAIN NO SOURCE TEXT. A textRef is not evidence. If the exact earlier text is missing or uncertain, execute contextRecovery.retry before answering. Mixed responses still omit the referenced ranges.':'Read the returned exact source before answering. To obtain missing adjacent evidence use before/after cursors with expand_pdf and a reason.';
       }
       if(['read_pdf','expand_pdf'].includes(method))usage.textCharacters+=value.characters;
       if(method==='search_pdf')usage.textCharacters+=value.matches.reduce((n,item)=>n+item.excerpt.length,0);
@@ -200,8 +226,10 @@ export function createPaperLink({annotations,discoveryPath,getOrigin,pdfs,onSave
       if(['read_pdf','expand_pdf'].includes(method)||method==='render_pdf_page'&&value.imageReturned)recordEvidence(record.evidence,method,value,args);
       if(['read_pdf','expand_pdf'].includes(method)){event.characters=value.characters;event.passages=value.pages.map(p=>({passageId:p.passageId,start:p.start,end:p.end}));if(args.reason)event.reason=args.reason;}
       if(method==='render_pdf_page'){event.image={...value.metadata,imageRef:value.imageRef,delivery:value.delivery};if(args.resend)event.reason=args.reason;}
+      await recordDelivery(record,method,args,value);
+      if(!enabled||records.get(record.selectionId)!==record)throw new UserError('PDF 공유가 종료되었습니다.',410);
       revision++;await persist();return {selectionId:record.selectionId,fileName:record.fileName,...value};
-    }catch(error){event.state='error';revision++;throw error;}
+    }catch(error){event.state='error';if(['read_pdf','expand_pdf','render_pdf_page','search_pdf','query_pdf'].includes(method))appendDelivery(records,record,{id:randomUUID(),at:new Date(now()).toISOString(),method,state:'error',items:[],error:'도구 결과를 반환하지 못했습니다.'});revision++;throw error;}
     finally{activeReads--;}
   }
   async function readAnnotations(method,args){
@@ -228,6 +256,23 @@ export function createPaperLink({annotations,discoveryPath,getOrigin,pdfs,onSave
   }
   return {
     restore,
+    deliveries(documentId,selectionId){
+      prune();trimImages();
+      if(typeof documentId!=='string'||!documentId||documentId.length>160)throw new UserError('자료 전달 기록의 문서를 확인하세요.');
+      const shares=[...records.values()].filter(record=>record.documentId===documentId);
+      const result={meaning:'Reader 도구 결과 반환 기록입니다. ChatGPT의 최종 수신·실제 열람·현재 기억 상태는 확인할 수 없습니다.',limits:{perShare:DELIVERY_LIMIT,total:TOTAL_DELIVERY_LIMIT,imageBytes:IMAGE_CACHE_LIMIT,hours:24},shares:shares.map(record=>({selectionId:record.selectionId,fileName:record.fileName,question:record.question.slice(0,180),createdAt:record.createdAt,count:record.deliveries?.length||0,dropped:record.deliveryDropped||0}))};
+      if(selectionId){const record=getRecord(selectionId);if(record.documentId!==documentId)throw new UserError('다른 문서의 자료 전달 기록입니다.',409);result.selectionId=selectionId;result.events=structuredClone(record.deliveries||[]);result.dropped=record.deliveryDropped||0;}
+      return result;
+    },
+    async deliveryImage(documentId,selectionId,eventId){
+      const record=getRecord(selectionId);if(record.documentId!==documentId)throw new UserError('다른 문서의 전달 이미지입니다.',409);
+      const item=record.deliveries?.find(event=>event.id===eventId)?.items.find(item=>item.kind==='image'&&item.sha256);
+      if(!item)throw new UserError('이 항목에는 전달한 PNG가 없습니다. 참조 응답은 이미지 바이트를 포함하지 않습니다.',404);
+      let bytes=deliveredImages.get(item.sha256);try{bytes??=await archive?.readImage?.(item.sha256);}catch{}
+      if(!bytes||createHash('sha256').update(bytes).digest('hex')!==item.sha256)throw new UserError('보관 한도 또는 캐시 오류로 당시 PNG를 열 수 없습니다. 페이지·영역·해시 기록은 남아 있습니다. 다른 이미지로 대체하지 않았습니다.',410);
+      // Inspection is local only: never render/resend a new image or mutate usage.
+      return {mimeType:'image/png',data:bytes.toString('base64'),sha256:item.sha256,bytes:bytes.length};
+    },
     question(selectionId,documentId,question){const record=getRecord(selectionId);if(record.documentId!==documentId || record.question!==question)throw new UserError('질문 기록과 Link 공유 문서가 일치하지 않습니다.',409);return record.saved?{selectionId,documentId,annotationId:record.saved.id,note:record.saved.note}:null;},
     authorize(header){
       if(!enabled || typeof header!=='string')return false;

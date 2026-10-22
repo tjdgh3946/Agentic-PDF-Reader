@@ -111,3 +111,92 @@ test('scanned/mixed/damaged text exposes bounded quality metadata even on zero s
   assert.ok(found.advice.includes('render_pdf_page'));assert.ok((await f.first.link.call('render_pdf_page',{selectionId:f.shared.selectionId,page:1})).image);
   const bounded=textQuality(Array(1000).fill(''));assert.equal(bounded.lowTextPages.length,20);assert.equal(bounded.lowTextPageCount,1000);assert.equal(bounded.pageListTruncated,true);
 });
+
+
+test('reference recovery returns executable bounded requests for text, expansion and identical image',async t=>{
+  const f=await fixture(t),args={selectionId:f.shared.selectionId,passageId:'p1.1',maxCharacters:256};
+  const first=await f.first.link.call('read_pdf',args),reference=await f.first.link.call('read_pdf',args);
+  const plan=reference.contextRecovery;assert.equal(plan.sourceIncluded,false);assert.equal(reference.characters,0);
+  assert.deepEqual(plan.missingReferences,[first.pages[0].textRef]);assert.equal(plan.retry.tool,'read_pdf');
+  assert.deepEqual({...plan.retry.arguments,reason:undefined},{...args,reread:true,reason:undefined});
+  assert.match(plan.instruction,/missing OR.*uncertain/);assert.match(plan.instruction,/do not guess/);assert.match(plan.onFailure,/do not guess/);
+  const recovered=await f.first.link.call(plan.retry.tool,plan.retry.arguments);
+  assert.equal(recovered.pages[0].text,first.pages[0].text);assert.equal(recovered.pages[0].textRef,first.pages[0].textRef);assert.equal(recovered.contextRecovery,undefined);
+  const expansion={selectionId:args.selectionId,cursor:first.pages[0].after,maxCharacters:128,reason:'Read clipped conclusion.'};
+  const expanded=await f.first.link.call('expand_pdf',expansion),repeated=await f.first.link.call('expand_pdf',expansion);
+  assert.equal(repeated.contextRecovery.retry.tool,'expand_pdf');assert.equal(repeated.contextRecovery.retry.arguments.cursor,expansion.cursor);
+  assert.equal((await f.first.link.call('expand_pdf',repeated.contextRecovery.retry.arguments)).pages[0].text,expanded.pages[0].text);
+  const imageArgs={selectionId:args.selectionId,page:1,region:[.58,.08,.27,.22]};
+  const image=await f.first.link.call('render_pdf_page',imageArgs),duplicate=await f.first.link.call('render_pdf_page',imageArgs);
+  assert.equal(duplicate.image,undefined);assert.equal(duplicate.contextRecovery.sourceIncluded,false);
+  assert.deepEqual({...duplicate.contextRecovery.retry.arguments,reason:undefined},{...imageArgs,resend:true,reason:undefined});
+  const resent=await f.first.link.call('render_pdf_page',duplicate.contextRecovery.retry.arguments);
+  assert.ok(resent.image);assert.equal(resent.imageRef,image.imageRef);assert.equal(resent.delivery,'resend');
+  await f.first.link.setEnabled(false);
+  await assert.rejects(f.first.link.call(plan.retry.tool,plan.retry.arguments),/꺼져/);
+});
+
+test('mixed multi-page reads identify omitted references instead of claiming all evidence is present',async t=>{
+  const f=await fixture(t,{pages:['First kernel source.','Second kernel source.']});const args={selectionId:f.shared.selectionId,maxCharacters:256};
+  await f.first.link.call('read_pdf',{...args,passageId:'p1.1'});
+  const mixed=await f.first.link.call('read_pdf',{...args,pages:[1,2]});
+  assert.equal(mixed.pages[0].text,undefined);assert.equal(mixed.pages[1].text,'Second kernel source.');
+  assert.equal(mixed.contextRecovery.sourceIncluded,true);assert.equal(mixed.contextRecovery.missingReferences.length,1);
+  const retry=await f.first.link.call('read_pdf',mixed.contextRecovery.retry.arguments);
+  assert.equal(retry.pages[0].text,'First kernel source.');assert.equal(retry.pages[1].text,'Second kernel source.');
+});
+
+
+test('delivery history distinguishes actual source, references and recovery without exposing payloads in polling',async t=>{
+  const f=await fixture(t),id=f.shared.selectionId;
+  const args={selectionId:id,passageId:'p1.1',maxCharacters:256};
+  const first=await f.first.link.call('read_pdf',args);await f.first.link.call('read_pdf',args);await f.first.link.call('read_pdf',{...args,reread:true,reason:'Earlier source unavailable.'});
+  const imageArgs={selectionId:id,page:1,region:[.58,.08,.27,.22]};await f.first.link.call('render_pdf_page',imageArgs);await f.first.link.call('render_pdf_page',imageArgs);await f.first.link.call('render_pdf_page',{...imageArgs,resend:true,reason:'Earlier pixels unavailable.'});
+  const history=f.first.link.deliveries('abc123',id);assert.equal(history.events.length,6);
+  assert.deepEqual(history.events.map(e=>e.items[0].delivery),['text','reference','reread','image','reference','resend']);
+  assert.equal(history.events[0].items[0].text,first.pages[0].text);assert.equal(history.events[1].items[0].text,undefined);assert.equal(history.events[1].items[0].characters,0);assert.equal(history.events[4].items[0].sha256,undefined);
+  const statusBefore=JSON.stringify(f.first.link.status()),image=await f.first.link.deliveryImage('abc123',id,history.events[3].id);
+  assert.equal(image.data,'aGVsbG8=');assert.equal(JSON.stringify(f.first.link.status()),statusBefore,'Local preview must not contact the model or change trace/budget');
+  assert.equal(JSON.stringify(f.first.link.status()).includes(first.pages[0].text),false);
+  await assert.rejects(f.first.link.deliveryImage('abc123',id,history.events[4].id),/PNG/);
+  assert.throws(()=>f.first.link.deliveries('other-document',id),/다른 문서/);
+  await f.first.link.close();f.first.pdfs.close();const next=await f.boot();const restored=next.link.deliveries('abc123',id);
+  assert.equal(restored.events[0].items[0].text,first.pages[0].text);assert.equal((await next.link.deliveryImage('abc123',id,history.events[3].id)).sha256,image.sha256);
+  const files=await readdir(path.join(f.directory,'cache'));const encrypted=await readFile(path.join(f.directory,'cache',image.sha256+'.image.enc'));assert.equal(encrypted.includes(Buffer.from('hello')),false);
+  await next.link.setEnabled(false);assert.ok(!(await readdir(path.join(f.directory,'cache'))).some(name=>name.endsWith('.image.enc')));
+  await assert.rejects(next.link.deliveryImage('abc123',id,history.events[3].id),/해제|만료/);
+});
+
+test('delivery retention is bounded and missing cached PNG never silently renders a substitute',async t=>{
+  const f=await fixture(t),args={selectionId:f.shared.selectionId,page:1};
+  await f.first.link.call('render_pdf_page',args);const old=f.first.link.deliveries('abc123',args.selectionId).events[0];
+  for(let i=0;i<43;i++)await f.first.link.call('render_pdf_page',args);
+  const history=f.first.link.deliveries('abc123',args.selectionId);assert.equal(history.events.length,40);assert.equal(history.dropped,4);
+  await assert.rejects(f.first.link.deliveryImage('abc123',args.selectionId,old.id),/PNG/);
+  const {appendDelivery}=await import('../delivery-history.mjs');const records=new Map();
+  for(let r=0;r<6;r++){const item={deliveries:[]};records.set(String(r),item);for(let i=0;i<40;i++)appendDelivery(records,item,{id:r+'-'+i,at:new Date(r*1000+i).toISOString(),items:[]});}
+  assert.equal([...records.values()].reduce((n,r)=>n+r.deliveries.length,0),160);
+});
+
+
+test('disconnect during PNG archival cannot return a newly revoked image',async t=>{
+  const f=await fixture(t);let release,entered=false;const barrier=new Promise(resolve=>release=resolve);
+  f.first.archive.putImage=async()=>{entered=true;await barrier;};
+  const reading=f.first.link.call('render_pdf_page',{selectionId:f.shared.selectionId,page:1});
+  while(!entered)await new Promise(resolve=>setImmediate(resolve));
+  await f.first.link.setEnabled(false);release();await assert.rejects(reading,/종료/);
+  assert.equal(f.first.link.deliveries('abc123').shares.length,0);
+});
+
+test('damaged archived delivery PNG reports unavailability without rendering a replacement',async t=>{
+  const f=await fixture(t),id=f.shared.selectionId;await f.first.link.call('render_pdf_page',{selectionId:id,page:1});const event=f.first.link.deliveries('abc123',id).events[0];
+  await f.first.link.close();f.first.pdfs.close();const next=await f.boot(),loads=f.loads();
+  const file=path.join(f.directory,'cache',event.items[0].sha256+'.image.enc'),bytes=await readFile(file);bytes[30]^=1;await writeFile(file,bytes);
+  await assert.rejects(next.link.deliveryImage('abc123',id,event.id),/PNG.*열 수 없/);assert.equal(f.loads(),loads,'Do not replace the recorded PNG by rendering the PDF');
+});
+
+
+test('reference inspection selects the most recent preceding payload after a resend, not an older PNG',async()=>{
+  const {previousDelivery}=await import('../delivery-ui.mjs');const events=['image','reference','resend','reference'].map((delivery,id)=>({id:String(id),items:[{ref:'same-image',delivery}]}));
+  assert.equal(previousDelivery(events,'1','same-image').id,'0');assert.equal(previousDelivery(events,'3','same-image').id,'2');assert.equal(previousDelivery(events,'1','unknown'),undefined);
+});

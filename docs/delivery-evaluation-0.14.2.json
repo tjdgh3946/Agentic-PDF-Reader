@@ -1,0 +1,192 @@
+{
+  "version": "0.14.2",
+  "date": "2026-10-22T02:36:16.293Z",
+  "scope": "Real NTK PDF.js/MCP calls in isolated Reader, then in-app browser inspection. These are Reader return records, not proof of ChatGPT receipt or memory. No new ChatGPT model call was required for this UI test.",
+  "checks": {
+    "allKindsRecorded": true,
+    "exactSource512Characters": true,
+    "referenceFilterTwoRowsNoSourceOrPng": true,
+    "recoveryFilterTwoRows": true,
+    "recordedImagePreview1897x2000": true,
+    "referenceJumpToEarlierSource": true,
+    "previewChangedNoToolTrace": true,
+    "previewUsedNoImageBudget": true,
+    "memoryExplicitlyUnknown": true,
+    "noHeaderRejected": true,
+    "crossOriginRejected": true,
+    "otherDocumentRejected": true,
+    "referenceAfterResendLinksToMostRecentPayload": true
+  },
+  "api": {
+    "noHeader": 403,
+    "foreignOrigin": 403,
+    "allowed": 200,
+    "otherDocument": 409
+  },
+  "limits": {
+    "perShare": 40,
+    "total": 160,
+    "imageBytes": 33554432,
+    "hours": 24
+  },
+  "events": [
+    {
+      "id": "6224863d-310f-4b09-974e-50796c11956b",
+      "at": "2026-10-22T02:30:59.828Z",
+      "method": "search_pdf",
+      "state": "complete",
+      "items": [
+        {
+          "kind": "search",
+          "delivery": "text",
+          "characters": 208,
+          "pages": [
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "29cb6570-0a0b-46a7-8395-9979fd4eb822",
+      "at": "2026-10-22T02:30:59.830Z",
+      "method": "read_pdf",
+      "state": "complete",
+      "items": [
+        {
+          "kind": "text",
+          "delivery": "text",
+          "page": 9,
+          "passageId": "p9.17",
+          "start": 2090,
+          "end": 2602,
+          "ref": "text-e5a4795a-3d61-4eca-9b52-ff52fe9290b9",
+          "characters": 512
+        }
+      ]
+    },
+    {
+      "id": "4f13a670-baa1-4bb9-94c8-07b61590c4c8",
+      "at": "2026-10-22T02:30:59.830Z",
+      "method": "read_pdf",
+      "state": "complete",
+      "items": [
+        {
+          "kind": "text",
+          "delivery": "reference",
+          "page": 9,
+          "passageId": "p9.17",
+          "start": 2090,
+          "end": 2602,
+          "ref": "text-e5a4795a-3d61-4eca-9b52-ff52fe9290b9",
+          "characters": 0
+        }
+      ]
+    },
+    {
+      "id": "04ef03fc-04d2-4c31-af70-2cef46418cdb",
+      "at": "2026-10-22T02:30:59.831Z",
+      "method": "read_pdf",
+      "state": "complete",
+      "reason": "Earlier exact source is unavailable or uncertain in current conversation context; recover it before answering.",
+      "items": [
+        {
+          "kind": "text",
+          "delivery": "reread",
+          "page": 9,
+          "passageId": "p9.17",
+          "start": 2090,
+          "end": 2602,
+          "ref": "text-e5a4795a-3d61-4eca-9b52-ff52fe9290b9",
+          "characters": 512
+        }
+      ]
+    },
+    {
+      "id": "37244541-ea66-4b88-ac2f-9069bb3fb4ba",
+      "at": "2026-10-22T02:31:00.192Z",
+      "method": "render_pdf_page",
+      "state": "complete",
+      "items": [
+        {
+          "kind": "image",
+          "delivery": "image",
+          "ref": "image-2cf905ad-7b03-4d6f-aebd-df1363372940",
+          "page": 9,
+          "region": [
+            0.58,
+            0.08,
+            0.27,
+            0.22
+          ],
+          "width": 1897,
+          "height": 2000,
+          "zoom": 4.545454545454545,
+          "rotation": 0,
+          "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+          "sha256": "85a545acb8f0483a7888a568a0c613520bdbd4d66b47b4c325cbfd944a7a981f",
+          "bytes": 295987
+        }
+      ]
+    },
+    {
+      "id": "06a6c68c-f913-4dfa-a0af-9d6d5cc8d168",
+      "at": "2026-10-22T02:31:00.194Z",
+      "method": "render_pdf_page",
+      "state": "complete",
+      "items": [
+        {
+          "kind": "image",
+          "delivery": "reference",
+          "ref": "image-2cf905ad-7b03-4d6f-aebd-df1363372940",
+          "page": 9,
+          "region": [
+            0.58,
+            0.08,
+            0.27,
+            0.22
+          ],
+          "width": 1897,
+          "height": 2000,
+          "zoom": 4.545454545454545,
+          "rotation": 0,
+          "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation"
+        }
+      ]
+    },
+    {
+      "id": "850260f9-0405-49c1-a29d-b7abc75c1e6c",
+      "at": "2026-10-22T02:31:00.273Z",
+      "method": "render_pdf_page",
+      "state": "complete",
+      "reason": "Earlier exact source is unavailable or uncertain in current conversation context; recover it before answering.",
+      "items": [
+        {
+          "kind": "image",
+          "delivery": "resend",
+          "ref": "image-2cf905ad-7b03-4d6f-aebd-df1363372940",
+          "page": 9,
+          "region": [
+            0.58,
+            0.08,
+            0.27,
+            0.22
+          ],
+          "width": 1897,
+          "height": 2000,
+          "zoom": 4.545454545454545,
+          "rotation": 0,
+          "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+          "sha256": "b6b52add9ef7a1781d02b7d446f39fc4258904bc9c5c348a0bcf4e116d607fc0",
+          "bytes": 296145
+        }
+      ]
+    }
+  ],
+  "testsPassed": 160,
+  "screenshots": [
+    "delivery-references-0.14.2.jpg",
+    "delivery-recovery-0.14.2.jpg",
+    "delivery-text-0.14.2.jpg",
+    "delivery-image-preview-0.14.2.jpg"
+  ]
+}

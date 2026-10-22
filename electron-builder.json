@@ -61,7 +61,7 @@
     "pdf-render-recovery.mjs",
     "pdf-renderer.html",
     "pdf-renderer.mjs",
-    "pdf-renderer-preload.cjs","share-archive.mjs","reliable-json.mjs","draft-session.mjs","pdf-text-quality.mjs"
+    "pdf-renderer-preload.cjs","share-archive.mjs","reliable-json.mjs","delivery-history.mjs","delivery-ui.mjs","draft-session.mjs","pdf-text-quality.mjs"
   ],
   "win": {
     "target": [

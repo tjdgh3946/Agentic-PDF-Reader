@@ -78,6 +78,8 @@ export function createAppServer(auth,{pdfRenderer,shareArchive,openBrowser=launc
         if(url.pathname==='/api/reading' && req.method==='GET'){json(res,(await readingReady).get(url.searchParams.get('documentId')));return;}
         if(url.pathname==='/api/reading' && req.method==='POST'){const input=await bodyJSON(req);json(res,await (await readingReady).set(input.documentId,input));return;}
         if(url.pathname==='/api/link/status' && req.method==='GET'){json(res,link.status());return;}
+        if(url.pathname==='/api/link/deliveries'&&req.method==='GET'){json(res,link.deliveries(url.searchParams.get('documentId'),url.searchParams.get('selectionId')));return;}
+        if(url.pathname==='/api/link/delivery-image'&&req.method==='GET'){json(res,await link.deliveryImage(url.searchParams.get('documentId'),url.searchParams.get('selectionId'),url.searchParams.get('eventId')));return;}
         if(url.pathname==='/api/link/enable' && req.method==='POST'){json(res,await link.setEnabled((await bodyJSON(req)).enabled));return;}
         if(url.pathname==='/api/link/share' && req.method==='POST'){json(res,await link.share(await bodyJSON(req)));return;}
         if(url.pathname==='/api/auto-context' && req.method==='POST') {
@@ -220,7 +222,7 @@ export function createAppServer(auth,{pdfRenderer,shareArchive,openBrowser=launc
       if(!['GET','HEAD'].includes(req.method)) {res.writeHead(405).end();return;}
       const urlPath=decodeURIComponent(url.pathname);
       const relativePath=urlPath==='/'?'index.html':urlPath.slice(1);
-      if(!['draft-session.mjs','setup.html','setup.mjs','setup.css','pdf-renderer.html','pdf-renderer.mjs','pdf-text.mjs','index.html','app.css','app.mjs','link-ui.mjs','link-question.mjs','web-panel-ui.mjs','annotation-ui.mjs','annotation-geometry.mjs','pdf-evidence.mjs','reading-tools.mjs','reading-restore.mjs','annotation-overlay.css','auto-context.mjs','context.mjs','help.mjs','ui.css','notes.css','auth-page.css','markdown.bundle.mjs'].includes(relativePath) && !relativePath.startsWith('pdfjs/') && !relativePath.startsWith('vendor/katex/')) throw new UserError('Not found',404);
+      if(!['delivery-ui.mjs','draft-session.mjs','setup.html','setup.mjs','setup.css','pdf-renderer.html','pdf-renderer.mjs','pdf-text.mjs','index.html','app.css','app.mjs','link-ui.mjs','link-question.mjs','web-panel-ui.mjs','annotation-ui.mjs','annotation-geometry.mjs','pdf-evidence.mjs','reading-tools.mjs','reading-restore.mjs','annotation-overlay.css','auto-context.mjs','context.mjs','help.mjs','ui.css','notes.css','auth-page.css','markdown.bundle.mjs'].includes(relativePath) && !relativePath.startsWith('pdfjs/') && !relativePath.startsWith('vendor/katex/')) throw new UserError('Not found',404);
       let file=path.resolve(root,relativePath);
       const relative=path.relative(root,file);
       if(relative.startsWith('..') || path.isAbsolute(relative) || (relativePath.startsWith('pdfjs/') && !relative.replaceAll('\\','/').startsWith('pdfjs/')) || (relativePath.startsWith('vendor/katex/') && !relative.replaceAll('\\','/').startsWith('vendor/katex/'))) throw new UserError('Not found',404);

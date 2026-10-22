@@ -76,6 +76,6 @@ test('MCP duplicate contains no image content but a different crop provides a re
   const client=new Client({name:'image-reuse-test',version:'1'}),[a,b]=InMemoryTransport.createLinkedPair();await server.connect(a);await client.connect(b);t.after(()=>client.close());
   const args={selectionId:shared.selectionId,page:9};
   const first=await client.callTool({name:'render_pdf_page',arguments:args}),repeat=await client.callTool({name:'render_pdf_page',arguments:args});
-  assert.equal(first.content.filter(x=>x.type==='image').length,1);assert.equal(repeat.content.filter(x=>x.type==='image').length,0);assert.match(repeat.content[0].text,/already returned/);assert.equal(repeat.structuredContent.imageRef,first.structuredContent.imageRef);
+  assert.equal(first.content.filter(x=>x.type==='image').length,1);assert.equal(repeat.content.filter(x=>x.type==='image').length,0);assert.match(repeat.content[0].text,/REFERENCE ONLY/);assert.equal(repeat.structuredContent.imageRef,first.structuredContent.imageRef);
   assert.equal((await client.callTool({name:'render_pdf_page',arguments:{...args,region:[.6,.1,.3,.2]}})).content.filter(x=>x.type==='image').length,1);
 });

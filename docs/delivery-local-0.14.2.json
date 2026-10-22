@@ -1,0 +1,177 @@
+{
+  "version": "0.14.2",
+  "date": "2026-10-22T02:30:58.961Z",
+  "scope": "Real NTK PDF.js + SQLite + MCP envelopes in an isolated store. Earlier payloads are deliberately discarded; this simulates unavailable evidence, not actual ChatGPT compaction.",
+  "checks": {
+    "referenceContainsNoText": true,
+    "textRecoveryPreservesExactRange": true,
+    "textRecoveryHashMatches": true,
+    "referenceContainsNoImage": true,
+    "imageResendPreservesRegionAndRef": true,
+    "eachDeliveredPngMatchesItsRecordedHash": true,
+    "originalPdfUnchanged": true,
+    "noNotesWritten": true
+  },
+  "text": {
+    "passageId": "p9.17",
+    "characters": 512,
+    "textRef": "text-e5a4795a-3d61-4eca-9b52-ff52fe9290b9",
+    "sha256": "5649431d6b96ced33e6cf2964f5376b23d4e668893f458d1464f253009bf7e93"
+  },
+  "image": {
+    "page": 9,
+    "region": [
+      0.58,
+      0.08,
+      0.27,
+      0.22
+    ],
+    "width": 1897,
+    "height": 2000,
+    "zoom": 4.545454545454545,
+    "rotation": 0,
+    "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+    "imageRef": "image-2cf905ad-7b03-4d6f-aebd-df1363372940",
+    "sha256": "b6b52add9ef7a1781d02b7d446f39fc4258904bc9c5c348a0bcf4e116d607fc0",
+    "firstSha256": "85a545acb8f0483a7888a568a0c613520bdbd4d66b47b4c325cbfd944a7a981f"
+  },
+  "trace": [
+    {
+      "tool": "search_pdf",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-22T02:30:59.826Z"
+    },
+    {
+      "tool": "read_pdf",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-22T02:30:59.829Z",
+      "characters": 512,
+      "passages": [
+        {
+          "passageId": "p9.17",
+          "start": 2090,
+          "end": 2602
+        }
+      ]
+    },
+    {
+      "tool": "read_pdf",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-22T02:30:59.830Z",
+      "characters": 0,
+      "passages": [
+        {
+          "passageId": "p9.17",
+          "start": 2090,
+          "end": 2602
+        }
+      ]
+    },
+    {
+      "tool": "read_pdf",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-22T02:30:59.831Z",
+      "characters": 512,
+      "passages": [
+        {
+          "passageId": "p9.17",
+          "start": 2090,
+          "end": 2602
+        }
+      ],
+      "reason": "Earlier exact source is unavailable or uncertain in current conversation context; recover it before answering."
+    },
+    {
+      "tool": "render_pdf_page",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-22T02:30:59.831Z",
+      "image": {
+        "page": 9,
+        "region": [
+          0.58,
+          0.08,
+          0.27,
+          0.22
+        ],
+        "width": 1897,
+        "height": 2000,
+        "zoom": 4.545454545454545,
+        "rotation": 0,
+        "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+        "imageRef": "image-2cf905ad-7b03-4d6f-aebd-df1363372940",
+        "delivery": "image"
+      }
+    },
+    {
+      "tool": "render_pdf_page",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-22T02:31:00.194Z",
+      "image": {
+        "page": 9,
+        "region": [
+          0.58,
+          0.08,
+          0.27,
+          0.22
+        ],
+        "width": 1897,
+        "height": 2000,
+        "zoom": 4.545454545454545,
+        "rotation": 0,
+        "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+        "imageRef": "image-2cf905ad-7b03-4d6f-aebd-df1363372940",
+        "delivery": "reference"
+      }
+    },
+    {
+      "tool": "render_pdf_page",
+      "state": "complete",
+      "pages": [
+        9
+      ],
+      "at": "2026-10-22T02:31:00.194Z",
+      "image": {
+        "page": 9,
+        "region": [
+          0.58,
+          0.08,
+          0.27,
+          0.22
+        ],
+        "width": 1897,
+        "height": 2000,
+        "zoom": 4.545454545454545,
+        "rotation": 0,
+        "coordinates": "top-left 0–1 on intrinsic PDF rotation; independent of viewer rotation",
+        "imageRef": "image-2cf905ad-7b03-4d6f-aebd-df1363372940",
+        "delivery": "resend"
+      },
+      "reason": "Earlier exact source is unavailable or uncertain in current conversation context; recover it before answering."
+    },
+    {
+      "tool": "list_annotations",
+      "state": "complete",
+      "pages": [],
+      "at": "2026-10-22T02:31:00.278Z",
+      "annotationPages": []
+    }
+  ]
+}
